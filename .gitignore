@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Training artifacts
+catboost_info/
+
+# Logs
+*.log
+
+# Data
+data/raw/*.csv
+data/processed/*.parquet
+data/predictions/*.json
+data/snapshots/*.json
+data/sofascore/*.sqlite
+data/sofascore/*.json
+data/fixtures_*.json
+data/monitoring/*.json
+data/backtests/*.json
+models/*.cbm
+models/*.joblib
+models/*.pt
+models/*.onnx
+models/*.features.txt
+
+# IDE
+.idea/
+*.swp
+*.swo
+.DS_Store
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Web (Next.js)
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local
+web/.turbo/
+web/next-env.d.ts.bak

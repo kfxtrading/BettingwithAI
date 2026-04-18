@@ -1,0 +1,625 @@
+"""
+Football Betting Model CLI — v0.3.
+
+Commands:
+    fb download          — Fetch football-data.co.uk CSVs
+    fb rate              — Show pi-ratings top-N
+    fb train             — Train CatBoost + calibrator
+    fb train-mlp         — Train PyTorch MLP (v0.3)
+    fb predict           — Predict fixtures from JSON
+    fb backtest          — Walk-forward backtest
+    fb tune-ensemble     — Dirichlet-sampled weight tuning
+    fb scrape            — Scrape Sofascore xG + lineups (v0.3)
+    fb monitor           — Feature drift report (v0.3)
+    fb export-onnx       — Export MLP to ONNX (v0.3)
+    fb update-results    — Update prediction log
+    fb stats             — Show betting performance
+    fb snapshot          — Generate JSON snapshot for the web UI
+    fb serve             — Run the FastAPI server for the web UI
+"""
+from __future__ import annotations
+
+import json
+import time
+from pathlib import Path
+
+import click
+import pandas as pd
+from rich.console import Console
+from rich.progress import Progress
+from rich.table import Table
+
+from football_betting.betting.value import find_value_bets, rank_value_bets
+from football_betting.config import LEAGUES, MODELS_DIR, SOFASCORE_DIR
+from football_betting.data.downloader import download_all
+from football_betting.data.loader import load_league
+from football_betting.data.models import Fixture, MatchOdds
+from football_betting.data.odds_snapshots import (
+    append_snapshot as append_odds_snapshot,
+    load_into_tracker as load_odds_snapshots,
+)
+from football_betting.features.builder import FeatureBuilder
+from football_betting.predict.catboost_model import CatBoostPredictor
+from football_betting.predict.ensemble import EnsembleModel
+from football_betting.predict.mlp_model import MLPPredictor
+from football_betting.predict.poisson import PoissonModel
+from football_betting.rating.pi_ratings import PiRatings
+from football_betting.scraping.sofascore import SofascoreClient
+from football_betting.tracking.backtest import Backtester
+from football_betting.tracking.monitoring import DriftDetector
+from football_betting.tracking.tracker import PredictionRecord, ResultsTracker
+
+console = Console()
+
+
+@click.group()
+@click.version_option("0.3.0")
+def main() -> None:
+    """Football Betting Model v0.3 — CatBoost + MLP + pi-Ratings + Sofascore xG."""
+
+
+# ───────────────────────── download ─────────────────────────
+
+@main.command()
+@click.option("--league", "-l", type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False), default="all")
+@click.option("--seasons", "-s", multiple=True,
+              default=("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+@click.option("--force", is_flag=True)
+def download(league: str, seasons: tuple[str, ...], force: bool) -> None:
+    """Download football-data.co.uk historical CSVs."""
+    keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+    download_all(league_keys=keys, seasons=list(seasons), force=force)
+
+
+# ───────────────────────── rate ─────────────────────────
+
+@main.command()
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option("--top", "-n", default=10)
+def rate(league: str, top: int) -> None:
+    """Show pi-ratings top-N."""
+    league = league.upper()
+    matches = load_league(league)
+    ratings = PiRatings()
+    ratings.fit(matches)
+
+    table = Table(title=f"Pi-Ratings — {LEAGUES[league].name}")
+    table.add_column("Rank", justify="right")
+    table.add_column("Team")
+    table.add_column("Home", justify="right")
+    table.add_column("Away", justify="right")
+    table.add_column("Overall", justify="right")
+    for rank, (team, r) in enumerate(ratings.top_n(top), 1):
+        table.add_row(str(rank), team, f"{r.home:+.3f}", f"{r.away:+.3f}", f"{r.overall:+.3f}")
+    console.print(table)
+
+
+# ───────────────────────── scrape (v0.3) ─────────────────────────
+
+@main.command()
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option("--seasons", "-s", multiple=True, default=("2024-25", "2025-26"))
+@click.option("--with-stats/--no-stats", default=True, help="Also fetch xG + lineups per match")
+@click.option("--max-matches", default=None, type=int, help="Limit for testing")
+def scrape(league: str, seasons: tuple[str, ...], with_stats: bool, max_matches: int | None) -> None:
+    """Scrape Sofascore data for xG + lineups (v0.3)."""
+    league = league.upper()
+    client = SofascoreClient()
+
+    if not client.cfg.enabled:
+        console.print(
+            "[red]Sofascore scraping disabled.[/red]\n"
+            "Enable with: export SCRAPING_ENABLED=1"
+        )
+        raise click.Abort()
+
+    console.log(f"[yellow]Note: Waiting {client.cfg.request_delay_seconds}s between requests[/yellow]")
+
+    for season in seasons:
+        console.rule(f"[bold cyan]Scraping {LEAGUES[league].name} — {season}[/bold cyan]")
+
+        # Get all events for season
+        events = client.get_season_events(league, season)
+        console.log(f"Found {len(events)} events")
+
+        if max_matches:
+            events = events[:max_matches]
+
+        matches = []
+        with Progress(console=console) as progress:
+            task = progress.add_task("Scraping matches…", total=len(events))
+            for event in events:
+                match = client.parse_match(event)
+                if match is None:
+                    progress.advance(task)
+                    continue
+                if with_stats and match.status == "finished":
+                    match = client.enrich_match_with_stats(match)
+                matches.append(match)
+                progress.advance(task)
+
+        path = client.save_matches(matches, league, season)
+        console.log(f"[green]Saved: {path}[/green]")
+
+    # Show cache stats
+    stats = client.cache.stats()
+    console.print(
+        f"[dim]Cache: {stats['entries']} entries, "
+        f"{stats['total_bytes'] / 1024 / 1024:.1f} MB[/dim]"
+    )
+
+
+# ───────────────────────── train ─────────────────────────
+
+@main.command()
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option("--seasons", "-s", multiple=True,
+              default=("2021-22", "2022-23", "2023-24", "2024-25"))
+@click.option("--warmup", default=100)
+@click.option("--calibrate/--no-calibrate", default=True)
+@click.option("--use-sofascore/--no-sofascore", default=True,
+              help="Ingest pre-scraped Sofascore data if present")
+def train(league: str, seasons: tuple[str, ...], warmup: int, calibrate: bool,
+          use_sofascore: bool) -> None:
+    """Train CatBoost + calibrator."""
+    league = league.upper()
+    matches = load_league(league, seasons=list(seasons))
+
+    fb = FeatureBuilder()
+
+    # Stage Sofascore data — consumed chronologically in build_training_data
+    if use_sofascore:
+        total_staged = 0
+        for season in seasons:
+            sf_data = SofascoreClient.load_matches(league, season)
+            if sf_data:
+                total_staged += fb.stage_sofascore_batch(sf_data)
+        if total_staged > 0:
+            console.log(f"[green]Staged Sofascore data: {total_staged} matches[/green]")
+        else:
+            console.log("[yellow]No Sofascore data found — using xG proxy[/yellow]")
+
+    predictor = CatBoostPredictor(feature_builder=fb)
+    console.log(f"[cyan]Training CatBoost for {LEAGUES[league].name}…[/cyan]")
+    result = predictor.fit(matches, warmup_games=warmup, calibrate=calibrate)
+
+    model_path = MODELS_DIR / f"catboost_{league}.cbm"
+    predictor.save(model_path)
+    console.log(f"[green]Model saved: {model_path}[/green]")
+
+    console.print("\n[bold]Training summary[/bold]")
+    console.print(f"  Samples: train={result['n_train']}, val={result['n_val']}")
+    console.print(f"  Features: {result['n_features']}")
+
+    table = Table(title="Top 15 features")
+    table.add_column("Feature")
+    table.add_column("Importance", justify="right")
+    for feat, imp in result["feature_importance"][:15]:
+        table.add_row(feat, f"{imp:.2f}")
+    console.print(table)
+
+
+# ───────────────────────── train-mlp (v0.3) ─────────────────────────
+
+@main.command("train-mlp")
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option("--seasons", "-s", multiple=True,
+              default=("2021-22", "2022-23", "2023-24", "2024-25"))
+@click.option("--warmup", default=100)
+def train_mlp(league: str, seasons: tuple[str, ...], warmup: int) -> None:
+    """Train PyTorch MLP classifier (v0.3)."""
+    league = league.upper()
+    matches = load_league(league, seasons=list(seasons))
+
+    fb = FeatureBuilder()
+    for season in seasons:
+        sf_data = SofascoreClient.load_matches(league, season)
+        if sf_data:
+            fb.stage_sofascore_batch(sf_data)
+
+    mlp = MLPPredictor(feature_builder=fb)
+    console.log(f"[cyan]Training MLP for {LEAGUES[league].name}…[/cyan]")
+    result = mlp.fit(matches, warmup_games=warmup)
+
+    path = MODELS_DIR / f"mlp_{league}.pt"
+    mlp.save(path)
+    console.log(f"[green]MLP saved: {path}[/green]")
+    console.print(f"  n_train={result['n_train']}, n_val={result['n_val']}")
+    console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
+
+
+# ───────────────────────── export-onnx (v0.3) ─────────────────────────
+
+@main.command("export-onnx")
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+def export_onnx(league: str) -> None:
+    """Export trained MLP to ONNX format."""
+    league = league.upper()
+    model_path = MODELS_DIR / f"mlp_{league}.pt"
+    if not model_path.exists():
+        console.print(f"[red]No MLP at {model_path}[/red]")
+        raise click.Abort()
+
+    fb = FeatureBuilder()
+    mlp = MLPPredictor(feature_builder=fb)
+    mlp.load(model_path)
+
+    onnx_path = MODELS_DIR / f"mlp_{league}.onnx"
+    mlp.export_onnx(onnx_path)
+
+
+# ───────────────────────── predict ─────────────────────────
+
+@main.command()
+@click.option("--fixtures", "-f", required=True, type=click.Path(exists=True))
+@click.option("--bankroll", "-b", default=1000.0)
+@click.option("--save/--no-save", default=True)
+def predict(fixtures: str, bankroll: float, save: bool) -> None:
+    """Predict fixtures from a JSON file."""
+    fixtures_data = json.loads(Path(fixtures).read_text())
+    by_league: dict[str, list[dict]] = {}
+    for fd in fixtures_data:
+        by_league.setdefault(fd["league"], []).append(fd)
+
+    tracker = ResultsTracker() if save else None
+    if tracker:
+        tracker.load()
+
+    all_bets = []
+    for league_key, league_fixtures in by_league.items():
+        console.rule(f"[bold cyan]{LEAGUES[league_key].name}[/bold cyan]")
+        matches = load_league(league_key)
+        fb = FeatureBuilder()
+        # Stage Sofascore BEFORE replay → consumed chronologically by fit_on_history
+        for season in {m.season for m in matches}:
+            sf_data = SofascoreClient.load_matches(league_key, season)
+            if sf_data:
+                fb.stage_sofascore_batch(sf_data)
+        fb.fit_on_history(matches)
+
+        # Persist current odds + reload full history into market tracker
+        for fd in league_fixtures:
+            if fd.get("odds"):
+                try:
+                    append_odds_snapshot(
+                        league_key,
+                        fd["home_team"],
+                        fd["away_team"],
+                        str(fd["date"]),
+                        MatchOdds(**fd["odds"]),
+                    )
+                except Exception as exc:
+                    console.log(
+                        f"[yellow]Skip odds snapshot for "
+                        f"{fd['home_team']} vs {fd['away_team']}: {exc}[/yellow]"
+                    )
+        load_odds_snapshots(league_key, fb.market_tracker, only_future=True)
+
+        model_path = MODELS_DIR / f"catboost_{league_key}.cbm"
+        if model_path.exists():
+            cb = CatBoostPredictor.for_league(league_key, fb)
+            poisson = PoissonModel(pi_ratings=fb.pi_ratings)
+            mlp = MLPPredictor.for_league(league_key, fb)
+            model = EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
+            console.log(f"[green]Using Ensemble{' (with MLP)' if mlp else ''}[/green]")
+        else:
+            model = PoissonModel(pi_ratings=fb.pi_ratings)
+            console.log("[yellow]No CatBoost — using Poisson baseline[/yellow]")
+
+        for fd in league_fixtures:
+            odds = MatchOdds(**fd["odds"]) if "odds" in fd else None
+            fixture = Fixture(
+                date=fd["date"], league=league_key,
+                home_team=fd["home_team"], away_team=fd["away_team"],
+                odds=odds,
+                season=fd.get("season"),
+            )
+            pred = model.predict(fixture)
+            bets = find_value_bets(pred, bankroll)
+            all_bets.extend(bets)
+
+            console.print(
+                f"\n⚽ [bold]{fixture.home_team}[/bold] vs [bold]{fixture.away_team}[/bold]"
+            )
+            console.print(
+                f"   Model: H={pred.prob_home * 100:.1f}% / "
+                f"D={pred.prob_draw * 100:.1f}% / A={pred.prob_away * 100:.1f}%"
+            )
+            if odds:
+                console.print(
+                    f"   Odds:  {odds.home:.2f} / {odds.draw:.2f} / {odds.away:.2f} "
+                    f"(margin {odds.margin * 100:.1f}%)"
+                )
+
+            if save and tracker is not None:
+                rec = PredictionRecord(
+                    date=fixture.date.isoformat(), league=league_key,
+                    home_team=fixture.home_team, away_team=fixture.away_team,
+                    model_name=pred.model_name,
+                    prob_home=pred.prob_home, prob_draw=pred.prob_draw, prob_away=pred.prob_away,
+                    odds_home=odds.home if odds else None,
+                    odds_draw=odds.draw if odds else None,
+                    odds_away=odds.away if odds else None,
+                )
+                if bets:
+                    best = max(bets, key=lambda b: b.edge)
+                    rec.bet_outcome = best.outcome
+                    rec.bet_odds = best.odds
+                    rec.bet_stake = best.kelly_stake
+                    rec.bet_edge = best.edge
+                    rec.bet_status = "pending"
+                tracker.add(rec)
+
+    console.rule("[bold green]VALUE BETS[/bold green]")
+    if all_bets:
+        ranked = rank_value_bets(all_bets)
+        table = Table()
+        table.add_column("#", justify="right"); table.add_column("Match")
+        table.add_column("Bet"); table.add_column("Odds", justify="right")
+        table.add_column("Model", justify="right"); table.add_column("Edge", justify="right")
+        table.add_column("Stake", justify="right"); table.add_column("Conf.")
+        for i, b in enumerate(ranked, 1):
+            table.add_row(
+                str(i), f"{b.home_team} vs {b.away_team}",
+                b.bet_label, f"{b.odds:.2f}",
+                f"{b.model_prob * 100:.1f}%", f"{b.edge_pct:+.1f}%",
+                f"{b.kelly_stake:.2f}", b.confidence,
+            )
+        console.print(table)
+    else:
+        console.print("[yellow]No value bets identified.[/yellow]")
+
+    if save and tracker is not None:
+        tracker.save()
+
+
+# ───────────────────────── backtest ─────────────────────────
+
+@main.command()
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option("--bankroll", default=1000.0)
+@click.option("--no-ensemble", is_flag=True)
+def backtest(league: str, bankroll: float, no_ensemble: bool) -> None:
+    """Walk-forward backtest."""
+    league = league.upper()
+    bt = Backtester(initial_bankroll=bankroll, use_ensemble=not no_ensemble)
+    result = bt.run(league)
+
+    console.rule(f"[bold green]Backtest — {LEAGUES[league].name}[/bold green]")
+    console.print(f"  Predictions: {result.n_predictions}")
+    console.print(f"  Bets placed: {result.n_bets}")
+    console.print(f"  Bankroll final: {result.bankroll_final:.2f}")
+    console.print(f"  Max drawdown: {result.max_drawdown['max_drawdown_pct'] * 100:.1f}%")
+
+    table = Table(title="Metrics")
+    table.add_column("Metric"); table.add_column("Value", justify="right")
+    for k, v in {**result.metrics, **result.bet_metrics}.items():
+        table.add_row(k, f"{v:.4f}" if isinstance(v, float) else str(v))
+    console.print(table)
+
+    result.save()
+
+
+# ───────────────────────── tune-ensemble ─────────────────────────
+
+@main.command("tune-ensemble")
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option("--val-season", default="2024-25")
+def tune_ensemble(league: str, val_season: str) -> None:
+    """Dirichlet-sampled ensemble weight tuning."""
+    league = league.upper()
+    matches = load_league(league)
+    val_matches = [m for m in matches if m.season == val_season]
+    train_matches = [m for m in matches if m.season < val_season]
+
+    fb = FeatureBuilder()
+    for season in {m.season for m in train_matches}:
+        sf = SofascoreClient.load_matches(league, season)
+        if sf:
+            fb.stage_sofascore_batch(sf)
+    fb.fit_on_history(train_matches)
+
+    model_path = MODELS_DIR / f"catboost_{league}.cbm"
+    if not model_path.exists():
+        console.print(f"[red]No CatBoost at {model_path}[/red]")
+        raise click.Abort()
+
+    cb = CatBoostPredictor.for_league(league, fb)
+    poisson = PoissonModel(pi_ratings=fb.pi_ratings)
+    mlp = MLPPredictor.for_league(league, fb)
+    ensemble = EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
+
+    fixtures = []
+    actuals = []
+    for m in sorted(val_matches, key=lambda m: m.date):
+        fixtures.append(Fixture(
+            date=m.date, league=m.league,
+            home_team=m.home_team, away_team=m.away_team, odds=m.odds,
+        ))
+        actuals.append(m.result)
+
+    result = ensemble.tune_weights(fixtures, actuals)
+    console.print(f"[bold]Best weights:[/bold]")
+    console.print(f"  CatBoost: {result['best_w_catboost']:.3f}")
+    console.print(f"  Poisson:  {result['best_w_poisson']:.3f}")
+    if mlp is not None:
+        console.print(f"  MLP:      {result['best_w_mlp']:.3f}")
+    metric_key = next(k for k in result if k.startswith("best_") and k != "best_w_catboost"
+                      and k != "best_w_poisson" and k != "best_w_mlp")
+    console.print(f"  {metric_key}: {result[metric_key]:.4f}")
+
+
+# ───────────────────────── monitor (v0.3) ─────────────────────────
+
+@main.command()
+@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option("--recent-days", default=30, help="Production window in days")
+def monitor(league: str, recent_days: int) -> None:
+    """Feature drift detection (v0.3)."""
+    league = league.upper()
+    matches = load_league(league)
+
+    # Split by date: most recent `recent_days` = production; rest = training
+    from datetime import date, timedelta
+    cutoff = date.today() - timedelta(days=recent_days)
+    train_matches = [m for m in matches if m.date < cutoff]
+    prod_matches = [m for m in matches if m.date >= cutoff]
+
+    if len(prod_matches) < 10:
+        console.print(f"[yellow]Too few production matches ({len(prod_matches)}) "
+                      f"in last {recent_days} days.[/yellow]")
+        return
+
+    console.log(f"Training window: {len(train_matches)} matches")
+    console.log(f"Production window: {len(prod_matches)} matches")
+
+    # Build features separately
+    train_fb = FeatureBuilder()
+    train_rows = []
+    sorted_train = sorted(train_matches, key=lambda m: m.date)
+    for m in sorted_train[-500:]:  # last 500 training matches
+        train_fb.update_with_match(m)
+    for m in sorted_train[-200:]:
+        feats = train_fb.build_features(
+            m.home_team, m.away_team, m.league, m.date,
+            odds_home=m.odds.home if m.odds else None,
+            odds_draw=m.odds.draw if m.odds else None,
+            odds_away=m.odds.away if m.odds else None,
+        )
+        train_rows.append(feats)
+    train_df = pd.DataFrame(train_rows)
+
+    prod_rows = []
+    for m in sorted(prod_matches, key=lambda m: m.date):
+        feats = train_fb.build_features(
+            m.home_team, m.away_team, m.league, m.date,
+            odds_home=m.odds.home if m.odds else None,
+            odds_draw=m.odds.draw if m.odds else None,
+            odds_away=m.odds.away if m.odds else None,
+        )
+        prod_rows.append(feats)
+        train_fb.update_with_match(m)  # update for next
+    prod_df = pd.DataFrame(prod_rows)
+
+    detector = DriftDetector()
+    report = detector.analyze(train_df, prod_df, league)
+
+    console.rule(f"[bold yellow]Drift Report — {LEAGUES[league].name}[/bold yellow]")
+    console.print(f"  Production samples: {report.n_production_samples}")
+    console.print(f"  Drifted features: {report.n_drifted_features}")
+
+    if report.alerts:
+        console.print("\n[red bold]Alerts:[/red bold]")
+        for alert in report.alerts[:10]:
+            console.print(f"  • {alert}")
+
+    path = report.save()
+    console.log(f"[green]Full report: {path}[/green]")
+
+
+# ───────────────────────── update-results ─────────────────────────
+
+@main.command("update-results")
+@click.option("--results-file", "-r", required=True, type=click.Path(exists=True))
+def update_results(results_file: str) -> None:
+    """Update prediction log with actual results."""
+    results = json.loads(Path(results_file).read_text())
+    tracker = ResultsTracker()
+    tracker.load()
+
+    updated = 0
+    for r in results:
+        if tracker.update_result(
+            home_team=r["home_team"], away_team=r["away_team"],
+            match_date=r["date"],
+            home_goals=r["home_goals"], away_goals=r["away_goals"],
+        ):
+            updated += 1
+    tracker.save()
+    console.log(f"[green]Updated {updated}/{len(results)} records.[/green]")
+
+
+# ───────────────────────── stats ─────────────────────────
+
+@main.command()
+def stats() -> None:
+    """Show betting performance."""
+    tracker = ResultsTracker()
+    tracker.load()
+    if not tracker.records:
+        console.print("[yellow]No predictions logged yet.[/yellow]")
+        return
+
+    roi_stats = tracker.roi_stats()
+    console.print("\n[bold]Betting Performance[/bold]")
+    for k, v in roi_stats.items():
+        if isinstance(v, float):
+            console.print(f"  {k}: {v:.4f}")
+        else:
+            console.print(f"  {k}: {v}")
+
+
+# ───────────────────────── snapshot (web UI) ─────────────────────────
+
+@main.command()
+@click.option(
+    "--fixtures",
+    "-f",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to a fixtures JSON file (defaults to latest data/fixtures_*.json).",
+)
+@click.option("--bankroll", "-b", default=1000.0)
+def snapshot(fixtures: str | None, bankroll: float) -> None:
+    """Generate today.json snapshot consumed by the web UI."""
+    from football_betting.api.services import build_predictions_for_fixtures
+    from football_betting.api.snapshots import write_today
+    from football_betting.config import DATA_DIR
+
+    if fixtures is None:
+        candidates = sorted(DATA_DIR.glob("fixtures_*.json"))
+        if not candidates:
+            console.print("[red]No fixtures_*.json found in data/.[/red]")
+            raise click.Abort()
+        path = candidates[-1]
+        console.log(f"Using latest fixtures: {path.name}")
+    else:
+        path = Path(fixtures)
+
+    fixtures_data = json.loads(path.read_text(encoding="utf-8"))
+    payload = build_predictions_for_fixtures(fixtures_data, bankroll=bankroll)
+    out_path = write_today(payload)
+
+    console.log(
+        f"[green]Snapshot written: {out_path}[/green] "
+        f"({len(payload.predictions)} predictions, {len(payload.value_bets)} value bets)"
+    )
+
+
+# ───────────────────────── serve (web UI) ─────────────────────────
+
+@main.command()
+@click.option("--host", default="127.0.0.1")
+@click.option("--port", default=8000, type=int)
+@click.option("--reload/--no-reload", default=False)
+def serve(host: str, port: int, reload: bool) -> None:
+    """Run the FastAPI server backing the web interface."""
+    try:
+        import uvicorn
+    except ImportError as exc:  # pragma: no cover - guidance only
+        raise click.ClickException(
+            "uvicorn is not installed. Run: pip install -e \".[api]\""
+        ) from exc
+
+    console.log(f"[cyan]Serving Betting with AI on http://{host}:{port}[/cyan]")
+    uvicorn.run(
+        "football_betting.api.app:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info",
+    )
+
+
+if __name__ == "__main__":
+    main()
