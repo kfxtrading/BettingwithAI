@@ -66,6 +66,23 @@ def _refresh_blocking() -> None:
         len(snapshot.predictions), len(snapshot.value_bets),
     )
 
+    # Persist a dated copy for historical grading and regrade everything.
+    try:
+        from football_betting.evaluation.pipeline import (
+            capture_today_snapshot,
+            regrade_all,
+        )
+
+        dated_path = capture_today_snapshot()
+        graded = regrade_all()
+        settled = sum(1 for g in graded if g.status != "pending")
+        logger.info(
+            "[scheduler] Graded %d bets (%d settled) | dated snapshot -> %s",
+            len(graded), settled, dated_path,
+        )
+    except Exception:  # noqa: BLE001 — grading failure shouldn't kill the loop
+        logger.exception("[scheduler] Post-refresh grading failed.")
+
 
 async def refresh_snapshot_once() -> None:
     await asyncio.to_thread(_refresh_blocking)
