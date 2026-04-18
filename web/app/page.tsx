@@ -46,7 +46,7 @@ export default function HomePage() {
             : 'Loading predictions…'}
         </p>
         <h1 className="max-w-3xl text-2xl font-medium tracking-tight">
-          Today's betting analyses for the Top 5 leagues.
+          Today&apos;s betting analyses for the Top 5 leagues.
         </h1>
       </header>
 
