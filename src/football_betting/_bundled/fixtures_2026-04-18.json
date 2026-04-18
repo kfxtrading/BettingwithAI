@@ -1,0 +1,62 @@
+[
+  {
+    "date": "2026-04-18",
+    "league": "PL",
+    "home_team": "Tottenham",
+    "away_team": "Brighton",
+    "kickoff_time": "17:30",
+    "odds": {
+      "home": 3.085,
+      "draw": 3.8,
+      "away": 2.195
+    }
+  },
+  {
+    "date": "2026-04-18",
+    "league": "PL",
+    "home_team": "Chelsea",
+    "away_team": "Man United",
+    "kickoff_time": "20:00",
+    "odds": {
+      "home": 2.15,
+      "draw": 3.7,
+      "away": 3.3
+    }
+  },
+  {
+    "date": "2026-04-18",
+    "league": "BL",
+    "home_team": "Ein Frankfurt",
+    "away_team": "RB Leipzig",
+    "kickoff_time": "18:30",
+    "odds": {
+      "home": 3.4,
+      "draw": 4.0,
+      "away": 1.985
+    }
+  },
+  {
+    "date": "2026-04-18",
+    "league": "SA",
+    "home_team": "Napoli",
+    "away_team": "Lazio",
+    "kickoff_time": "18:00",
+    "odds": {
+      "home": 1.52,
+      "draw": 4.05,
+      "away": 7.4
+    }
+  },
+  {
+    "date": "2026-04-18",
+    "league": "SA",
+    "home_team": "Roma",
+    "away_team": "Atalanta",
+    "kickoff_time": "20:45",
+    "odds": {
+      "home": 2.475,
+      "draw": 3.35,
+      "away": 2.92
+    }
+  }
+]

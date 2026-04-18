@@ -2,6 +2,7 @@ import type {
   BankrollPoint,
   FormRow,
   Health,
+  HistoryPayload,
   League,
   LeagueSummary,
   PerformanceIndex,
@@ -54,6 +55,7 @@ export const api = {
     request<TeamDetail>(
       `/teams/${league}/${encodeURIComponent(team)}`,
     ),
+  history: (days = 14) => request<HistoryPayload>(`/history?days=${days}`),
 };
 
 export const queryKeys = {
@@ -68,4 +70,5 @@ export const queryKeys = {
   bankroll: ['bankroll'] as const,
   performanceIndex: ['performance', 'index'] as const,
   team: (league: string, team: string) => ['team', league, team] as const,
+  history: (days: number) => ['history', days] as const,
 };

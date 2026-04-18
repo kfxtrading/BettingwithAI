@@ -53,6 +53,9 @@ fb = "football_betting.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+football_betting = ["_bundled/*.json"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

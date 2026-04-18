@@ -18,7 +18,10 @@ from football_betting.api.schemas import (
     DataSourceInfo,
     EquityIndexPoint,
     FormRow,
+    GradedBetOut,
     HealthOut,
+    HistoryDayOut,
+    HistoryPayload,
     LeagueOut,
     LeagueRatingSummary,
     ModelAvailability,
@@ -106,13 +109,13 @@ def list_leagues() -> list[LeagueOut]:
 # ─────────────────────────────────────────────────────────────────
 
 _FIXTURE_PATTERN = re.compile(r"fixtures_(\d{4})-(\d{2})-(\d{2})\.json$")
-_SEED_DIR = Path("/app/data_seed")
+_BUNDLED_FIXTURES_DIR = Path(__file__).resolve().parent.parent / "_bundled"
 
 
 def _latest_fixtures_file() -> Path | None:
     candidates = list(DATA_DIR.glob("fixtures_*.json"))
-    if _SEED_DIR.is_dir():
-        candidates.extend(_SEED_DIR.glob("fixtures_*.json"))
+    if _BUNDLED_FIXTURES_DIR.is_dir():
+        candidates.extend(_BUNDLED_FIXTURES_DIR.glob("fixtures_*.json"))
     if not candidates:
         return None
     return max(candidates, key=lambda p: p.name)
@@ -349,6 +352,81 @@ def get_today_payload(league: str | None = None) -> TodayPayload:
             data_sources=[d for d in snapshot.data_sources if d.league == league],
         )
     return snapshot
+
+
+def get_history(days: int | None = 14) -> HistoryPayload:
+    """Aggregate graded bets by date (newest first), capped at ``days``.
+
+    Self-heals: captures today's snapshot (idempotent) and re-grades all
+    persisted snapshots against the latest CSV archive before reading.
+    """
+    from football_betting.evaluation.grader import load_graded
+    from football_betting.evaluation.pipeline import (
+        capture_today_snapshot,
+        regrade_all,
+    )
+
+    try:
+        capture_today_snapshot()
+        regrade_all()
+    except Exception as exc:  # pragma: no cover — never block the endpoint
+        logger.warning("[api] /history refresh failed: %s", exc)
+
+    graded = load_graded()
+    by_date: dict[str, list[GradedBetOut]] = defaultdict(list)
+    for g in graded:
+        by_date[g.date].append(
+            GradedBetOut(
+                date=g.date,
+                league=g.league,
+                league_name=g.league_name,
+                home_team=g.home_team,
+                away_team=g.away_team,
+                outcome=g.outcome,
+                bet_label=g.bet_label,
+                odds=g.odds,
+                stake=g.stake,
+                ft_result=g.ft_result,
+                ft_score=g.ft_score,
+                status=g.status,
+                pnl=g.pnl,
+            )
+        )
+
+    day_rows: list[HistoryDayOut] = []
+    for d in sorted(by_date.keys(), reverse=True):
+        bets = by_date[d]
+        won = sum(1 for b in bets if b.status == "won")
+        lost = sum(1 for b in bets if b.status == "lost")
+        pending = sum(1 for b in bets if b.status == "pending")
+        pnl = round(sum(b.pnl for b in bets), 2)
+        day_rows.append(HistoryDayOut(
+            date=d, n_bets=len(bets), n_won=won, n_lost=lost,
+            n_pending=pending, pnl=pnl, bets=bets,
+        ))
+
+    if days is not None and days > 0:
+        day_rows = day_rows[:days]
+
+    total_bets = sum(r.n_bets for r in day_rows)
+    total_won = sum(r.n_won for r in day_rows)
+    total_lost = sum(r.n_lost for r in day_rows)
+    total_pending = sum(r.n_pending for r in day_rows)
+    total_pnl = round(sum(r.pnl for r in day_rows), 2)
+    settled = total_won + total_lost
+    hit_rate = round(total_won / settled, 4) if settled > 0 else None
+
+    return HistoryPayload(
+        generated_at=datetime.utcnow(),
+        n_days=len(day_rows),
+        total_bets=total_bets,
+        total_won=total_won,
+        total_lost=total_lost,
+        total_pending=total_pending,
+        total_pnl=total_pnl,
+        hit_rate=hit_rate,
+        days=day_rows,
+    )
 
 
 def _log_snapshot_served(payload: TodayPayload, source: str, league: str | None) -> None:

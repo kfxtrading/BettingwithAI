@@ -167,6 +167,46 @@ class TodayPayload(BaseModel):
     data_sources: list[DataSourceInfo] = Field(default_factory=list)
 
 
+class GradedBetOut(BaseModel):
+    """A single value bet after the match has been settled."""
+
+    date: str
+    league: str
+    league_name: str
+    home_team: str
+    away_team: str
+    outcome: Outcome
+    bet_label: str
+    odds: float
+    stake: float
+    ft_result: Outcome | None = None
+    ft_score: str | None = None
+    status: Literal["won", "lost", "pending"]
+    pnl: float
+
+
+class HistoryDayOut(BaseModel):
+    date: str
+    n_bets: int
+    n_won: int
+    n_lost: int
+    n_pending: int
+    pnl: float
+    bets: list[GradedBetOut] = Field(default_factory=list)
+
+
+class HistoryPayload(BaseModel):
+    generated_at: datetime
+    n_days: int
+    total_bets: int
+    total_won: int
+    total_lost: int
+    total_pending: int
+    total_pnl: float
+    hit_rate: float | None = None  # won / (won + lost); None if no settled bets yet
+    days: list[HistoryDayOut] = Field(default_factory=list)
+
+
 class ModelAvailability(BaseModel):
     catboost: bool
     mlp: bool

@@ -8,6 +8,7 @@ from football_betting.api.schemas import (
     BankrollPoint,
     FormRow,
     HealthOut,
+    HistoryPayload,
     LeagueOut,
     LeagueRatingSummary,
     PerformanceIndexOut,
@@ -132,6 +133,18 @@ def performance_bankroll() -> list[BankrollPoint]:
 def performance_index() -> PerformanceIndexOut:
     """Anonymised public performance tracker (no EUR amounts)."""
     return services.get_performance_index()
+
+
+@router.get(
+    "/history",
+    response_model=HistoryPayload,
+    tags=["performance"],
+)
+def history(
+    days: int = Query(14, ge=1, le=180, description="Number of most-recent days to include"),
+) -> HistoryPayload:
+    """Graded value bets grouped by day, newest first."""
+    return services.get_history(days=days)
 
 
 @router.get(

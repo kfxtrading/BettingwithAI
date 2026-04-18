@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { LeagueSwitcher } from '@/components/LeagueSwitcher';
 import { PerformanceTracker } from '@/components/PerformanceTracker';
 import { PredictionCard } from '@/components/PredictionCard';
+import { RecentBets } from '@/components/RecentBets';
 import { Section } from '@/components/Section';
 import { Empty } from '@/components/Empty';
 import { ValueBetBadge } from '@/components/ValueBetBadge';
@@ -117,6 +118,8 @@ export default function HomePage() {
       </Section>
 
       <PerformanceTracker />
+
+      <RecentBets />
     </>
   );
 }

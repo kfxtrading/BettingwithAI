@@ -149,3 +149,43 @@ export interface Health {
   models_available: Record<string, ModelAvailability>;
   snapshot_present: boolean;
 }
+
+export type BetStatus = 'won' | 'lost' | 'pending';
+
+export interface GradedBet {
+  date: string;
+  league: string;
+  league_name: string;
+  home_team: string;
+  away_team: string;
+  outcome: Outcome;
+  bet_label: string;
+  odds: number;
+  stake: number;
+  ft_result: Outcome | null;
+  ft_score: string | null;
+  status: BetStatus;
+  pnl: number;
+}
+
+export interface HistoryDay {
+  date: string;
+  n_bets: number;
+  n_won: number;
+  n_lost: number;
+  n_pending: number;
+  pnl: number;
+  bets: GradedBet[];
+}
+
+export interface HistoryPayload {
+  generated_at: string;
+  n_days: number;
+  total_bets: number;
+  total_won: number;
+  total_lost: number;
+  total_pending: number;
+  total_pnl: number;
+  hit_rate: number | null;
+  days: HistoryDay[];
+}
