@@ -106,11 +106,16 @@ def list_leagues() -> list[LeagueOut]:
 # ─────────────────────────────────────────────────────────────────
 
 _FIXTURE_PATTERN = re.compile(r"fixtures_(\d{4})-(\d{2})-(\d{2})\.json$")
+_SEED_DIR = Path("/app/data_seed")
 
 
 def _latest_fixtures_file() -> Path | None:
-    candidates = sorted(DATA_DIR.glob("fixtures_*.json"))
-    return candidates[-1] if candidates else None
+    candidates = list(DATA_DIR.glob("fixtures_*.json"))
+    if _SEED_DIR.is_dir():
+        candidates.extend(_SEED_DIR.glob("fixtures_*.json"))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: p.name)
 
 
 def _to_prediction_out(pred: Prediction, league_name: str) -> PredictionOut:
