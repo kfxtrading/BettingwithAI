@@ -107,7 +107,7 @@ class MLPPredictor:
 
             self.feature_builder.update_with_match(match)
 
-        df = pd.DataFrame(rows)
+        df = pd.DataFrame(rows).fillna(0.0)
         self.feature_names = list(df.columns)
         return df, np.array(labels)
 
@@ -230,7 +230,7 @@ class MLPPredictor:
 
         torch, *_ = _import_torch()
         feats = self.feature_builder.features_for_fixture(fixture)
-        X = pd.DataFrame([feats])[self.feature_names].values
+        X = pd.DataFrame([feats]).reindex(columns=self.feature_names, fill_value=0.0).fillna(0.0).values
         X_s = self.scaler.transform(X)
 
         self.model.eval()

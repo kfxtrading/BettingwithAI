@@ -51,11 +51,16 @@ def debug_paths() -> dict:
             return []
 
     latest = svc._latest_fixtures_file()
+    raw_dir = DATA_DIR / "raw"
     return {
         "cwd": str(Path.cwd()),
         "DATA_DIR": str(DATA_DIR),
         "DATA_DIR_exists": DATA_DIR.exists(),
+        "DATA_DIR_files": _listdir(DATA_DIR)[:30],
         "DATA_DIR_glob_fixtures": [p.name for p in DATA_DIR.glob("fixtures_*.json")],
+        "RAW_DIR": str(raw_dir),
+        "RAW_DIR_exists": raw_dir.exists(),
+        "RAW_DIR_files": _listdir(raw_dir)[:40],
         "MODELS_DIR": str(MODELS_DIR),
         "MODELS_DIR_files": _listdir(MODELS_DIR)[:20],
         "BUNDLED_DIR": str(svc._BUNDLED_FIXTURES_DIR),
