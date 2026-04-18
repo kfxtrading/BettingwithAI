@@ -17,14 +17,14 @@ COPY src/ ./src/
 RUN pip install --upgrade pip && pip install -e ".[api]"
 
 COPY scripts/ ./scripts/
+COPY models/ ./models/
 
 RUN mkdir -p /app/data/raw \
              /app/data/sofascore \
              /app/data/snapshots \
              /app/data/predictions \
              /app/data/processed \
-             /app/data/monitoring \
-             /app/models
+             /app/data/monitoring
 
 EXPOSE 8000
 

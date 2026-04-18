@@ -17,7 +17,6 @@ catboost_info
 *.log
 *.egg-info
 data/
-models/
 tests/
 Erweiterungen/
 docs/
