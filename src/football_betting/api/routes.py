@@ -38,6 +38,30 @@ def health() -> HealthOut:
     return services.get_health(version=API_VERSION)
 
 
+@router.get("/debug/download", tags=["meta"], include_in_schema=False)
+def debug_download() -> dict:
+    """Trigger CSV download synchronously; return before/after file counts."""
+    from football_betting.config import DATA_DIR
+    from football_betting.data.downloader import download_all
+
+    raw_dir = DATA_DIR / "raw"
+    before = sorted(p.name for p in raw_dir.glob("*.csv")) if raw_dir.exists() else []
+    try:
+        paths = download_all()
+        error: str | None = None
+    except Exception as exc:  # pragma: no cover
+        paths = []
+        error = f"{type(exc).__name__}: {exc}"
+    after = sorted(p.name for p in raw_dir.glob("*.csv")) if raw_dir.exists() else []
+    return {
+        "before_count": len(before),
+        "after_count": len(after),
+        "downloaded": [str(p.name) for p in paths],
+        "added": sorted(set(after) - set(before)),
+        "error": error,
+    }
+
+
 @router.get("/debug/paths", tags=["meta"], include_in_schema=False)
 def debug_paths() -> dict:
     from pathlib import Path
