@@ -86,6 +86,9 @@ def create_app() -> FastAPI:
                 )
         api_logger.info("[startup] Waiting for http://localhost:3000 to fetch /predictions/today …")
 
+        from football_betting.api import scheduler
+        await scheduler.start()
+
     app.include_router(router)
     return app
 
