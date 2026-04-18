@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { LeagueSwitcher } from '@/components/LeagueSwitcher';
+import { PerformanceTracker } from '@/components/PerformanceTracker';
 import { PredictionCard } from '@/components/PredictionCard';
 import { Section } from '@/components/Section';
 import { Empty } from '@/components/Empty';
@@ -114,6 +115,8 @@ export default function HomePage() {
           </div>
         )}
       </Section>
+
+      <PerformanceTracker />
     </>
   );
 }

@@ -225,6 +225,35 @@ class SofascoreConfig:
         return os.getenv("SCRAPING_ENABLED", "0") == "1"
 
 
+# ───────────────────────── The Odds API ─────────────────────────
+
+@dataclass(frozen=True, slots=True)
+class OddsApiConfig:
+    """Config for https://the-odds-api.com/ — provides fixtures + odds."""
+
+    base_url: str = "https://api.the-odds-api.com/v4"
+    regions: str = "eu"
+    markets: str = "h2h"
+    odds_format: str = "decimal"
+    date_format: str = "iso"
+    timeout_seconds: float = 20.0
+
+    # football-data CSV key → The Odds API `sport_key`
+    sport_keys: dict[str, str] = field(
+        default_factory=lambda: {
+            "PL": "soccer_epl",
+            "CH": "soccer_efl_champ",
+            "BL": "soccer_germany_bundesliga",
+            "SA": "soccer_italy_serie_a",
+            "LL": "soccer_spain_la_liga",
+        }
+    )
+
+    @property
+    def api_key(self) -> str | None:
+        return os.getenv("ODDS_API_KEY") or None
+
+
 # ───────────────────────── Calibration ─────────────────────────
 
 @dataclass(frozen=True, slots=True)
@@ -291,6 +320,7 @@ FEATURE_CFG = FeatureConfig()
 CATBOOST_CFG = CatBoostConfig()
 MLP_CFG = MLPConfig()
 SOFASCORE_CFG = SofascoreConfig()
+ODDS_API_CFG = OddsApiConfig()
 CALIBRATION_CFG = CalibrationConfig()
 MONITORING_CFG = MonitoringConfig()
 BETTING_CFG = BettingConfig()

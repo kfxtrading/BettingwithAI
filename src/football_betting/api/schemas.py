@@ -125,6 +125,29 @@ class BankrollPoint(BaseModel):
     value: float
 
 
+class EquityIndexPoint(BaseModel):
+    date: str
+    index: float
+    n_bets_cumulative: int
+
+
+class PerformanceIndexOut(BaseModel):
+    """Anonymised public performance tracker (no EUR amounts)."""
+
+    updated_at: str
+    tracking_started_at: str
+    n_days_tracked: int
+    n_bets: int
+    hit_rate: float | None = None
+    current_index: float
+    all_time_high_index: float
+    max_drawdown_pct: float
+    current_drawdown_pct: float
+    equity_curve: list[EquityIndexPoint] = Field(default_factory=list)
+    rule_hash: str
+    model_version: str
+
+
 class DataSourceInfo(BaseModel):
     """Provenance info: which historical data / model fed the predictions per league."""
     league: str

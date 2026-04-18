@@ -4,6 +4,7 @@ import type {
   Health,
   League,
   LeagueSummary,
+  PerformanceIndex,
   PerformanceSummary,
   RatingRow,
   TeamDetail,
@@ -47,6 +48,8 @@ export const api = {
     request<FormRow[]>(`/leagues/${league}/form?top=${top}`),
   performance: () => request<PerformanceSummary>('/performance/summary'),
   bankroll: () => request<BankrollPoint[]>('/performance/bankroll'),
+  performanceIndex: () =>
+    request<PerformanceIndex>('/performance/index'),
   team: (league: string, team: string) =>
     request<TeamDetail>(
       `/teams/${league}/${encodeURIComponent(team)}`,
@@ -63,5 +66,6 @@ export const queryKeys = {
   form: (league: string, top: number) => ['form', league, top] as const,
   performance: ['performance'] as const,
   bankroll: ['bankroll'] as const,
+  performanceIndex: ['performance', 'index'] as const,
   team: (league: string, team: string) => ['team', league, team] as const,
 };

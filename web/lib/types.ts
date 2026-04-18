@@ -111,6 +111,27 @@ export interface BankrollPoint {
   value: number;
 }
 
+export interface EquityIndexPoint {
+  date: string;
+  index: number;
+  n_bets_cumulative: number;
+}
+
+export interface PerformanceIndex {
+  updated_at: string;
+  tracking_started_at: string;
+  n_days_tracked: number;
+  n_bets: number;
+  hit_rate: number | null;
+  current_index: number;
+  all_time_high_index: number;
+  max_drawdown_pct: number;
+  current_drawdown_pct: number;
+  equity_curve: EquityIndexPoint[];
+  rule_hash: string;
+  model_version: string;
+}
+
 export interface TodayPayload {
   generated_at: string;
   predictions: Prediction[];

@@ -16,12 +16,14 @@ from football_betting.api.cache import cache
 from football_betting.api.schemas import (
     BankrollPoint,
     DataSourceInfo,
+    EquityIndexPoint,
     FormRow,
     HealthOut,
     LeagueOut,
     LeagueRatingSummary,
     ModelAvailability,
     OddsOut,
+    PerformanceIndexOut,
     PerformancePerLeague,
     PerformanceSummary,
     PredictionOut,
@@ -59,6 +61,7 @@ __all__ = [
     "get_league_form",
     "get_league_summaries",
     "get_performance_summary",
+    "get_performance_index",
     "get_bankroll_curve",
     "get_team_detail",
     "list_leagues",
@@ -605,3 +608,67 @@ def get_performance_summary() -> PerformanceSummary:
         max_drawdown_pct=max_dd,
         per_league=sorted(per_league, key=lambda p: -p.n_bets),
     )
+
+
+# ─────────────────────────────────────────────────────────────────
+# Public (anonymised) performance index
+# ─────────────────────────────────────────────────────────────────
+
+_PERFORMANCE_INDEX_CACHE_KEY = "performance_index:public"
+_PERFORMANCE_INDEX_TTL = 3600.0  # 1 hour
+
+
+def get_performance_index() -> PerformanceIndexOut:
+    """Return the anonymised public performance index.
+
+    Prefers the pre-computed `performance.json` artefact written by
+    `fb update-performance`; falls back to on-the-fly computation so the
+    endpoint works even without the cron job.
+    """
+    cached = cache.get(_PERFORMANCE_INDEX_CACHE_KEY)
+    if cached is not None:
+        return cached
+
+    from football_betting.config import PREDICTIONS_DIR
+    from football_betting.tracking import performance_index as pi
+
+    public_path = PREDICTIONS_DIR / pi.PUBLIC_FILENAME
+    payload: dict | None = None
+    if public_path.exists():
+        try:
+            payload = json.loads(public_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            logger.warning(
+                "[api] /performance/index — malformed %s, recomputing.", public_path
+            )
+            payload = None
+
+    if payload is None:
+        payload, _ = pi.compute_payloads()
+
+    result = PerformanceIndexOut(
+        updated_at=payload.get("updated_at", ""),
+        tracking_started_at=payload.get(
+            "tracking_started_at", pi.TRACKING_START_DEFAULT
+        ),
+        n_days_tracked=int(payload.get("n_days_tracked", 0)),
+        n_bets=int(payload.get("n_bets", 0)),
+        hit_rate=payload.get("hit_rate"),
+        current_index=float(payload.get("current_index", 100.0)),
+        all_time_high_index=float(payload.get("all_time_high_index", 100.0)),
+        max_drawdown_pct=float(payload.get("max_drawdown_pct", 0.0)),
+        current_drawdown_pct=float(payload.get("current_drawdown_pct", 0.0)),
+        equity_curve=[
+            EquityIndexPoint(
+                date=p["date"],
+                index=float(p["index"]),
+                n_bets_cumulative=int(p["n_bets_cumulative"]),
+            )
+            for p in payload.get("equity_curve", [])
+        ],
+        rule_hash=payload.get("rule_hash", ""),
+        model_version=payload.get("model_version", pi.MODEL_VERSION),
+    )
+    cache.set(_PERFORMANCE_INDEX_CACHE_KEY, result, ttl=_PERFORMANCE_INDEX_TTL)
+    return result
+

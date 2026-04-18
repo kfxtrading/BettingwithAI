@@ -10,6 +10,7 @@ from football_betting.api.schemas import (
     HealthOut,
     LeagueOut,
     LeagueRatingSummary,
+    PerformanceIndexOut,
     PerformanceSummary,
     RatingRow,
     TeamDetail,
@@ -121,6 +122,16 @@ def performance_summary() -> PerformanceSummary:
 )
 def performance_bankroll() -> list[BankrollPoint]:
     return services.get_bankroll_curve()
+
+
+@router.get(
+    "/performance/index",
+    response_model=PerformanceIndexOut,
+    tags=["performance"],
+)
+def performance_index() -> PerformanceIndexOut:
+    """Anonymised public performance tracker (no EUR amounts)."""
+    return services.get_performance_index()
 
 
 @router.get(

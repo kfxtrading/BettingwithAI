@@ -10,10 +10,12 @@ Commands:
     fb backtest          — Walk-forward backtest
     fb tune-ensemble     — Dirichlet-sampled weight tuning
     fb scrape            — Scrape Sofascore xG + lineups (v0.3)
+    fb fetch-fixtures    — Pull today's fixtures + odds from The Odds API
     fb monitor           — Feature drift report (v0.3)
     fb export-onnx       — Export MLP to ONNX (v0.3)
     fb update-results    — Update prediction log
     fb stats             — Show betting performance
+    fb update-performance — Refresh public performance-index JSONs
     fb snapshot          — Generate JSON snapshot for the web UI
     fb serve             — Run the FastAPI server for the web UI
 """
@@ -147,6 +149,68 @@ def scrape(league: str, seasons: tuple[str, ...], with_stats: bool, max_matches:
         f"[dim]Cache: {stats['entries']} entries, "
         f"{stats['total_bytes'] / 1024 / 1024:.1f} MB[/dim]"
     )
+
+
+# ───────────────────────── fetch-fixtures (Odds API) ─────────────────────────
+
+@main.command("fetch-fixtures")
+@click.option(
+    "--date", "target_date",
+    default=None,
+    help="ISO date (YYYY-MM-DD) — defaults to today in the server timezone.",
+)
+@click.option(
+    "--league", "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    default="all",
+)
+@click.option(
+    "--out", "-o",
+    type=click.Path(),
+    default=None,
+    help="Output path (default: data/fixtures_<date>.json).",
+)
+def fetch_fixtures(target_date: str | None, league: str, out: str | None) -> None:
+    """Pull scheduled fixtures + consensus odds from The Odds API."""
+    from datetime import date as date_cls
+
+    from football_betting.config import DATA_DIR
+    from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
+
+    day = date_cls.fromisoformat(target_date) if target_date else date_cls.today()
+    keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+
+    client = OddsApiClient()
+    try:
+        fixtures = client.fetch_all_leagues_for_date(day, leagues=keys)
+    except OddsApiError as exc:
+        console.print(f"[red]Odds API error: {exc}[/red]")
+        raise click.Abort() from exc
+
+    if not fixtures:
+        console.print(
+            f"[yellow]No fixtures found for {day.isoformat()} in leagues "
+            f"{', '.join(keys)}.[/yellow]"
+        )
+        raise click.Abort()
+
+    payload = [f.to_fixture_dict() for f in fixtures]
+    out_path = Path(out) if out else DATA_DIR / f"fixtures_{day.isoformat()}.json"
+    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    table = Table(title=f"Fixtures — {day.isoformat()}")
+    table.add_column("League"); table.add_column("Kickoff")
+    table.add_column("Match"); table.add_column("Odds (H/D/A)", justify="right")
+    table.add_column("Books", justify="right")
+    for f in sorted(fixtures, key=lambda x: (x.league, x.kickoff_local)):
+        table.add_row(
+            f.league, f.kickoff_local,
+            f"{f.home_team} vs {f.away_team}",
+            f"{f.odds_home:.2f} / {f.odds_draw:.2f} / {f.odds_away:.2f}",
+            str(f.n_bookmakers),
+        )
+    console.print(table)
+    console.log(f"[green]Wrote {len(fixtures)} fixtures -> {out_path}[/green]")
 
 
 # ───────────────────────── train ─────────────────────────
@@ -557,6 +621,27 @@ def stats() -> None:
             console.print(f"  {k}: {v:.4f}")
         else:
             console.print(f"  {k}: {v}")
+
+
+# ───────────────────────── update-performance ─────────────────────────
+
+@main.command("update-performance")
+@click.option(
+    "--tracking-start",
+    default=None,
+    help="ISO date when tracking began (default: spec value).",
+)
+def update_performance(tracking_start: str | None) -> None:
+    """Regenerate performance.json + performance_full.json for the web tracker."""
+    from football_betting.tracking.performance_index import (
+        TRACKING_START_DEFAULT,
+        write_performance_files,
+    )
+
+    start = tracking_start or TRACKING_START_DEFAULT
+    public_path, private_path = write_performance_files(tracking_start=start)
+    console.log(f"[green]Wrote {public_path}[/green]")
+    console.log(f"[green]Wrote {private_path}[/green]")
 
 
 # ───────────────────────── snapshot (web UI) ─────────────────────────

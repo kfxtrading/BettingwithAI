@@ -54,3 +54,4 @@ web/out/
 web/.env.local
 web/.turbo/
 web/next-env.d.ts.bak
+web/tsconfig.tsbuildinfo
