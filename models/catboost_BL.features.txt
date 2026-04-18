@@ -69,3 +69,16 @@ market_margin
 market_fav_ratio
 home_point_ded
 away_point_ded
+real_xg_home_for
+real_xg_home_against
+real_xg_home_diff
+real_xg_home_at_home_for
+real_xg_home_finishing
+real_xg_home_big_chances
+real_xg_away_for
+real_xg_away_against
+real_xg_away_diff
+real_xg_away_at_away_for
+real_xg_away_finishing
+real_xg_away_big_chances
+real_xg_matchup_diff

@@ -38,6 +38,34 @@ def health() -> HealthOut:
     return services.get_health(version=API_VERSION)
 
 
+@router.get("/debug/paths", tags=["meta"], include_in_schema=False)
+def debug_paths() -> dict:
+    from pathlib import Path
+    from football_betting.api import services as svc
+    from football_betting.config import DATA_DIR, MODELS_DIR
+
+    def _listdir(p: Path) -> list[str]:
+        try:
+            return sorted(x.name for x in p.iterdir())
+        except (OSError, FileNotFoundError):
+            return []
+
+    latest = svc._latest_fixtures_file()
+    return {
+        "cwd": str(Path.cwd()),
+        "DATA_DIR": str(DATA_DIR),
+        "DATA_DIR_exists": DATA_DIR.exists(),
+        "DATA_DIR_glob_fixtures": [p.name for p in DATA_DIR.glob("fixtures_*.json")],
+        "MODELS_DIR": str(MODELS_DIR),
+        "MODELS_DIR_files": _listdir(MODELS_DIR)[:20],
+        "BUNDLED_DIR": str(svc._BUNDLED_FIXTURES_DIR),
+        "BUNDLED_DIR_exists": svc._BUNDLED_FIXTURES_DIR.exists(),
+        "BUNDLED_DIR_files": _listdir(svc._BUNDLED_FIXTURES_DIR),
+        "_latest_fixtures_file": str(latest) if latest else None,
+        "services_file": str(Path(svc.__file__).resolve()),
+    }
+
+
 @router.get("/leagues", response_model=list[LeagueOut], tags=["leagues"])
 def leagues() -> list[LeagueOut]:
     return services.list_leagues()
