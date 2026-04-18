@@ -44,18 +44,29 @@ def _refresh_blocking() -> None:
         return
 
     client = OddsApiClient()
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
     try:
-        fixtures = client.fetch_all_leagues_for_date(date.today())
+        fixtures = client.fetch_all_leagues_for_date(today)
+        target_date = today
+        if not fixtures:
+            logger.info(
+                "[scheduler] No fixtures for %s — trying %s.",
+                today.isoformat(), tomorrow.isoformat(),
+            )
+            fixtures = client.fetch_all_leagues_for_date(tomorrow)
+            target_date = tomorrow
     except OddsApiError as exc:
         logger.error("[scheduler] Odds API call failed: %s", exc)
         return
 
     if not fixtures:
-        logger.warning("[scheduler] Odds API returned no pre-match fixtures for today.")
+        logger.warning("[scheduler] Odds API returned no pre-match fixtures for %s or %s.",
+                       today.isoformat(), tomorrow.isoformat())
         return
 
     payload = [f.to_fixture_dict() for f in fixtures]
-    fixtures_path = DATA_DIR / f"fixtures_{date.today().isoformat()}.json"
+    fixtures_path = DATA_DIR / f"fixtures_{target_date.isoformat()}.json"
     fixtures_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     logger.info("[scheduler] Wrote %d fixtures -> %s", len(fixtures), fixtures_path.name)
 
