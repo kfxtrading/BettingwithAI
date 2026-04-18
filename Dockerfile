@@ -18,6 +18,7 @@ RUN pip install --upgrade pip && pip install -e ".[api]"
 
 COPY scripts/ ./scripts/
 COPY models/ ./models/
+COPY data/ ./data_seed/
 
 RUN mkdir -p /app/data/raw \
              /app/data/sofascore \
