@@ -48,8 +48,25 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _log_startup() -> None:
+        import asyncio
         from football_betting.api.snapshots import load_today
-        from football_betting.config import LEAGUES, MODELS_DIR
+        from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR
+
+        async def _seed_raw_csvs() -> None:
+            """Idempotently fill /data/raw/ if empty — Railway volume fresh-boots empty."""
+            raw_dir = DATA_DIR / "raw"
+            if raw_dir.exists() and any(raw_dir.glob("*.csv")):
+                return
+            logger_ = logging.getLogger("football_betting.api")
+            logger_.info("[startup] /data/raw empty — downloading football-data CSVs in background")
+            try:
+                from football_betting.data.downloader import download_all
+                await asyncio.to_thread(download_all)
+                logger_.info("[startup] CSV seed complete")
+            except Exception as exc:
+                logger_.warning("[startup] CSV seed failed: %s", exc)
+
+        asyncio.create_task(_seed_raw_csvs())
 
         api_logger = logging.getLogger("football_betting.api")
         api_logger.info("=" * 70)
