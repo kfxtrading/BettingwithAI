@@ -135,6 +135,13 @@ export type DictionaryKey =
   | 'learn.heading'
   | 'learn.intro'
   | 'learn.readMore'
+  | 'leagueHub.next5.title'
+  | 'leagueHub.next5.empty'
+  | 'leagueHub.last5.title'
+  | 'leagueHub.last5.empty'
+  | 'leagueHub.pickCorrect'
+  | 'leagueHub.pickIncorrect'
+  | 'leagueHub.viewMatch'
   | 'cookie.title'
   | 'cookie.body'
   | 'cookie.necessary.title'
@@ -311,6 +318,13 @@ export const en: Dictionary = {
   'learn.intro':
     'Short, evidence-based guides to value bets, model calibration, bankroll management and the metrics this site is judged on.',
   'learn.readMore': 'Read →',
+  'leagueHub.next5.title': 'Next 5 fixtures',
+  'leagueHub.next5.empty': 'No upcoming fixtures in the current snapshot.',
+  'leagueHub.last5.title': 'Last 5 results',
+  'leagueHub.last5.empty': 'No recent results available yet.',
+  'leagueHub.pickCorrect': 'Pick correct',
+  'leagueHub.pickIncorrect': 'Pick incorrect',
+  'leagueHub.viewMatch': 'Open prediction →',
   'cookie.title': 'We use cookies',
   'cookie.body':
     'This site uses cookies and similar technologies to keep the service running and to measure reach and performance. Your choice is stored together with a hash of your IP address so we can recognise it on your next visit. You can withdraw it at any time.',

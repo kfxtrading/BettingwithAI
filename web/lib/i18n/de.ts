@@ -163,6 +163,13 @@ export const de: Dictionary = {
   'learn.intro':
     'Kurze, evidenzbasierte Leitfäden zu Value Bets, Modell-Kalibrierung, Bankroll-Management und den Metriken, an denen sich diese Seite messen lässt.',
   'learn.readMore': 'Weiterlesen →',
+  'leagueHub.next5.title': 'Nächste 5 Spiele',
+  'leagueHub.next5.empty': 'Aktuell keine kommenden Spiele im Snapshot.',
+  'leagueHub.last5.title': 'Letzte 5 Ergebnisse',
+  'leagueHub.last5.empty': 'Noch keine aktuellen Ergebnisse verfügbar.',
+  'leagueHub.pickCorrect': 'Tipp korrekt',
+  'leagueHub.pickIncorrect': 'Tipp falsch',
+  'leagueHub.viewMatch': 'Prognose öffnen →',
   'cookie.title': 'Wir nutzen Cookies',
   'cookie.body':
     'Diese Website verwendet Cookies und vergleichbare Technologien, um die Funktion sicherzustellen sowie Reichweite und Performance zu analysieren. Deine Einwilligung wird zusammen mit einem Hash deiner IP-Adresse gespeichert, damit wir sie bei deinem nächsten Besuch erneut erkennen. Du kannst sie jederzeit widerrufen.',

@@ -22,8 +22,13 @@ from football_betting.api.schemas import (
     HealthOut,
     HistoryDayOut,
     HistoryPayload,
+    LeagueFixtureOut,
+    LeagueFixturesOut,
     LeagueOut,
     LeagueRatingSummary,
+    MatchSlugOut,
+    MatchSlugsOut,
+    MatchWrapperOut,
     ModelAvailability,
     OddsOut,
     PerformanceIndexOut,
@@ -66,8 +71,11 @@ __all__ = [
     "get_league_ratings",
     "get_league_form",
     "get_league_summaries",
+    "get_league_fixtures",
+    "get_match_wrapper",
     "get_performance_summary",
     "get_performance_index",
+    "get_upcoming_match_slugs",
     "invalidate_performance_cache",
     "get_bankroll_curve",
     "get_seo_slugs",
@@ -895,3 +903,165 @@ def get_performance_index() -> PerformanceIndexOut:
     cache.set(cache_key, result, ttl=_PERFORMANCE_INDEX_TTL)
     return result
 
+
+# ─────────────────────────────────────────────────────────────────
+# SEO match-prediction pages
+# ─────────────────────────────────────────────────────────────────
+
+def get_upcoming_match_slugs(league: str | None = None) -> MatchSlugsOut:
+    """Slug list for ``/leagues/{league}/{match}`` SEO routes + sitemap."""
+    from football_betting.seo.match_slugs import build_slug
+
+    snapshot = load_today()
+    if snapshot is None:
+        return MatchSlugsOut(league=league, n_matches=0, matches=[])
+
+    matches: list[MatchSlugOut] = []
+    seen: set[str] = set()
+    for p in snapshot.predictions:
+        if league and p.league.upper() != league.upper():
+            continue
+        slug = build_slug(p.home_team, p.away_team, p.date)
+        if slug in seen:
+            continue
+        seen.add(slug)
+        matches.append(
+            MatchSlugOut(
+                slug=slug,
+                league=p.league,
+                league_name=p.league_name,
+                home_team=p.home_team,
+                away_team=p.away_team,
+                date=p.date,
+                kickoff_time=p.kickoff_time,
+            )
+        )
+    return MatchSlugsOut(league=league, n_matches=len(matches), matches=matches)
+
+
+def get_match_wrapper(slug: str) -> MatchWrapperOut | None:
+    """Return the SEO wrapper (prose + probabilities) for a slug, or None."""
+    from football_betting.seo.match_slugs import (
+        attach_archive,
+        build_wrapper,
+        find_match_in_snapshot,
+    )
+
+    snapshot = load_today()
+    if snapshot is None:
+        return None
+    pred = find_match_in_snapshot(snapshot, slug)
+    if pred is None:
+        return None
+
+    league_name = pred.league_name
+    if pred.league in LEAGUES:
+        league_name = LEAGUES[pred.league].name
+
+    wrapper = build_wrapper(pred, league_name=league_name)
+    wrapper = attach_archive(wrapper)
+    return MatchWrapperOut(
+        slug=wrapper.slug,
+        league=wrapper.league,
+        league_name=wrapper.league_name,
+        home_team=wrapper.home_team,
+        away_team=wrapper.away_team,
+        kickoff=wrapper.kickoff,
+        prob_home=wrapper.prob_home,
+        prob_draw=wrapper.prob_draw,
+        prob_away=wrapper.prob_away,
+        pick=wrapper.pick,  # type: ignore[arg-type]
+        prose=wrapper.prose,
+        is_archived=wrapper.is_archived,
+        actual_result=wrapper.actual_result,  # type: ignore[arg-type]
+        actual_score=wrapper.actual_score,
+        pick_correct=wrapper.pick_correct,
+    )
+
+
+def get_league_fixtures(league_key: str, limit: int = 5) -> LeagueFixturesOut:
+    """Return next-N upcoming fixtures + last-N past results for one league.
+
+    * ``next_5`` is sourced from today's snapshot, filtered by league and
+      ordered by date / kickoff time. Each row carries the calibrated
+      probabilities and the deterministic SEO slug used by
+      ``/leagues/{league}/{match}``.
+    * ``last_5`` is sourced from ``data/raw/`` CSVs through
+      :func:`football_betting.data.loader.load_league` so it reflects the
+      authoritative historical archive. ``pick_correct`` is computed from
+      the persisted prediction log when a model pick exists for the same
+      match.
+    """
+    from football_betting.data.loader import load_league
+    from football_betting.seo.match_slugs import build_slug
+    from football_betting.tracking.tracker import ResultsTracker
+
+    league_key = league_key.upper()
+    league_name = LEAGUES[league_key].name if league_key in LEAGUES else league_key
+
+    next_rows: list[LeagueFixtureOut] = []
+    snapshot = load_today()
+    if snapshot is not None:
+        upcoming = [p for p in snapshot.predictions if p.league.upper() == league_key]
+        upcoming.sort(key=lambda p: (p.date, p.kickoff_time or ""))
+        for p in upcoming[:limit]:
+            next_rows.append(
+                LeagueFixtureOut(
+                    date=p.date,
+                    home_team=p.home_team,
+                    away_team=p.away_team,
+                    kickoff_time=p.kickoff_time,
+                    prob_home=round(p.prob_home, 4),
+                    prob_draw=round(p.prob_draw, 4),
+                    prob_away=round(p.prob_away, 4),
+                    most_likely=p.most_likely,
+                    slug=build_slug(p.home_team, p.away_team, p.date),
+                )
+            )
+
+    # Build a map of model picks for the last fixtures we report.
+    pick_by_key: dict[tuple[str, str, str], str] = {}
+    try:
+        tracker = ResultsTracker()
+        tracker.load()
+        for rec in tracker.records:
+            if rec.league.upper() != league_key:
+                continue
+            probs = (rec.prob_home, rec.prob_draw, rec.prob_away)
+            pick = ("H", "D", "A")[probs.index(max(probs))]
+            pick_by_key[(rec.date, rec.home_team, rec.away_team)] = pick
+    except Exception:  # pragma: no cover — missing log is fine
+        pick_by_key = {}
+
+    last_rows: list[LeagueFixtureOut] = []
+    try:
+        matches = load_league(league_key)
+        matches.sort(key=lambda m: m.date, reverse=True)
+        for m in matches[:limit]:
+            pick = pick_by_key.get((m.date.isoformat(), m.home_team, m.away_team))
+            last_rows.append(
+                LeagueFixtureOut(
+                    date=m.date.isoformat(),
+                    home_team=m.home_team,
+                    away_team=m.away_team,
+                    home_goals=m.home_goals,
+                    away_goals=m.away_goals,
+                    result=m.result,
+                    pick_correct=(pick == m.result) if pick else None,
+                    slug=build_slug(m.home_team, m.away_team, m.date),
+                )
+            )
+    except FileNotFoundError:
+        last_rows = []
+    except Exception as exc:  # pragma: no cover — never 500 SEO endpoint
+        logger.warning(
+            "[api] /leagues/%s/fixtures: load_league failed: %s", league_key, exc
+        )
+        last_rows = []
+
+    return LeagueFixturesOut(
+        league=league_key,
+        league_name=league_name,
+        next_5=next_rows,
+        last_5=last_rows,
+    )

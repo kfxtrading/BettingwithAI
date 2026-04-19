@@ -8,7 +8,12 @@ import {
   absoluteUrl,
   localizedPath,
 } from '@/lib/seo';
-import { fetchLeagueRatingsServer, fetchLeaguesServer } from '@/lib/server-api';
+import { LeagueFixturesWidget } from '@/components/LeagueFixturesWidget';
+import {
+  fetchLeagueFixturesServer,
+  fetchLeagueRatingsServer,
+  fetchLeaguesServer,
+} from '@/lib/server-api';
 import { locales, type Locale } from '@/lib/i18n';
 
 type PageProps = {
@@ -85,7 +90,10 @@ export default async function LeagueDetailPage({ params }: PageProps) {
     ],
   };
 
-  const ratings = await fetchLeagueRatingsServer(leagueKey, 30);
+  const [ratings, fixtures] = await Promise.all([
+    fetchLeagueRatingsServer(leagueKey, 30),
+    fetchLeagueFixturesServer(leagueKey, 5),
+  ]);
   const teams = ratings.map((r) => ({
     '@type': 'SportsTeam' as const,
     name: r.team,
@@ -105,6 +113,13 @@ export default async function LeagueDetailPage({ params }: PageProps) {
     <>
       <JsonLd data={[breadcrumbLd, sportsLeagueLd]} />
       <LeagueClient leagueKey={leagueKey} leagueName={name} />
+      <div className="mt-10">
+        <LeagueFixturesWidget
+          locale={locale}
+          leagueKey={leagueKey}
+          fixtures={fixtures}
+        />
+      </div>
     </>
   );
 }

@@ -17,8 +17,6 @@ import logging
 import os
 from typing import Iterable
 
-import httpx
-
 LOGGER = logging.getLogger(__name__)
 
 INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow"
@@ -61,6 +59,8 @@ def ping_indexnow(urls: Iterable[str], *, timeout: float = 10.0) -> bool:
         "keyLocation": _key_location(site, key),
         "urlList": url_list,
     }
+    import httpx  # lazy: keep import cost off the `seo` package init path
+
     try:
         with httpx.Client(timeout=timeout) as client:
             response = client.post(INDEXNOW_ENDPOINT, json=payload)

@@ -257,6 +257,76 @@ class TrackRecordCalibrationOut(BaseModel):
     buckets: list[CalibrationBucketOut] = Field(default_factory=list)
 
 
+class MatchSlugOut(BaseModel):
+    """One upcoming-match slug for SEO routing / sitemap."""
+
+    slug: str
+    league: str
+    league_name: str
+    home_team: str
+    away_team: str
+    date: str
+    kickoff_time: str | None = None
+
+
+class MatchSlugsOut(BaseModel):
+    """Lightweight payload listing every upcoming match slug."""
+
+    league: str | None = None
+    n_matches: int
+    matches: list[MatchSlugOut] = Field(default_factory=list)
+
+
+class MatchWrapperOut(BaseModel):
+    """SEO wrapper prose + probabilities for ``/leagues/{league}/{match}``."""
+
+    slug: str
+    league: str
+    league_name: str
+    home_team: str
+    away_team: str
+    kickoff: str
+    prob_home: float = Field(ge=0.0, le=1.0)
+    prob_draw: float = Field(ge=0.0, le=1.0)
+    prob_away: float = Field(ge=0.0, le=1.0)
+    pick: Outcome
+    prose: str
+    is_archived: bool = False
+    actual_result: Outcome | None = None
+    actual_score: str | None = None
+    pick_correct: bool | None = None
+
+
+class LeagueFixtureOut(BaseModel):
+    """One fixture / past match for the league hub widgets."""
+
+    date: str
+    home_team: str
+    away_team: str
+    kickoff_time: str | None = None
+    # Upcoming-only model probabilities.
+    prob_home: float | None = None
+    prob_draw: float | None = None
+    prob_away: float | None = None
+    most_likely: Outcome | None = None
+    # Past-only result fields.
+    home_goals: int | None = None
+    away_goals: int | None = None
+    result: Outcome | None = None
+    # If model picked this match in the past, was the pick correct?
+    pick_correct: bool | None = None
+    slug: str | None = None
+
+
+class LeagueFixturesOut(BaseModel):
+    """Last-5 + next-5 fixtures for the league hub SEO upgrade."""
+
+    league: str
+    league_name: str
+    next_5: list[LeagueFixtureOut] = Field(default_factory=list)
+    last_5: list[LeagueFixtureOut] = Field(default_factory=list)
+
+
 class ConsentIn(BaseModel):
     """Cookie-consent submission from the frontend banner."""
 

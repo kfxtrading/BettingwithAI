@@ -167,6 +167,13 @@ export const es: Dictionary = {
   'learn.intro':
     'Guías breves y basadas en datos sobre value bets, calibración del modelo, gestión del bankroll y las métricas con las que se evalúa este sitio.',
   'learn.readMore': 'Leer →',
+  'leagueHub.next5.title': 'Próximos 5 partidos',
+  'leagueHub.next5.empty': 'No hay partidos próximos en el snapshot actual.',
+  'leagueHub.last5.title': 'Últimos 5 resultados',
+  'leagueHub.last5.empty': 'Aún no hay resultados recientes disponibles.',
+  'leagueHub.pickCorrect': 'Pronóstico acertado',
+  'leagueHub.pickIncorrect': 'Pronóstico fallido',
+  'leagueHub.viewMatch': 'Abrir predicción →',
   'cookie.title': 'Usamos cookies',
   'cookie.body':
     'Este sitio utiliza cookies y tecnologías similares para garantizar su funcionamiento y para medir el alcance y el rendimiento. Tu consentimiento se almacena junto con un hash de tu dirección IP para poder reconocerlo en tu próxima visita. Puedes retirarlo en cualquier momento.',

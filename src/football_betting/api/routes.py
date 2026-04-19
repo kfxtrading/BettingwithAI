@@ -14,8 +14,11 @@ from football_betting.api.schemas import (
     FormRow,
     HealthOut,
     HistoryPayload,
+    LeagueFixturesOut,
     LeagueOut,
     LeagueRatingSummary,
+    MatchSlugsOut,
+    MatchWrapperOut,
     PerformanceIndexOut,
     PerformanceSummary,
     RatingRow,
@@ -210,6 +213,54 @@ def seo_slugs(response: Response) -> SeoSlugsOut:
     """League + team slugs for sitemap / SEO tooling. Cached for 1 hour."""
     response.headers["Cache-Control"] = "public, max-age=3600"
     return services.get_seo_slugs()
+
+
+@router.get(
+    "/seo/matches/upcoming",
+    response_model=MatchSlugsOut,
+    tags=["seo"],
+)
+def seo_matches_upcoming(
+    response: Response,
+    league: str | None = Query(None),
+) -> MatchSlugsOut:
+    """Upcoming-match slugs from today's snapshot for sitemap / SEO."""
+    if league is not None:
+        league = _validate_league(league)
+    response.headers["Cache-Control"] = "public, max-age=600"
+    return services.get_upcoming_match_slugs(league=league)
+
+
+@router.get(
+    "/seo/matches/{slug}",
+    response_model=MatchWrapperOut,
+    tags=["seo"],
+)
+def seo_match_wrapper(slug: str, response: Response) -> MatchWrapperOut:
+    """SEO wrapper (probabilities + 150–300 word prose) for a match slug.
+
+    Returns 404 when the slug is not in the current snapshot — the
+    frontend uses that signal to ``noindex`` the page (see Battle Plan §4).
+    """
+    wrapper = services.get_match_wrapper(slug)
+    if wrapper is None:
+        raise HTTPException(status_code=404, detail=f"Unknown match slug '{slug}'")
+    response.headers["Cache-Control"] = "public, max-age=600"
+    return wrapper
+
+
+@router.get(
+    "/leagues/{league_key}/fixtures",
+    response_model=LeagueFixturesOut,
+    tags=["leagues"],
+)
+def league_fixtures(
+    league_key: str,
+    limit: int = Query(5, ge=1, le=20),
+) -> LeagueFixturesOut:
+    """Next-N upcoming + last-N past fixtures for the league hub widgets."""
+    key = _validate_league(league_key)
+    return services.get_league_fixtures(key, limit=limit)
 
 
 @router.post("/consent", response_model=ConsentOut, tags=["consent"])
