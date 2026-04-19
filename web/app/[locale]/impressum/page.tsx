@@ -47,10 +47,6 @@ export default function ImpressumPage({ params }: PageProps) {
       <h2>Anbieter</h2>
       <p>
         Betting with AI
-        <br />
-        c/o Betreiber
-        <br />
-        Berlin, Deutschland
       </p>
       <h2>Kontakt</h2>
       <p>E-Mail: hello@bettingwithai.app</p>
