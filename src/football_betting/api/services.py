@@ -698,22 +698,52 @@ def _max_drawdown_pct(curve: list[BankrollPoint]) -> float:
 
 
 def get_bankroll_curve(initial_bankroll: float = 1000.0) -> list[BankrollPoint]:
+    """Aggregate completed bets into a one-point-per-day equity curve.
+
+    Multiple bets on the same calendar day previously each produced their
+    own ``BankrollPoint`` with the same ``date`` value, so Recharts
+    rendered them stacked at the same X-coordinate and the visible
+    entry for that day looked stuck on the *first* per-bet bankroll
+    (often the opening 1000.00) instead of the day's end-of-day result.
+
+    We now sum P&L per day and emit exactly one point per date carrying
+    the closing bankroll. The very first point anchors the chart at the
+    initial bankroll on the day before the first settled bet.
+    """
+    from datetime import date as _date
+    from datetime import timedelta
+
     tracker = _load_tracker()
     completed = tracker.completed_bets()
     completed.sort(key=lambda r: r.date)
 
-    bankroll = initial_bankroll
-    curve: list[BankrollPoint] = [
-        BankrollPoint(date=completed[0].date if completed else date.today().isoformat(),
-                       value=round(bankroll, 2))
-    ]
+    if not completed:
+        return [BankrollPoint(date=_date.today().isoformat(),
+                              value=round(initial_bankroll, 2))]
+
+    daily_pnl: dict[str, float] = defaultdict(float)
     for rec in completed:
         stake = rec.bet_stake or 0.0
         if rec.bet_status == "won" and rec.bet_odds:
-            bankroll += stake * (rec.bet_odds - 1)
+            daily_pnl[rec.date] += stake * (rec.bet_odds - 1)
         elif rec.bet_status == "lost":
-            bankroll -= stake
-        curve.append(BankrollPoint(date=rec.date, value=round(bankroll, 2)))
+            daily_pnl[rec.date] -= stake
+
+    sorted_dates = sorted(daily_pnl.keys())
+    try:
+        anchor = (
+            _date.fromisoformat(sorted_dates[0]) - timedelta(days=1)
+        ).isoformat()
+    except ValueError:
+        anchor = sorted_dates[0]
+
+    bankroll = initial_bankroll
+    curve: list[BankrollPoint] = [
+        BankrollPoint(date=anchor, value=round(bankroll, 2))
+    ]
+    for d in sorted_dates:
+        bankroll += daily_pnl[d]
+        curve.append(BankrollPoint(date=d, value=round(bankroll, 2)))
     return curve
 
 
