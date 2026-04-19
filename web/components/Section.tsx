@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 interface SectionProps {
   title?: string;
+  titleAdornment?: ReactNode;
   caption?: string;
   action?: ReactNode;
   children: ReactNode;
@@ -10,6 +11,7 @@ interface SectionProps {
 
 export function Section({
   title,
+  titleAdornment,
   caption,
   action,
   children,
@@ -21,7 +23,10 @@ export function Section({
         <header className="mb-5 flex items-end justify-between gap-6">
           <div>
             {title && (
-              <h2 className="text-xl font-medium tracking-tight">{title}</h2>
+              <h2 className="flex items-center gap-2 text-xl font-medium tracking-tight">
+                <span>{title}</span>
+                {titleAdornment}
+              </h2>
             )}
             {caption && (
               <p className="mt-1 text-sm text-muted">{caption}</p>

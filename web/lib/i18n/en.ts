@@ -11,6 +11,8 @@ export type DictionaryKey =
   | 'home.section.valueBets.caption'
   | 'home.section.valueBets.empty.title'
   | 'home.section.valueBets.empty.hint'
+  | 'home.section.valueBets.info.aria'
+  | 'home.section.valueBets.info.body'
   | 'home.section.predictions.title'
   | 'home.section.predictions.caption'
   | 'home.section.predictions.empty.title'
@@ -179,6 +181,9 @@ export const en: Dictionary = {
   'home.section.valueBets.empty.title': 'No value bets right now',
   'home.section.valueBets.empty.hint':
     'When the model finds a significant edge over the market, opportunities will appear here.',
+  'home.section.valueBets.info.aria': 'About the stake calculation',
+  'home.section.valueBets.info.body':
+    'The stake is derived from the Kelly criterion: f* = (p · o − 1) / (o − 1), where p is our calibrated win probability and o the decimal odds. We apply a fractional Kelly (¼) and cap each bet at 5% of the bankroll to reduce variance.',
   'home.section.predictions.title': "Today's Predictions",
   'home.section.predictions.caption': 'Probabilities for Home · Draw · Away.',
   'home.section.predictions.empty.title': 'No predictions available',

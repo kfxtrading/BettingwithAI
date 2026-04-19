@@ -16,6 +16,9 @@ export const it: Dictionary = {
   'home.section.valueBets.empty.title': 'Nessuna value bet al momento',
   'home.section.valueBets.empty.hint':
     'Quando il modello individua un vantaggio significativo sul mercato, le opportunità appariranno qui.',
+  'home.section.valueBets.info.aria': 'Informazioni sul calcolo della puntata',
+  'home.section.valueBets.info.body':
+    'La puntata deriva dal criterio di Kelly: f* = (p · o − 1) / (o − 1), dove p è la nostra probabilità di vittoria calibrata e o la quota decimale. Applichiamo un Kelly frazionato (¼) e limitiamo ogni scommessa al 5 % del bankroll per ridurre la varianza.',
   'home.section.predictions.title': 'Pronostici di oggi',
   'home.section.predictions.caption': 'Probabilità per 1 · X · 2.',
   'home.section.predictions.empty.title': 'Nessun pronostico disponibile',

@@ -16,6 +16,9 @@ export const es: Dictionary = {
   'home.section.valueBets.empty.title': 'Sin value bets por ahora',
   'home.section.valueBets.empty.hint':
     'Cuando el modelo encuentre una ventaja significativa sobre el mercado, las oportunidades aparecerán aquí.',
+  'home.section.valueBets.info.aria': 'Sobre el cálculo de la apuesta',
+  'home.section.valueBets.info.body':
+    'La apuesta se deriva del criterio de Kelly: f* = (p · o − 1) / (o − 1), donde p es nuestra probabilidad de victoria calibrada y o la cuota decimal. Aplicamos un Kelly fraccionado (¼) y limitamos cada apuesta al 5 % del bankroll para reducir la varianza.',
   'home.section.predictions.title': 'Pronósticos de hoy',
   'home.section.predictions.caption':
     'Probabilidades para Local · Empate · Visitante.',

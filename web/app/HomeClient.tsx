@@ -9,6 +9,7 @@ import { RecentBets } from '@/components/RecentBets';
 import { Section } from '@/components/Section';
 import { Empty } from '@/components/Empty';
 import { ValueBetBadge } from '@/components/ValueBetBadge';
+import { InfoTooltip } from '@/components/InfoTooltip';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { League, TodayPayload, ValueBet } from '@/lib/types';
@@ -82,6 +83,11 @@ export function HomeClient({
 
       <Section
         title={t('home.section.valueBets.title')}
+        titleAdornment={
+          <InfoTooltip label={t('home.section.valueBets.info.aria')}>
+            {t('home.section.valueBets.info.body')}
+          </InfoTooltip>
+        }
         caption={t('home.section.valueBets.caption')}
         action={
           leaguesQuery.data ? (

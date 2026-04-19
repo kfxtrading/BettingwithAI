@@ -16,6 +16,9 @@ export const de: Dictionary = {
   'home.section.valueBets.empty.title': 'Aktuell keine Value Bets',
   'home.section.valueBets.empty.hint':
     'Sobald das Modell einen klaren Vorteil gegenüber dem Markt erkennt, erscheinen hier passende Gelegenheiten.',
+  'home.section.valueBets.info.aria': 'Über die Einsatz-Berechnung',
+  'home.section.valueBets.info.body':
+    'Der Einsatz wird nach dem Kelly-Kriterium berechnet: f* = (p · o − 1) / (o − 1), wobei p unsere kalibrierte Gewinnwahrscheinlichkeit und o die Dezimalquote ist. Wir setzen ein fraktionales Kelly (¼) ein und deckeln jede Wette bei 5 % der Bankroll, um die Varianz zu reduzieren.',
   'home.section.predictions.title': 'Heutige Prognosen',
   'home.section.predictions.caption':
     'Wahrscheinlichkeiten für Heim · Unentschieden · Auswärts.',

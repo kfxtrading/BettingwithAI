@@ -17,6 +17,9 @@ export const fr: Dictionary = {
   'home.section.valueBets.empty.title': 'Pas de value bets pour le moment',
   'home.section.valueBets.empty.hint':
     "Quand le modèle détecte un avantage significatif sur le marché, les opportunités s'afficheront ici.",
+  'home.section.valueBets.info.aria': 'À propos du calcul de la mise',
+  'home.section.valueBets.info.body':
+    "La mise est dérivée du critère de Kelly : f* = (p · o − 1) / (o − 1), où p est notre probabilité de victoire calibrée et o la cote décimale. Nous appliquons un Kelly fractionné (¼) et plafonnons chaque pari à 5 % de la bankroll pour réduire la variance.",
   'home.section.predictions.title': 'Prédictions du jour',
   'home.section.predictions.caption':
     'Probabilités pour Domicile · Nul · Extérieur.',
