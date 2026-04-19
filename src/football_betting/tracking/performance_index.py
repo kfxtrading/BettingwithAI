@@ -266,6 +266,11 @@ def compute_payloads(
     if tracker is None:
         tracker = ResultsTracker()
         tracker.load()
+        if not tracker.records:
+            # Fall back to graded-bets artefact written by the daily pipeline.
+            from football_betting.evaluation.grader import graded_as_prediction_records
+
+            tracker.records = graded_as_prediction_records()
     completed = tracker.completed_bets()
     completed.sort(key=lambda r: r.date)
 

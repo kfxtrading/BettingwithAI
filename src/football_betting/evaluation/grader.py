@@ -209,3 +209,37 @@ def load_graded() -> list[GradedBet]:
             except (json.JSONDecodeError, TypeError):
                 continue
     return out
+
+
+def graded_as_prediction_records() -> list:
+    """Return graded bets as ``PredictionRecord`` so they plug into the
+    existing performance pipeline (bankroll curve, summary, public index)
+    without duplicating the aggregation logic.
+
+    Only SETTLED bets are emitted — pending bets would inflate ``n_bets`` in
+    the aggregate summary before they have a result.
+    """
+    from football_betting.tracking.tracker import PredictionRecord
+
+    records: list = []
+    for g in load_graded():
+        if g.status == "pending":
+            continue
+        records.append(
+            PredictionRecord(
+                date=g.date,
+                league=g.league,
+                home_team=g.home_team,
+                away_team=g.away_team,
+                model_name="graded",
+                prob_home=0.0,
+                prob_draw=0.0,
+                prob_away=0.0,
+                bet_outcome=g.outcome,  # type: ignore[arg-type]
+                bet_odds=g.odds,
+                bet_stake=g.stake,
+                actual_outcome=g.ft_result,  # type: ignore[arg-type]
+                bet_status=g.status,  # type: ignore[arg-type]
+            )
+        )
+    return records

@@ -44,7 +44,27 @@ def regrade_all() -> list[GradedBet]:
             continue
         graded.extend(grade_bets(payload.value_bets))
     write_graded(graded)
+    _refresh_performance_artifacts()
     return graded
+
+
+def _refresh_performance_artifacts() -> None:
+    """Regenerate ``performance.json`` / ``performance_full.json`` and bust
+    the in-memory cache so ``/performance/*`` endpoints reflect the freshly
+    graded bets immediately."""
+    try:
+        from football_betting.tracking.performance_index import write_performance_files
+
+        write_performance_files()
+    except Exception:
+        logger.exception("[pipeline] Failed to refresh performance artefacts")
+        return
+    try:
+        from football_betting.api.cache import cache
+
+        cache.clear()
+    except Exception:
+        logger.exception("[pipeline] Failed to clear performance cache")
 
 
 def run() -> None:

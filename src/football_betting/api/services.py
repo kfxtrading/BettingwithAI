@@ -602,8 +602,15 @@ def get_team_detail(league_key: str, team: str) -> TeamDetail | None:
 # ─────────────────────────────────────────────────────────────────
 
 def _load_tracker() -> ResultsTracker:
+    """Load the canonical tracker; fall back to ``graded_bets.jsonl`` when
+    ``predictions_log.json`` is absent/empty so the performance endpoints
+    stay in sync with the automated daily grading pipeline."""
     tracker = ResultsTracker()
     tracker.load()
+    if not tracker.records:
+        from football_betting.evaluation.grader import graded_as_prediction_records
+
+        tracker.records = graded_as_prediction_records()
     return tracker
 
 
