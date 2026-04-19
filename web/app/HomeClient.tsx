@@ -11,12 +11,28 @@ import { Empty } from '@/components/Empty';
 import { ValueBetBadge } from '@/components/ValueBetBadge';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import type { League, TodayPayload } from '@/lib/types';
+import type { League, TodayPayload, ValueBet } from '@/lib/types';
 
 type HomeClientProps = {
   initialToday?: TodayPayload | null;
   initialLeagues?: League[];
 };
+
+function groupValueBetsByMatch(bets: ValueBet[]): ValueBet[][] {
+  const groups = new Map<string, ValueBet[]>();
+  const order: string[] = [];
+  for (const bet of bets) {
+    const key = `${bet.date}|${bet.league}|${bet.home_team}|${bet.away_team}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(bet);
+    } else {
+      groups.set(key, [bet]);
+      order.push(key);
+    }
+  }
+  return order.map((k) => groups.get(k)!);
+}
 
 function formatGenerated(iso: string, locale: string): string {
   try {
@@ -93,9 +109,14 @@ export function HomeClient({
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {valueBets.slice(0, 9).map((bet, i) => (
-              <ValueBetBadge key={`${bet.home_team}-${i}`} bet={bet} />
-            ))}
+            {groupValueBetsByMatch(valueBets)
+              .slice(0, 9)
+              .map((group, i) => (
+                <ValueBetBadge
+                  key={`${group[0].date}-${group[0].home_team}-${group[0].away_team}-${i}`}
+                  bets={group}
+                />
+              ))}
           </div>
         )}
       </Section>
