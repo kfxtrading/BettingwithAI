@@ -6,7 +6,7 @@ import { Nav } from '@/components/Nav';
 import { JsonLd } from '@/components/JsonLd';
 import { Providers } from './providers';
 import { SITE_NAME, SITE_URL, absoluteUrl, buildLanguageAlternates } from '@/lib/seo';
-import { defaultLocale, ogLocaleMap } from '@/lib/i18n';
+import { defaultLocale, locales, ogLocaleMap } from '@/lib/i18n';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -49,6 +49,9 @@ export const metadata: Metadata = {
     description:
       'Calibrated probabilities and value bets for the Top 5 football leagues — powered by a CatBoost + Poisson + MLP ensemble.',
     locale: ogLocaleMap[defaultLocale],
+    alternateLocale: locales
+      .filter((l) => l !== defaultLocale)
+      .map((l) => ogLocaleMap[l]),
     images: [
       { url: absoluteUrl('/og.png'), width: 1200, height: 630, alt: SITE_NAME },
     ],
@@ -98,7 +101,7 @@ const websiteLd = {
   '@type': 'WebSite',
   name: SITE_NAME,
   url: SITE_URL,
-  inLanguage: 'en',
+  inLanguage: ['en', 'de', 'fr', 'it', 'es'],
   description:
     'Data-driven football predictions and value bets for the Top 5 leagues.',
 };

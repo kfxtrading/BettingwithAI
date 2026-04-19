@@ -1,5 +1,10 @@
 import type { Metadata } from 'next';
-import { defaultLocale, locales, ogLocaleMap, type Locale } from './i18n';
+import {
+  defaultLocale,
+  hreflangRegions,
+  ogLocaleMap,
+  type Locale,
+} from './i18n';
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
@@ -15,11 +20,12 @@ export function absoluteUrl(path = '/'): string {
 export function buildLanguageAlternates(
   path = '/',
 ): Record<string, string> {
+  const url = absoluteUrl(path);
   const alternates: Record<string, string> = {};
-  for (const loc of locales) {
-    alternates[loc] = absoluteUrl(path);
+  for (const tag of Object.keys(hreflangRegions)) {
+    alternates[tag] = url;
   }
-  alternates['x-default'] = absoluteUrl(path);
+  alternates['x-default'] = url;
   return alternates;
 }
 
