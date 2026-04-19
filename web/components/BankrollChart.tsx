@@ -25,7 +25,7 @@ export function BankrollChart({ data }: { data: BankrollPoint[] }) {
   return (
     <div className="surface-card h-72 px-2 py-4">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 10, right: 24, bottom: 8, left: 8 }}>
+        <LineChart data={data} margin={{ top: 10, right: 48, bottom: 8, left: 8 }}>
           <CartesianGrid
             stroke="rgba(var(--border), var(--border-alpha))"
             strokeDasharray="0"
@@ -38,6 +38,7 @@ export function BankrollChart({ data }: { data: BankrollPoint[] }) {
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
+            padding={{ left: 8, right: 16 }}
           />
           <YAxis
             stroke="rgb(var(--muted))"
