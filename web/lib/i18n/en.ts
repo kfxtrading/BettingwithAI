@@ -72,6 +72,9 @@ export type DictionaryKey =
   | 'predictionCard.outcome.away'
   | 'predictionCard.pick'
   | 'predictionCard.vs'
+  | 'predictionCard.badge.live'
+  | 'predictionCard.badge.correct'
+  | 'predictionCard.badge.incorrect'
   | 'valueBet.confidence.high'
   | 'valueBet.confidence.medium'
   | 'valueBet.confidence.low'
@@ -244,6 +247,9 @@ export const en: Dictionary = {
   'predictionCard.outcome.away': 'Away win',
   'predictionCard.pick': 'Pick:',
   'predictionCard.vs': 'vs',
+  'predictionCard.badge.live': 'Live',
+  'predictionCard.badge.correct': 'Pick correct',
+  'predictionCard.badge.incorrect': 'Pick incorrect',
   'valueBet.confidence.high': 'High',
   'valueBet.confidence.medium': 'Medium',
   'valueBet.confidence.low': 'Low',

@@ -42,11 +42,13 @@ class LiveScoreRow:
     date: str  # YYYY-MM-DD (local league date)
     home_norm: str
     away_norm: str
-    ftr: str  # "H" | "D" | "A"
+    ftr: str  # "H" | "D" | "A" (for live matches: current leader, "D" if tied)
     fthg: int
     ftag: int
     source: str  # "odds_api"
     fetched_at: str  # ISO UTC
+    status: str = "completed"  # "completed" | "live"
+    kickoff_utc: str | None = None  # ISO UTC of kickoff
 
     def key(self) -> tuple[str, date, str, str]:
         return (
@@ -91,8 +93,32 @@ def load_live_results_for_code(
     """Return {(date, home_norm, away_norm): (ftr, fthg, ftag)} for a league code.
 
     Shape matches :func:`grader._load_results_for_league` so it can be merged.
+    Only *completed* rows are returned — live-in-progress matches must never
+    leak into the grading pipeline (would prematurely settle bets).
     """
     out: dict[tuple[date, str, str], tuple[str, int, int]] = {}
+    for r in _load_rows():
+        if r.league_code != code:
+            continue
+        if r.status != "completed":
+            continue
+        try:
+            d = datetime.strptime(r.date, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        out[(d, r.home_norm, r.away_norm)] = (r.ftr, r.fthg, r.ftag)
+    return out
+
+
+def load_live_matches_for_code(
+    code: str,
+) -> dict[tuple[date, str, str], tuple[str, str, int, int]]:
+    """Return {(date, home_norm, away_norm): (status, ftr, fthg, ftag)} for a league.
+
+    Includes BOTH live and completed rows. Used by the API anrichment layer
+    to surface Live / Tipp-richtig badges on the homepage.
+    """
+    out: dict[tuple[date, str, str], tuple[str, str, int, int]] = {}
     for r in _load_rows():
         if r.league_code != code:
             continue
@@ -100,7 +126,7 @@ def load_live_results_for_code(
             d = datetime.strptime(r.date, "%Y-%m-%d").date()
         except ValueError:
             continue
-        out[(d, r.home_norm, r.away_norm)] = (r.ftr, r.fthg, r.ftag)
+        out[(d, r.home_norm, r.away_norm)] = (r.status, r.ftr, r.fthg, r.ftag)
     return out
 
 
@@ -131,21 +157,66 @@ def _now_utc_iso() -> str:
 
 
 def _score_to_row(s: ScoreResult, code: str) -> LiveScoreRow | None:
-    if not s.completed or s.home_goals is None or s.away_goals is None:
+    """Convert an Odds-API score result to a persistable row.
+
+    Returns a row with ``status="completed"`` for full-time results or
+    ``status="live"`` for matches whose kickoff has passed but that are
+    not yet completed (includes half-time / in-play). Future-scheduled
+    matches (kickoff still in the future) yield ``None``.
+    """
+    now = datetime.now(timezone.utc)
+    kickoff_iso: str | None = None
+    if s.kickoff_utc is not None:
+        kickoff_iso = (
+            s.kickoff_utc.astimezone(timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
+    if s.completed:
+        if s.home_goals is None or s.away_goals is None:
+            return None
+        ftr = s.ftr
+        if ftr is None:
+            return None
+        return LiveScoreRow(
+            league_code=code,
+            date=s.date.isoformat(),
+            home_norm=_norm(s.home_team),
+            away_norm=_norm(s.away_team),
+            ftr=ftr,
+            fthg=int(s.home_goals),
+            ftag=int(s.away_goals),
+            source="odds_api",
+            fetched_at=_now_utc_iso(),
+            status="completed",
+            kickoff_utc=kickoff_iso,
+        )
+
+    # Not completed — only persist if already kicked off (live/in-play).
+    if s.kickoff_utc is None or s.kickoff_utc > now:
         return None
-    ftr = s.ftr
-    if ftr is None:
-        return None
+
+    hg = int(s.home_goals) if s.home_goals is not None else 0
+    ag = int(s.away_goals) if s.away_goals is not None else 0
+    if hg > ag:
+        ftr = "H"
+    elif hg < ag:
+        ftr = "A"
+    else:
+        ftr = "D"
     return LiveScoreRow(
         league_code=code,
         date=s.date.isoformat(),
         home_norm=_norm(s.home_team),
         away_norm=_norm(s.away_team),
         ftr=ftr,
-        fthg=int(s.home_goals),
-        ftag=int(s.away_goals),
+        fthg=hg,
+        ftag=ag,
         source="odds_api",
         fetched_at=_now_utc_iso(),
+        status="live",
+        kickoff_utc=kickoff_iso,
     )
 
 
@@ -187,13 +258,20 @@ def poll_and_store_scores(
             if prev is None:
                 existing[row.key()] = row
                 added += 1
-            elif (prev.ftr, prev.fthg, prev.ftag) != (row.ftr, row.fthg, row.ftag):
-                # Score correction from the upstream feed — trust the newer pull.
+                continue
+            # Never downgrade a completed row back to live.
+            if prev.status == "completed" and row.status == "live":
+                continue
+            state_changed = prev.status != row.status
+            score_changed = (prev.ftr, prev.fthg, prev.ftag) != (
+                row.ftr, row.fthg, row.ftag,
+            )
+            if state_changed or score_changed:
                 logger.info(
-                    "[live] Score correction %s %s %s-%s: %d-%d (%s) -> %d-%d (%s)",
+                    "[live] Update %s %s %s-%s: %d-%d (%s/%s) -> %d-%d (%s/%s)",
                     row.date, code, row.home_norm, row.away_norm,
-                    prev.fthg, prev.ftag, prev.ftr,
-                    row.fthg, row.ftag, row.ftr,
+                    prev.fthg, prev.ftag, prev.ftr, prev.status,
+                    row.fthg, row.ftag, row.ftr, row.status,
                 )
                 existing[row.key()] = row
                 updated += 1
@@ -209,6 +287,7 @@ def poll_and_store_scores(
 __all__ = [
     "LIVE_SCORES_FILE",
     "LiveScoreRow",
+    "load_live_matches_for_code",
     "load_live_results_for_code",
     "pending_league_codes",
     "poll_and_store_scores",

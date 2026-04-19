@@ -25,8 +25,29 @@ export function PredictionCard({ prediction }: { prediction: Prediction }) {
 
   return (
     <article className="surface-card flex flex-col gap-5 px-5 py-5 transition-[box-shadow,transform] ease-ease hover:-translate-y-[1px]">
-      <header className="flex items-baseline justify-between text-2xs">
-        <span className="pill">{league_name}</span>
+      <header className="flex items-baseline justify-between gap-2 text-2xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="pill">{league_name}</span>
+          {prediction.is_live && (
+            <span className="pill pill-live">
+              <span className="live-dot" aria-hidden="true" />
+              {t('predictionCard.badge.live')}
+              {prediction.ft_score ? ` · ${prediction.ft_score}` : ''}
+            </span>
+          )}
+          {prediction.pick_correct === true && (
+            <span className="pill pill-positive">
+              {t('predictionCard.badge.correct')}
+              {prediction.ft_score ? ` · ${prediction.ft_score}` : ''}
+            </span>
+          )}
+          {prediction.pick_correct === false && (
+            <span className="pill pill-negative">
+              {t('predictionCard.badge.incorrect')}
+              {prediction.ft_score ? ` · ${prediction.ft_score}` : ''}
+            </span>
+          )}
+        </div>
         <span className="font-mono text-muted">
           {formatDate(prediction.date, locale)}
           {kickoff_time ? ` · ${kickoff_time}` : ''}

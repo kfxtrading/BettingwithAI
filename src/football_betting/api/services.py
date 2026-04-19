@@ -381,6 +381,106 @@ def _build_model(league_key: str, fb: FeatureBuilder):
     return EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
 
 
+def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayload:
+    """Annotate each prediction with live-status and pick-correctness.
+
+    Joins ``graded_bets.jsonl`` (authoritative full-time results) and
+    ``live_scores.jsonl`` (Odds-API in-progress scores) onto the snapshot
+    predictions. ``pick_correct`` is set only for settled matches; ``is_live``
+    flags matches that have kicked off but not yet finished.
+    """
+    if not payload.predictions:
+        return payload
+
+    try:
+        from football_betting.evaluation.grader import _norm, load_graded
+        from football_betting.evaluation.live_results import (
+            load_live_matches_for_code,
+        )
+    except Exception as exc:  # pragma: no cover — defensive
+        logger.warning("[api] enrichment imports failed: %s", exc)
+        return payload
+
+    # Build graded index: (league_key, date, home_norm, away_norm) -> GradedBet.
+    graded_idx: dict[tuple[str, str, str, str], object] = {}
+    try:
+        for g in load_graded():
+            if g.kind != "prediction":
+                continue
+            graded_idx[
+                (g.league, g.date, _norm(g.home_team), _norm(g.away_team))
+            ] = g
+    except Exception as exc:  # pragma: no cover
+        logger.warning("[api] load_graded failed: %s", exc)
+
+    # Build live index per-league: (date, home_norm, away_norm) -> (status, ftr, hg, ag)
+    live_by_league: dict[str, dict] = {}
+    pred_leagues = {p.league for p in payload.predictions}
+    for lk in pred_leagues:
+        cfg = LEAGUES.get(lk)
+        if cfg is None:
+            continue
+        try:
+            live_by_league[lk] = load_live_matches_for_code(cfg.code)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("[api] load_live_matches_for_code(%s) failed: %s", lk, exc)
+            live_by_league[lk] = {}
+
+    enriched: list[PredictionOut] = []
+    for p in payload.predictions:
+        home_n = _norm(p.home_team)
+        away_n = _norm(p.away_team)
+        try:
+            match_date = datetime.strptime(p.date, "%Y-%m-%d").date()
+        except ValueError:
+            enriched.append(p)
+            continue
+
+        is_live = False
+        pick_correct: bool | None = None
+        ft_score: str | None = None
+
+        live_map = live_by_league.get(p.league, {})
+        live_hit = live_map.get((match_date, home_n, away_n))
+        if live_hit is not None:
+            status, ftr, hg, ag = live_hit
+            ft_score = f"{hg}-{ag}"
+            if status == "live":
+                is_live = True
+            elif status == "completed":
+                pick_correct = ftr == p.most_likely
+
+        # Graded (CSV / authoritative) overrides live-completed.
+        g = graded_idx.get((p.league, p.date, home_n, away_n))
+        if g is not None:
+            g_status = getattr(g, "status", "pending")
+            if g_status == "won":
+                pick_correct = True
+                ft_score = getattr(g, "ft_score", ft_score) or ft_score
+                is_live = False
+            elif g_status == "lost":
+                pick_correct = False
+                ft_score = getattr(g, "ft_score", ft_score) or ft_score
+                is_live = False
+
+        enriched.append(
+            p.model_copy(
+                update={
+                    "is_live": is_live,
+                    "pick_correct": pick_correct,
+                    "ft_score": ft_score,
+                }
+            )
+        )
+
+    return TodayPayload(
+        generated_at=payload.generated_at,
+        predictions=enriched,
+        value_bets=payload.value_bets,
+        data_sources=payload.data_sources,
+    )
+
+
 def get_today_payload(league: str | None = None) -> TodayPayload:
     """Prefer cached snapshot; fall back to on-demand prediction."""
     snapshot = load_today()
@@ -398,6 +498,8 @@ def get_today_payload(league: str | None = None) -> TodayPayload:
             return TodayPayload(generated_at=datetime.utcnow())
         logger.info("[api] /predictions/today — no snapshot; computing on-demand from %s", fixtures_file.name)
         snapshot = build_predictions_for_fixtures(data)
+
+    snapshot = _enrich_predictions_with_live_and_graded(snapshot)
 
     _log_snapshot_served(snapshot, source, league)
 

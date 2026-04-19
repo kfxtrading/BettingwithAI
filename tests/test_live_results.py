@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -191,6 +191,123 @@ def test_pending_league_codes_reads_graded_log(
 
 
 # ───────────────────────── Grader merge ─────────────────────────
+
+
+def test_poll_persists_live_in_progress_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A match that has kicked off but is not yet completed must be stored
+    as ``status="live"`` and then upgraded to ``"completed"`` on a later
+    poll once the final whistle arrives."""
+    monkeypatch.setattr(live_results, "LIVE_SCORES_FILE", tmp_path / "live_scores.jsonl")
+
+    kickoff = datetime.now(timezone.utc) - timedelta(minutes=30)  # already kicked off
+
+    class FakeLiveClient:
+        def __init__(self, goals: tuple[int, int], completed: bool) -> None:
+            self.goals = goals
+            self.completed = completed
+
+        def fetch_scores(self, league_key: str, days_from: int = 3):  # noqa: ARG002
+            return [
+                ScoreResult(
+                    league="PL",
+                    date=kickoff.date(),
+                    kickoff_utc=kickoff,
+                    home_team="Tottenham",
+                    away_team="Brighton",
+                    home_goals=self.goals[0],
+                    away_goals=self.goals[1],
+                    completed=self.completed,
+                    last_update=None,
+                ),
+            ]
+
+    # 1st poll: match live 1-0
+    added = live_results.poll_and_store_scores(
+        ["E0"], client=FakeLiveClient((1, 0), completed=False)
+    )
+    assert added == 1
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "live_scores.jsonl").read_text().splitlines()
+    ]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "live"
+    assert rows[0]["ftr"] == "H"
+
+    # 2nd poll: score flips to 1-2 but still live
+    updated = live_results.poll_and_store_scores(
+        ["E0"], client=FakeLiveClient((1, 2), completed=False)
+    )
+    assert updated == 1
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "live_scores.jsonl").read_text().splitlines()
+    ]
+    assert rows[0]["status"] == "live"
+    assert rows[0]["ftr"] == "A"
+
+    # 3rd poll: full time — upgrades to completed
+    completed_count = live_results.poll_and_store_scores(
+        ["E0"], client=FakeLiveClient((1, 2), completed=True)
+    )
+    assert completed_count == 1
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "live_scores.jsonl").read_text().splitlines()
+    ]
+    assert rows[0]["status"] == "completed"
+
+    # Completed grading pipeline sees the row; live-matches helper also does.
+    out = live_results.load_live_results_for_code("E0")
+    assert out[(kickoff.date(), "tottenham", "brighton")] == ("A", 1, 2)
+
+    matches = live_results.load_live_matches_for_code("E0")
+    status, ftr, hg, ag = matches[(kickoff.date(), "tottenham", "brighton")]
+    assert status == "completed"
+    assert (ftr, hg, ag) == ("A", 1, 2)
+
+
+def test_load_live_matches_excludes_no_such_league(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(live_results, "LIVE_SCORES_FILE", tmp_path / "missing.jsonl")
+    assert live_results.load_live_matches_for_code("E0") == {}
+
+
+def test_load_live_results_ignores_live_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """load_live_results_for_code must NEVER return live-in-progress rows
+    (would otherwise prematurely settle bets in the grader)."""
+    file = tmp_path / "live_scores.jsonl"
+    file.write_text(
+        json.dumps(
+            {
+                "league_code": "E0",
+                "date": "2026-04-18",
+                "home_norm": "tottenham",
+                "away_norm": "brighton",
+                "ftr": "H",
+                "fthg": 1,
+                "ftag": 0,
+                "source": "odds_api",
+                "fetched_at": "2026-04-18T16:00:00Z",
+                "status": "live",
+                "kickoff_utc": "2026-04-18T14:00:00Z",
+            }
+        )
+        + "\n"
+    )
+    monkeypatch.setattr(live_results, "LIVE_SCORES_FILE", file)
+
+    assert live_results.load_live_results_for_code("E0") == {}
+    # But load_live_matches_for_code DOES return it (for API badges).
+    matches = live_results.load_live_matches_for_code("E0")
+    assert matches[(date(2026, 4, 18), "tottenham", "brighton")] == (
+        "live", "H", 1, 0,
+    )
 
 
 def test_grader_merges_live_scores(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

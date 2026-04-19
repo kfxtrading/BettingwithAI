@@ -22,6 +22,9 @@ export interface Prediction {
   odds: Odds | null;
   model_name: string;
   most_likely: Outcome;
+  is_live?: boolean;
+  pick_correct?: boolean | null;
+  ft_score?: string | null;
 }
 
 export interface ValueBet {

@@ -96,6 +96,38 @@ body {
     color: rgb(var(--negative));
   }
 
+  .pill-live {
+    background: rgb(var(--negative) / 0.14);
+    color: rgb(var(--negative));
+    gap: 0.375rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .live-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: rgb(var(--negative));
+    box-shadow: 0 0 0 0 rgb(var(--negative) / 0.6);
+    animation: live-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes live-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgb(var(--negative) / 0.55);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgb(var(--negative) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(var(--negative) / 0);
+    }
+  }
+
   .focus-ring {
     outline: none;
   }

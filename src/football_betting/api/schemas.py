@@ -36,6 +36,9 @@ class PredictionOut(BaseModel):
     odds: OddsOut | None = None
     model_name: str
     most_likely: Outcome
+    is_live: bool = False
+    pick_correct: bool | None = None
+    ft_score: str | None = None
 
 
 class ValueBetOut(BaseModel):
