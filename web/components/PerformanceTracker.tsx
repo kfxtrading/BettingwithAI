@@ -101,7 +101,7 @@ export function PerformanceTracker() {
 
           <PerformanceIndexChart data={data.equity_curve} />
 
-          <div className="flex flex-col gap-2 text-sm text-muted md:flex-row md:items-center md:justify-between">
+          <div className="text-sm text-muted">
             <span>
               Max. Drawdown:{' '}
               <span className="font-mono text-negative">
@@ -115,9 +115,6 @@ export function PerformanceTracker() {
                   </span>
                 </>
               )}
-            </span>
-            <span className="text-2xs uppercase tracking-[0.08em]">
-              Modell v{data.model_version} · {data.rule_hash.slice(0, 18)}…
             </span>
           </div>
 
