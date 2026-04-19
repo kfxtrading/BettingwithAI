@@ -10,7 +10,7 @@ Flow on each refresh:
 Configuration (env vars):
     ODDS_API_KEY              — required; without it the scheduler logs and idles.
     SNAPSHOT_REFRESH_HOUR_UTC — integer 0-23, default 7 (=08:00 Berlin in winter).
-    LIVE_SETTLE_INTERVAL_MIN  — minutes between /scores polls, default 10. Set
+    LIVE_SETTLE_INTERVAL_MIN  — minutes between /scores polls, default 2. Set
                                 to 0 to disable the live-settlement loop.
 """
 from __future__ import annotations
@@ -121,12 +121,12 @@ async def _daily_loop() -> None:
 
 
 def _live_settle_interval_min() -> int:
-    raw = os.environ.get("LIVE_SETTLE_INTERVAL_MIN", "10")
+    raw = os.environ.get("LIVE_SETTLE_INTERVAL_MIN", "2")
     try:
         return max(0, int(raw))
     except ValueError:
-        logger.warning("[scheduler] Invalid LIVE_SETTLE_INTERVAL_MIN=%r, defaulting to 10.", raw)
-        return 10
+        logger.warning("[scheduler] Invalid LIVE_SETTLE_INTERVAL_MIN=%r, defaulting to 2.", raw)
+        return 2
 
 
 def _settle_live_blocking() -> None:

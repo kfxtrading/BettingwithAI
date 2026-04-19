@@ -63,6 +63,13 @@ export function HomeClient({
     queryKey: queryKeys.today(league ?? undefined),
     queryFn: () => api.today(league ?? undefined),
     initialData: league === null ? initialToday ?? undefined : undefined,
+    refetchInterval: (query) => {
+      const data = query.state.data as TodayPayload | undefined;
+      if (!data) return false;
+      const hasLive = data.predictions.some((p) => p.is_live);
+      return hasLive ? 45_000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
 
   const predictions = todayQuery.data?.predictions ?? [];
