@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Check, Clock, X } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { Empty } from '@/components/Empty';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
@@ -35,22 +35,11 @@ function StatusBadge({
   status: BetStatus;
   t: (key: DictionaryKey) => string;
 }) {
+  if (status !== 'pending') {
+    return null;
+  }
   const base =
     'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-[0.08em]';
-  if (status === 'won') {
-    return (
-      <span className={`${base} bg-positive/15 text-positive`}>
-        <Check size={12} /> {t('recentBets.status.won')}
-      </span>
-    );
-  }
-  if (status === 'lost') {
-    return (
-      <span className={`${base} bg-negative/15 text-negative`}>
-        <X size={12} /> {t('recentBets.status.lost')}
-      </span>
-    );
-  }
   return (
     <span className={`${base} bg-surface-2 text-muted`}>
       <Clock size={12} /> {t('recentBets.status.pending')}
