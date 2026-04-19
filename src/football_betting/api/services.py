@@ -31,6 +31,9 @@ from football_betting.api.schemas import (
     PerformanceSummary,
     PredictionOut,
     RatingRow,
+    SeoLeagueSlug,
+    SeoSlugsOut,
+    SeoTeamSlug,
     TeamDetail,
     TodayPayload,
     ValueBetOut,
@@ -66,9 +69,55 @@ __all__ = [
     "get_performance_summary",
     "get_performance_index",
     "get_bankroll_curve",
+    "get_seo_slugs",
     "get_team_detail",
     "list_leagues",
 ]
+
+
+# ─────────────────────────────────────────────────────────────────
+# SEO helpers
+# ─────────────────────────────────────────────────────────────────
+
+def _slugify(name: str) -> str:
+    """Make a URL-friendly slug from an arbitrary team/league name."""
+    slug = re.sub(r"[^\w\s-]", "", name, flags=re.UNICODE).strip().lower()
+    slug = re.sub(r"[\s_]+", "-", slug)
+    return re.sub(r"-+", "-", slug).strip("-")
+
+
+def get_seo_slugs() -> SeoSlugsOut:
+    """Return league + team slugs for sitemap generation.
+
+    Teams are pulled from current Pi-Ratings; missing data is silently
+    skipped so the endpoint remains robust during fresh deployments.
+    """
+    cache_key = "seo:slugs"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    leagues: list[SeoLeagueSlug] = []
+    teams: list[SeoTeamSlug] = []
+    for key, cfg in LEAGUES.items():
+        leagues.append(
+            SeoLeagueSlug(key=key, slug=_slugify(cfg.name), name=cfg.name)
+        )
+        try:
+            ratings = _ratings_for_league(key)
+        except FileNotFoundError:
+            continue
+        except Exception:  # noqa: BLE001 — SEO endpoint must never 500
+            logger.warning("get_seo_slugs: failed to load ratings for %s", key)
+            continue
+        for team, _ in ratings.top_n(500):
+            teams.append(
+                SeoTeamSlug(league=key, slug=_slugify(team), name=team)
+            )
+
+    payload = SeoSlugsOut(leagues=leagues, teams=teams)
+    cache.set(cache_key, payload, ttl=3600.0)
+    return payload
 
 
 # ─────────────────────────────────────────────────────────────────

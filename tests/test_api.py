@@ -65,3 +65,17 @@ def test_performance_bankroll_returns_list(client: TestClient) -> None:
     res = client.get("/performance/bankroll")
     assert res.status_code == 200
     assert isinstance(res.json(), list)
+
+
+def test_seo_slugs_returns_league_slugs(client: TestClient) -> None:
+    res = client.get("/seo/slugs")
+    assert res.status_code == 200
+    assert "public" in res.headers.get("cache-control", "").lower()
+    body = res.json()
+    assert "leagues" in body and "teams" in body
+    keys = {entry["key"] for entry in body["leagues"]}
+    assert {"PL", "BL", "SA", "LL", "CH"}.issubset(keys)
+    for entry in body["leagues"]:
+        assert entry["slug"]
+        assert " " not in entry["slug"]
+        assert entry["slug"] == entry["slug"].lower()

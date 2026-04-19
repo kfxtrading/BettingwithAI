@@ -1,7 +1,7 @@
 """Public REST endpoints for the Betting with AI homepage."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 
 from football_betting.api import services
 from football_betting.api.schemas import (
@@ -14,6 +14,7 @@ from football_betting.api.schemas import (
     PerformanceIndexOut,
     PerformanceSummary,
     RatingRow,
+    SeoSlugsOut,
     TeamDetail,
     TodayPayload,
     ValueBetOut,
@@ -145,6 +146,17 @@ def history(
 ) -> HistoryPayload:
     """Graded value bets grouped by day, newest first."""
     return services.get_history(days=days)
+
+
+@router.get(
+    "/seo/slugs",
+    response_model=SeoSlugsOut,
+    tags=["seo"],
+)
+def seo_slugs(response: Response) -> SeoSlugsOut:
+    """League + team slugs for sitemap / SEO tooling. Cached for 1 hour."""
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return services.get_seo_slugs()
 
 
 @router.get(

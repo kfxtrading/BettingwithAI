@@ -217,3 +217,22 @@ class HealthOut(BaseModel):
     version: str
     models_available: dict[str, ModelAvailability] = Field(default_factory=dict)
     snapshot_present: bool = False
+
+
+class SeoLeagueSlug(BaseModel):
+    key: str
+    slug: str
+    name: str
+
+
+class SeoTeamSlug(BaseModel):
+    league: str
+    slug: str
+    name: str
+
+
+class SeoSlugsOut(BaseModel):
+    """Lightweight payload for sitemap generation / SEO tooling."""
+
+    leagues: list[SeoLeagueSlug] = Field(default_factory=list)
+    teams: list[SeoTeamSlug] = Field(default_factory=list)

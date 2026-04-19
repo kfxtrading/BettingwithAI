@@ -1,69 +1,81 @@
-'use client';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { LeagueClient } from './LeagueClient';
+import { JsonLd } from '@/components/JsonLd';
+import { buildMetadata, SITE_NAME, absoluteUrl } from '@/lib/seo';
+import { fetchLeaguesServer } from '@/lib/server-api';
 
-import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { Section } from '@/components/Section';
-import { RatingsTable } from '@/components/RatingsTable';
-import { Empty } from '@/components/Empty';
-import { api, queryKeys } from '@/lib/api';
-import type { FormRow } from '@/lib/types';
+type PageProps = {
+  params: { league: string };
+};
 
-export default function LeagueDetailPage() {
-  const params = useParams<{ league: string }>();
+export async function generateStaticParams(): Promise<{ league: string }[]> {
+  const leagues = await fetchLeaguesServer();
+  return leagues.map((l) => ({ league: l.key }));
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const leagueKey = (params.league ?? '').toUpperCase();
+  const leagues = await fetchLeaguesServer();
+  const league = leagues.find((l) => l.key === leagueKey);
+  const name = league?.name ?? leagueKey;
 
-  const ratingsQuery = useQuery({
-    queryKey: queryKeys.ratings(leagueKey, 24),
-    queryFn: () => api.ratings(leagueKey, 24),
-    enabled: leagueKey.length > 0,
+  return buildMetadata({
+    title: `${name} · Pi-Ratings, Form & Predictions`,
+    description: `${name} Pi-Ratings, recent form, head-to-head data and AI-driven match predictions from the ${SITE_NAME} ensemble model.`,
+    path: `/leagues/${leagueKey}`,
+    keywords: [
+      `${name} predictions`,
+      `${name} Pi-Ratings`,
+      `${name} value bets`,
+      `${name} form table`,
+    ],
   });
-  const formQuery = useQuery({
-    queryKey: queryKeys.form(leagueKey, 50),
-    queryFn: () => api.form(leagueKey, 50),
-    enabled: leagueKey.length > 0,
-  });
-  const leaguesQuery = useQuery({
-    queryKey: queryKeys.leagues,
-    queryFn: api.leagues,
-  });
+}
 
-  const leagueName =
-    leaguesQuery.data?.find((l) => l.key === leagueKey)?.name ?? leagueKey;
-
-  const formMap: Record<string, FormRow> = {};
-  for (const row of formQuery.data ?? []) {
-    formMap[row.team] = row;
+export default async function LeagueDetailPage({ params }: PageProps) {
+  const leagueKey = (params.league ?? '').toUpperCase();
+  const leagues = await fetchLeaguesServer();
+  const league = leagues.find((l) => l.key === leagueKey);
+  if (leagues.length > 0 && !league) {
+    notFound();
   }
+  const name = league?.name ?? leagueKey;
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Leagues',
+        item: absoluteUrl('/leagues'),
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name,
+        item: absoluteUrl(`/leagues/${leagueKey}`),
+      },
+    ],
+  };
+
+  const sportsLeagueLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SportsOrganization',
+    name,
+    sport: 'Association football',
+    url: absoluteUrl(`/leagues/${leagueKey}`),
+  };
 
   return (
     <>
-      <header className="flex flex-col gap-3">
-        <Link
-          href="/leagues"
-          className="focus-ring text-2xs uppercase tracking-[0.12em] text-muted hover:text-text"
-        >
-          ← All leagues
-        </Link>
-        <h1 className="text-2xl font-medium tracking-tight">{leagueName}</h1>
-        <p className="text-sm text-muted">
-          Pi-Ratings after Constantinou & Fenton (2013) — split by home and
-          away strength.
-        </p>
-      </header>
-
-      <Section title="Table">
-        {ratingsQuery.isLoading ? (
-          <div className="surface-card h-96 animate-pulse" />
-        ) : ratingsQuery.isError || (ratingsQuery.data?.length ?? 0) === 0 ? (
-          <Empty
-            title="No data"
-            hint="Load league data with `fb download --league all`."
-          />
-        ) : (
-          <RatingsTable rows={ratingsQuery.data ?? []} forms={formMap} />
-        )}
-      </Section>
+      <JsonLd data={[breadcrumbLd, sportsLeagueLd]} />
+      <LeagueClient leagueKey={leagueKey} leagueName={name} />
     </>
   );
 }
