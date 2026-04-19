@@ -78,6 +78,8 @@ export const de: Dictionary = {
   'recentBets.empty.hint':
     'Sobald die ersten Spiele beendet sind, erscheinen hier die Ergebnisse mit grüner/roter Bewertung.',
   'recentBets.updating': 'Historie wird aktualisiert.',
+  'recentBets.kind.value': 'Value',
+  'recentBets.kind.prediction': 'Prognose',
   'predictionCard.outcome.home': 'Heimsieg',
   'predictionCard.outcome.draw': 'Unentschieden',
   'predictionCard.outcome.away': 'Auswärtssieg',

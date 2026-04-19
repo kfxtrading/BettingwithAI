@@ -21,6 +21,7 @@ from football_betting.evaluation.grader import (
     GradedBet,
     grade_bets,
     iter_historical_snapshots,
+    prediction_to_tracked_bet,
     write_graded,
 )
 
@@ -72,15 +73,18 @@ def _load_current_graded() -> list[GradedBet]:
 
 def regrade_all() -> list[GradedBet]:
     # A match can appear in multiple daily snapshots until kickoff; dedupe
-    # by (match_date, league, home, away, outcome) so each value bet is
-    # graded exactly once. Iteration is sorted by snapshot date ascending,
-    # so later (more recent) snapshots overwrite earlier ones — giving us
-    # the freshest odds/stake for each unique bet.
-    deduped: dict[tuple[str, str, str, str, str], object] = {}
+    # by (match_date, league, home, away, outcome) so each bet is graded
+    # exactly once. Iteration is sorted by snapshot date ascending, so later
+    # (more recent) snapshots overwrite earlier ones — giving us the freshest
+    # odds/stake for each unique bet.
+    #
+    # Two maps: value bets win collisions over most-likely predictions, so a
+    # match's Kelly-sized value bet on outcome X is never duplicated by its
+    # prediction wrapper on the same outcome.
+    value_map: dict[tuple[str, str, str, str, str], object] = {}
+    pred_map: dict[tuple[str, str, str, str, str], object] = {}
     for _snap_date, payload in iter_historical_snapshots():
-        if not payload.value_bets:
-            continue
-        for bet in payload.value_bets:
+        for bet in payload.value_bets or []:
             key = (
                 bet.date,
                 bet.league,
@@ -88,8 +92,25 @@ def regrade_all() -> list[GradedBet]:
                 bet.away_team.lower().strip(),
                 bet.outcome,
             )
-            deduped[key] = bet
-    graded = grade_bets(deduped.values())
+            value_map[key] = bet
+        for pred in payload.predictions or []:
+            tracked = prediction_to_tracked_bet(pred)
+            if tracked is None:
+                continue
+            key = (
+                tracked.date,
+                tracked.league,
+                tracked.home_team.lower().strip(),
+                tracked.away_team.lower().strip(),
+                tracked.outcome,
+            )
+            pred_map[key] = tracked
+    # Drop predictions that collide with a real value bet on the same outcome.
+    for k in value_map:
+        pred_map.pop(k, None)
+    graded = grade_bets(value_map.values(), kind="value") + grade_bets(
+        pred_map.values(), kind="prediction"
+    )
     write_graded(graded)
     _refresh_performance_artifacts()
     return graded

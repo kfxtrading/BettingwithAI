@@ -65,6 +65,8 @@ export type DictionaryKey =
   | 'recentBets.empty.title'
   | 'recentBets.empty.hint'
   | 'recentBets.updating'
+  | 'recentBets.kind.value'
+  | 'recentBets.kind.prediction'
   | 'predictionCard.outcome.home'
   | 'predictionCard.outcome.draw'
   | 'predictionCard.outcome.away'
@@ -235,6 +237,8 @@ export const en: Dictionary = {
   'recentBets.empty.hint':
     'As soon as the first matches finish, results will appear here with green/red evaluation.',
   'recentBets.updating': 'History is being updated.',
+  'recentBets.kind.value': 'Value',
+  'recentBets.kind.prediction': 'Pick',
   'predictionCard.outcome.home': 'Home win',
   'predictionCard.outcome.draw': 'Draw',
   'predictionCard.outcome.away': 'Away win',

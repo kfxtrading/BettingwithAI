@@ -29,7 +29,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Iterable
 
-from football_betting.api.schemas import TodayPayload, ValueBetOut
+from football_betting.api.schemas import PredictionOut, TodayPayload, ValueBetOut
 from football_betting.config import DATA_DIR, LEAGUES, RAW_DIR, SNAPSHOT_DIR
 
 GRADED_FILE = DATA_DIR / "graded_bets.jsonl"
@@ -52,6 +52,7 @@ class GradedBet:
     ft_score: str | None
     status: str  # "won" | "lost" | "pending"
     pnl: float
+    kind: str = "value"  # "value" | "prediction"
 
 
 def _norm(name: str) -> str:
@@ -118,7 +119,7 @@ def _stake_amount(bet: ValueBetOut) -> float:
     return round(bet.kelly_stake, 2)
 
 
-def _grade_one(bet: ValueBetOut, results: dict) -> GradedBet:
+def _grade_one(bet: ValueBetOut, results: dict, kind: str = "value") -> GradedBet:
     try:
         match_date = datetime.strptime(bet.date, "%Y-%m-%d").date()
     except ValueError:
@@ -142,6 +143,7 @@ def _grade_one(bet: ValueBetOut, results: dict) -> GradedBet:
             ft_score=None,
             status="pending",
             pnl=0.0,
+            kind=kind,
         )
     ftr, fthg, ftag = hit
     won = ftr == bet.outcome
@@ -160,10 +162,11 @@ def _grade_one(bet: ValueBetOut, results: dict) -> GradedBet:
         ft_score=f"{fthg}-{ftag}",
         status="won" if won else "lost",
         pnl=pnl,
+        kind=kind,
     )
 
 
-def grade_bets(bets: Iterable[ValueBetOut]) -> list[GradedBet]:
+def grade_bets(bets: Iterable[ValueBetOut], *, kind: str = "value") -> list[GradedBet]:
     """Grade a batch of value bets against the football-data CSV archive."""
     bets = list(bets)
     results_by_league: dict[str, dict] = {}
@@ -175,8 +178,56 @@ def grade_bets(bets: Iterable[ValueBetOut]) -> list[GradedBet]:
         code = cfg.code
         if code not in results_by_league:
             results_by_league[code] = _load_results_for_league(code)
-        graded.append(_grade_one(bet, results_by_league[code]))
+        graded.append(_grade_one(bet, results_by_league[code], kind=kind))
     return graded
+
+
+def prediction_to_tracked_bet(pred: PredictionOut) -> ValueBetOut | None:
+    """Wrap a most-likely prediction as a ValueBetOut with flat 1 € stake.
+
+    Returned bet is structurally identical to a real value bet so the grader
+    pipeline can grade it uniformly. Skips predictions without market odds —
+    PnL cannot be computed without them.
+    """
+    if pred.odds is None:
+        return None
+    outcome = pred.most_likely
+    if outcome == "H":
+        odds = pred.odds.home
+        model_prob = pred.prob_home
+        side = pred.home_team
+        suffix = "Heimsieg"
+    elif outcome == "A":
+        odds = pred.odds.away
+        model_prob = pred.prob_away
+        side = pred.away_team
+        suffix = "Auswärtssieg"
+    else:
+        odds = pred.odds.draw
+        model_prob = pred.prob_draw
+        side = "Unentschieden"
+        suffix = ""
+    if odds <= 1.0:
+        return None
+    bet_label = f"{side} {suffix}".strip()
+    market_prob = 1.0 / odds
+    return ValueBetOut(
+        date=pred.date,
+        league=pred.league,
+        league_name=pred.league_name,
+        home_team=pred.home_team,
+        away_team=pred.away_team,
+        outcome=outcome,
+        bet_label=bet_label,
+        odds=odds,
+        model_prob=model_prob,
+        market_prob=market_prob,
+        edge=0.0,
+        edge_pct=0.0,
+        kelly_stake=1.0,
+        expected_value_pct=0.0,
+        confidence="low",
+    )
 
 
 def load_snapshot(path: Path) -> TodayPayload | None:

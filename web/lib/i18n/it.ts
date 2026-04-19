@@ -80,6 +80,8 @@ export const it: Dictionary = {
   'recentBets.empty.hint':
     'Appena finiranno le prime partite, i risultati appariranno qui con valutazione verde/rossa.',
   'recentBets.updating': 'La cronologia è in aggiornamento.',
+  'recentBets.kind.value': 'Value',
+  'recentBets.kind.prediction': 'Pronostico',
   'predictionCard.outcome.home': 'Vittoria casa',
   'predictionCard.outcome.draw': 'Pareggio',
   'predictionCard.outcome.away': 'Vittoria trasferta',

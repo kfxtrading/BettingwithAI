@@ -114,26 +114,40 @@ function MatchRow({
           {first.ft_score ? `  ·  ${first.ft_score}` : ''}
         </p>
         <ul className="mt-1 space-y-0.5">
-          {bets.map((bet, i) => (
-            <li
-              key={`${bet.outcome}-${bet.bet_label}-${i}`}
-              className="truncate text-2xs text-muted"
-            >
-              <span className="uppercase tracking-[0.08em]">
-                {bet.bet_label} @ {bet.odds.toFixed(2)}
-              </span>
-              {bet.status !== 'pending' && (
+          {bets.map((bet, i) => {
+            const isPrediction = bet.kind === 'prediction';
+            return (
+              <li
+                key={`${bet.outcome}-${bet.bet_label}-${i}`}
+                className="truncate text-2xs text-muted"
+              >
                 <span
-                  className={`ml-2 font-mono ${
-                    bet.status === 'won' ? 'text-positive' : 'text-negative'
+                  className={`mr-1.5 rounded-sm px-1 py-[1px] text-[9px] font-semibold uppercase tracking-wider ${
+                    isPrediction
+                      ? 'bg-surface-2 text-muted'
+                      : 'bg-accent/15 text-accent'
                   }`}
                 >
-                  {bet.pnl > 0 ? '+' : ''}
-                  {bet.pnl.toFixed(2)}
+                  {isPrediction
+                    ? t('recentBets.kind.prediction')
+                    : t('recentBets.kind.value')}
                 </span>
-              )}
-            </li>
-          ))}
+                <span className="uppercase tracking-[0.08em]">
+                  {bet.bet_label} @ {bet.odds.toFixed(2)}
+                </span>
+                {bet.status !== 'pending' && (
+                  <span
+                    className={`ml-2 font-mono ${
+                      bet.status === 'won' ? 'text-positive' : 'text-negative'
+                    }`}
+                  >
+                    {bet.pnl > 0 ? '+' : ''}
+                    {bet.pnl.toFixed(2)}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
       <div className="flex flex-col items-end gap-1">

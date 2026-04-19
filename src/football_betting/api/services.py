@@ -448,6 +448,7 @@ def get_history(days: int | None = 14) -> HistoryPayload:
                 ft_score=g.ft_score,
                 status=g.status,
                 pnl=g.pnl,
+                kind=g.kind,
             )
         )
 

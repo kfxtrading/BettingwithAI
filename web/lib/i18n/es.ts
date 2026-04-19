@@ -82,6 +82,8 @@ export const es: Dictionary = {
   'recentBets.empty.hint':
     'En cuanto terminen los primeros partidos, los resultados aparecerán aquí con valoración verde/roja.',
   'recentBets.updating': 'El historial se está actualizando.',
+  'recentBets.kind.value': 'Value',
+  'recentBets.kind.prediction': 'Pronóstico',
   'predictionCard.outcome.home': 'Victoria local',
   'predictionCard.outcome.draw': 'Empate',
   'predictionCard.outcome.away': 'Victoria visitante',

@@ -183,6 +183,7 @@ class GradedBetOut(BaseModel):
     ft_score: str | None = None
     status: Literal["won", "lost", "pending"]
     pnl: float
+    kind: Literal["value", "prediction"] = "value"
 
 
 class HistoryDayOut(BaseModel):

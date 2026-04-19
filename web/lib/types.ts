@@ -151,6 +151,7 @@ export interface Health {
 }
 
 export type BetStatus = 'won' | 'lost' | 'pending';
+export type BetKind = 'value' | 'prediction';
 
 export interface GradedBet {
   date: string;
@@ -166,6 +167,7 @@ export interface GradedBet {
   ft_score: string | null;
   status: BetStatus;
   pnl: number;
+  kind?: BetKind;
 }
 
 export interface HistoryDay {
