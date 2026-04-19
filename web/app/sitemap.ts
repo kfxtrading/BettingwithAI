@@ -19,6 +19,25 @@ async function fetchLeagues(): Promise<LeagueOut[]> {
   }
 }
 
+type MatchSlugOut = { slug: string; date: string };
+type MatchSlugsOut = { matches: MatchSlugOut[] };
+
+async function fetchUpcomingMatchSlugs(
+  leagueKey: string,
+): Promise<MatchSlugOut[]> {
+  try {
+    const res = await fetch(
+      `${API_URL}/seo/matches/upcoming?league=${encodeURIComponent(leagueKey)}`,
+      { next: { revalidate: 600 } },
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as MatchSlugsOut;
+    return data.matches ?? [];
+  } catch {
+    return [];
+  }
+}
+
 type StaticEntry = {
   path: string;
   changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
@@ -80,6 +99,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: locale === defaultLocale ? 0.7 : 0.6,
         alternates: { languages: buildLanguageAlternates(path) },
       });
+    }
+  }
+
+  // Upcoming match-prediction pages from today's snapshot.
+  // Empty when `fb snapshot` hasn't run — block is a no-op then.
+  const matchSlugLists = await Promise.all(
+    leagues.map((l) => fetchUpcomingMatchSlugs(l.key)),
+  );
+  for (let i = 0; i < leagues.length; i++) {
+    const leagueKey = leagues[i].key;
+    for (const m of matchSlugLists[i]) {
+      const path = `/leagues/${leagueKey}/${m.slug}`;
+      for (const locale of locales) {
+        entries.push({
+          url: absoluteUrl(localizedPath(locale, path)),
+          lastModified: now,
+          changeFrequency: 'daily',
+          priority: locale === defaultLocale ? 0.5 : 0.4,
+          alternates: { languages: buildLanguageAlternates(path) },
+        });
+      }
     }
   }
 
