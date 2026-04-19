@@ -3,60 +3,44 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { BankrollChart } from '@/components/BankrollChart';
 import { KpiTile } from '@/components/KpiTile';
-import { PerformanceIndexChart } from '@/components/PerformanceIndexChart';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
-
-const STALE_THRESHOLD_HOURS = 48;
-
-function formatTrackingStart(iso: string): string {
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return iso;
-    return new Intl.DateTimeFormat('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }).format(d);
-  } catch {
-    return iso;
-  }
-}
-
-function hoursSince(iso: string): number {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 0;
-  return (Date.now() - d.getTime()) / 3_600_000;
-}
 
 function pct(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
 export function PerformanceTracker() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.performanceIndex,
-    queryFn: api.performanceIndex,
+  const summaryQuery = useQuery({
+    queryKey: queryKeys.performance,
+    queryFn: api.performance,
+    staleTime: 5 * 60_000,
+  });
+  const bankrollQuery = useQuery({
+    queryKey: queryKeys.bankroll,
+    queryFn: api.bankroll,
     staleTime: 5 * 60_000,
   });
 
-  const caption = data
-    ? `since ${formatTrackingStart(data.tracking_started_at)}`
-    : 'Transparent track record of model performance';
+  const isLoading = summaryQuery.isLoading || bankrollQuery.isLoading;
+  const isError = summaryQuery.isError || bankrollQuery.isError;
+  const s = summaryQuery.data;
+  const bankroll = bankrollQuery.data ?? [];
 
   const tone = (v: number): 'positive' | 'negative' | 'default' =>
-    v > 100 ? 'positive' : v < 100 ? 'negative' : 'default';
-
-  const stale =
-    data != null && hoursSince(data.updated_at) > STALE_THRESHOLD_HOURS;
+    v > 0 ? 'positive' : v < 0 ? 'negative' : 'default';
 
   return (
-    <Section title="Transparency Tracker" caption={caption}>
+    <Section
+      title="Transparency Tracker"
+      caption="Bankroll curve · starting bankroll 1,000"
+    >
       {isLoading ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {[0, 1, 2].map((i) => (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
                 className="h-24 animate-pulse rounded-[14px] bg-surface-2"
@@ -65,64 +49,36 @@ export function PerformanceTracker() {
           </div>
           <div className="h-80 animate-pulse rounded-[14px] bg-surface-2" />
         </div>
-      ) : isError || !data ? (
+      ) : isError || !s ? (
         <div className="surface-card px-5 py-12 text-center text-sm text-muted">
           Performance data is being updated.
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <KpiTile
-              label="Index"
-              value={data.current_index.toFixed(2)}
-              tone={tone(data.current_index)}
-              hint={
-                data.all_time_high_index > data.current_index
-                  ? `ATH ${data.all_time_high_index.toFixed(2)}`
-                  : 'At all-time high'
-              }
+              label="Bets"
+              value={s.n_bets}
+              hint={`${s.n_predictions} predictions total`}
             />
             <KpiTile
               label="Hit rate"
-              value={data.hit_rate != null ? pct(data.hit_rate) : '—'}
-              hint={
-                data.hit_rate == null
-                  ? 'No settled bets yet'
-                  : 'Wins / settled bets'
-              }
+              value={s.n_bets > 0 ? pct(s.hit_rate) : '—'}
+              hint={s.n_bets === 0 ? 'No settled bets yet' : 'Wins / settled bets'}
             />
             <KpiTile
-              label="Bets"
-              value={data.n_bets}
-              hint={`${data.n_days_tracked} days tracked`}
+              label="ROI"
+              value={s.n_bets > 0 ? pct(s.roi, 2) : '—'}
+              tone={tone(s.roi)}
+            />
+            <KpiTile
+              label="Max drawdown"
+              value={`${s.max_drawdown_pct.toFixed(1)}%`}
+              tone="negative"
             />
           </div>
 
-          <PerformanceIndexChart data={data.equity_curve} />
-
-          <div className="text-sm text-muted">
-            <span>
-              Max drawdown:{' '}
-              <span className="font-mono text-negative">
-                -{pct(data.max_drawdown_pct)}
-              </span>
-              {data.current_drawdown_pct > 0 && (
-                <>
-                  {'  ·  '}current{' '}
-                  <span className="font-mono">
-                    -{pct(data.current_drawdown_pct)}
-                  </span>
-                </>
-              )}
-            </span>
-          </div>
-
-          {stale && (
-            <p className="text-2xs text-muted">
-              Data is being refreshed (last update{' '}
-              {formatTrackingStart(data.updated_at)}).
-            </p>
-          )}
+          <BankrollChart data={bankroll} />
 
           <p className="text-2xs leading-relaxed text-muted">
             Hypothetical simulation of a statistical model based on
