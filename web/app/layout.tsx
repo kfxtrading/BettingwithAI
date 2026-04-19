@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
 import { Nav } from '@/components/Nav';
+import { CookieConsent } from '@/components/CookieConsent';
 import { JsonLd } from '@/components/JsonLd';
 import { Providers } from './providers';
 import { SITE_NAME, SITE_URL, absoluteUrl, buildLanguageAlternates } from '@/lib/seo';
@@ -131,6 +132,7 @@ export default function RootLayout({
               Betting with AI · CatBoost + Poisson + MLP ensemble · Model v0.3
             </div>
           </footer>
+          <CookieConsent />
         </Providers>
       </body>
     </html>

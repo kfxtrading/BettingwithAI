@@ -236,3 +236,21 @@ class SeoSlugsOut(BaseModel):
 
     leagues: list[SeoLeagueSlug] = Field(default_factory=list)
     teams: list[SeoTeamSlug] = Field(default_factory=list)
+
+
+class ConsentIn(BaseModel):
+    """Cookie-consent submission from the frontend banner."""
+
+    accepted: bool
+    categories: list[str] = Field(default_factory=list)
+    version: str = "1.0"
+
+
+class ConsentOut(BaseModel):
+    """Persisted cookie-consent record (IP is stored as a salted hash only)."""
+
+    accepted: bool
+    categories: list[str] = Field(default_factory=list)
+    version: str
+    updated_at: str
+    first_seen_at: str

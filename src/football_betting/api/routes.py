@@ -1,11 +1,14 @@
 """Public REST endpoints for the Betting with AI homepage."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 
+from football_betting.api import consent as consent_store
 from football_betting.api import services
 from football_betting.api.schemas import (
     BankrollPoint,
+    ConsentIn,
+    ConsentOut,
     FormRow,
     HealthOut,
     HistoryPayload,
@@ -157,6 +160,39 @@ def seo_slugs(response: Response) -> SeoSlugsOut:
     """League + team slugs for sitemap / SEO tooling. Cached for 1 hour."""
     response.headers["Cache-Control"] = "public, max-age=3600"
     return services.get_seo_slugs()
+
+
+@router.post("/consent", response_model=ConsentOut, tags=["consent"])
+def submit_consent(payload: ConsentIn, request: Request) -> ConsentOut:
+    """Persist cookie-consent decision keyed by hashed client IP."""
+    record = consent_store.save_consent(
+        request,
+        accepted=payload.accepted,
+        categories=payload.categories,
+        version=payload.version,
+    )
+    return ConsentOut(
+        accepted=record["accepted"],
+        categories=record["categories"],
+        version=record["version"],
+        updated_at=record["updated_at"],
+        first_seen_at=record["first_seen_at"],
+    )
+
+
+@router.get("/consent", response_model=ConsentOut | None, tags=["consent"])
+def fetch_consent(request: Request) -> ConsentOut | None:
+    """Return the previously stored consent for the calling IP, if any."""
+    record = consent_store.get_consent(request)
+    if record is None:
+        return None
+    return ConsentOut(
+        accepted=record["accepted"],
+        categories=record.get("categories", []),
+        version=record.get("version", "1.0"),
+        updated_at=record["updated_at"],
+        first_seen_at=record.get("first_seen_at", record["updated_at"]),
+    )
 
 
 @router.get(

@@ -56,7 +56,30 @@ export const api = {
       `/teams/${league}/${encodeURIComponent(team)}`,
     ),
   history: (days = 14) => request<HistoryPayload>(`/history?days=${days}`),
+  getConsent: () => request<ConsentRecord | null>('/consent'),
+  saveConsent: (payload: ConsentPayload) =>
+    request<ConsentRecord>('/consent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
 };
+
+export type ConsentCategory = 'necessary' | 'analytics' | 'marketing';
+
+export interface ConsentPayload {
+  accepted: boolean;
+  categories: ConsentCategory[];
+  version?: string;
+}
+
+export interface ConsentRecord {
+  accepted: boolean;
+  categories: ConsentCategory[];
+  version: string;
+  updated_at: string;
+  first_seen_at: string;
+}
 
 export const queryKeys = {
   health: ['health'] as const,
