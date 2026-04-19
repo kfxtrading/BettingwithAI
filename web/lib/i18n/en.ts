@@ -9,7 +9,21 @@ export type DictionaryKey =
   | 'leagues.heading'
   | 'leagues.description'
   | 'performance.heading'
-  | 'performance.description';
+  | 'performance.description'
+  | 'cookie.title'
+  | 'cookie.body'
+  | 'cookie.necessary.title'
+  | 'cookie.necessary.desc'
+  | 'cookie.analytics.title'
+  | 'cookie.analytics.desc'
+  | 'cookie.marketing.title'
+  | 'cookie.marketing.desc'
+  | 'cookie.btn.settings'
+  | 'cookie.btn.hideDetails'
+  | 'cookie.btn.reject'
+  | 'cookie.btn.save'
+  | 'cookie.btn.acceptAll'
+  | 'cookie.aria.dialog';
 
 export const en: Dictionary = {
   'site.title': 'Betting with AI',
@@ -26,4 +40,19 @@ export const en: Dictionary = {
   'performance.heading': 'Performance across the entire betting history.',
   'performance.description':
     'Full transparency over hit rate, ROI, max drawdown and per-league breakdowns — updated after every matchday.',
+  'cookie.title': 'We use cookies',
+  'cookie.body':
+    'This site uses cookies and similar technologies to keep the service running and to measure reach and performance. Your choice is stored together with a hash of your IP address so we can recognise it on your next visit. You can withdraw it at any time.',
+  'cookie.necessary.title': 'Necessary',
+  'cookie.necessary.desc': 'Required for the site to work. Always on.',
+  'cookie.analytics.title': 'Statistics',
+  'cookie.analytics.desc': 'Anonymous usage measurement to improve the site.',
+  'cookie.marketing.title': 'Marketing',
+  'cookie.marketing.desc': 'Personalised content and third-party tracking.',
+  'cookie.btn.settings': 'Settings',
+  'cookie.btn.hideDetails': 'Hide details',
+  'cookie.btn.reject': 'Reject',
+  'cookie.btn.save': 'Save selection',
+  'cookie.btn.acceptAll': 'Accept all',
+  'cookie.aria.dialog': 'Cookie consent',
 };

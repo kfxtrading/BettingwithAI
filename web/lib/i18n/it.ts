@@ -15,4 +15,19 @@ export const it: Dictionary = {
   'performance.heading': 'Performance sull’intero storico delle scommesse.',
   'performance.description':
     'Piena trasparenza su win rate, ROI, drawdown massimo e analisi per campionato — aggiornati dopo ogni giornata.',
+  'cookie.title': 'Utilizziamo i cookie',
+  'cookie.body':
+    'Questo sito utilizza cookie e tecnologie simili per garantirne il funzionamento e per misurare audience e performance. Il tuo consenso viene memorizzato insieme a un hash del tuo indirizzo IP, così da riconoscerlo alla tua prossima visita. Puoi revocarlo in qualsiasi momento.',
+  'cookie.necessary.title': 'Necessari',
+  'cookie.necessary.desc': 'Indispensabili per il funzionamento del sito. Sempre attivi.',
+  'cookie.analytics.title': 'Statistiche',
+  'cookie.analytics.desc': 'Misurazione anonima dell’uso per migliorare il sito.',
+  'cookie.marketing.title': 'Marketing',
+  'cookie.marketing.desc': 'Contenuti personalizzati e tracciamento di terze parti.',
+  'cookie.btn.settings': 'Impostazioni',
+  'cookie.btn.hideDetails': 'Nascondi dettagli',
+  'cookie.btn.reject': 'Rifiuta',
+  'cookie.btn.save': 'Salva selezione',
+  'cookie.btn.acceptAll': 'Accetta tutto',
+  'cookie.aria.dialog': 'Consenso ai cookie',
 };

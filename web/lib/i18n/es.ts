@@ -16,4 +16,19 @@ export const es: Dictionary = {
     'Rendimiento sobre todo el histórico de apuestas.',
   'performance.description':
     'Transparencia total sobre tasa de acierto, ROI, drawdown máximo y desglose por liga — actualizado después de cada jornada.',
+  'cookie.title': 'Usamos cookies',
+  'cookie.body':
+    'Este sitio utiliza cookies y tecnologías similares para garantizar su funcionamiento y para medir el alcance y el rendimiento. Tu consentimiento se almacena junto con un hash de tu dirección IP para poder reconocerlo en tu próxima visita. Puedes retirarlo en cualquier momento.',
+  'cookie.necessary.title': 'Necesarias',
+  'cookie.necessary.desc': 'Imprescindibles para el funcionamiento del sitio. Siempre activas.',
+  'cookie.analytics.title': 'Estadísticas',
+  'cookie.analytics.desc': 'Medición anónima de uso para mejorar el sitio.',
+  'cookie.marketing.title': 'Marketing',
+  'cookie.marketing.desc': 'Contenido personalizado y seguimiento de terceros.',
+  'cookie.btn.settings': 'Ajustes',
+  'cookie.btn.hideDetails': 'Ocultar detalles',
+  'cookie.btn.reject': 'Rechazar',
+  'cookie.btn.save': 'Guardar selección',
+  'cookie.btn.acceptAll': 'Aceptar todo',
+  'cookie.aria.dialog': 'Consentimiento de cookies',
 };
