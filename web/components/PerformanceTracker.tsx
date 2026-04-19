@@ -15,7 +15,7 @@ function formatTrackingStart(iso: string): string {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    return new Intl.DateTimeFormat('de-DE', {
+    return new Intl.DateTimeFormat('en-US', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -43,8 +43,8 @@ export function PerformanceTracker() {
   });
 
   const caption = data
-    ? `seit ${formatTrackingStart(data.tracking_started_at)}`
-    : 'Transparenter Verlauf der Modell-Performance';
+    ? `since ${formatTrackingStart(data.tracking_started_at)}`
+    : 'Transparent track record of model performance';
 
   const tone = (v: number): 'positive' | 'negative' | 'default' =>
     v > 100 ? 'positive' : v < 100 ? 'negative' : 'default';
@@ -53,7 +53,7 @@ export function PerformanceTracker() {
     data != null && hoursSince(data.updated_at) > STALE_THRESHOLD_HOURS;
 
   return (
-    <Section title="Transparenz-Tracker" caption={caption}>
+    <Section title="Transparency Tracker" caption={caption}>
       {isLoading ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -68,7 +68,7 @@ export function PerformanceTracker() {
         </div>
       ) : isError || !data ? (
         <div className="surface-card px-5 py-12 text-center text-sm text-muted">
-          Performance-Daten werden aktualisiert.
+          Performance data is being updated.
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -80,22 +80,22 @@ export function PerformanceTracker() {
               hint={
                 data.all_time_high_index > data.current_index
                   ? `ATH ${data.all_time_high_index.toFixed(2)}`
-                  : 'Auf Allzeithoch'
+                  : 'At all-time high'
               }
             />
             <KpiTile
-              label="Trefferquote"
+              label="Hit rate"
               value={data.hit_rate != null ? pct(data.hit_rate) : '—'}
               hint={
                 data.hit_rate == null
-                  ? 'Noch keine Wette abgeschlossen'
-                  : 'Wins / gewertete Bets'
+                  ? 'No settled bets yet'
+                  : 'Wins / settled bets'
               }
             />
             <KpiTile
-              label="Spiele"
+              label="Bets"
               value={data.n_bets}
-              hint={`${data.n_days_tracked} Tage getrackt`}
+              hint={`${data.n_days_tracked} days tracked`}
             />
           </div>
 
@@ -103,13 +103,13 @@ export function PerformanceTracker() {
 
           <div className="text-sm text-muted">
             <span>
-              Max. Drawdown:{' '}
+              Max drawdown:{' '}
               <span className="font-mono text-negative">
                 -{pct(data.max_drawdown_pct)}
               </span>
               {data.current_drawdown_pct > 0 && (
                 <>
-                  {'  ·  '}aktuell{' '}
+                  {'  ·  '}current{' '}
                   <span className="font-mono">
                     -{pct(data.current_drawdown_pct)}
                   </span>
@@ -120,7 +120,7 @@ export function PerformanceTracker() {
 
           {stale && (
             <p className="text-2xs text-muted">
-              Daten werden aktualisiert (letzter Stand{' '}
+              Data is being refreshed (last update{' '}
               {formatTrackingStart(data.updated_at)}).
             </p>
           )}
@@ -138,7 +138,7 @@ export function PerformanceTracker() {
               href="/performance"
               className="focus-ring press inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-medium text-white"
             >
-              Volle Details ansehen
+              View full details
               <ArrowRight size={16} />
             </Link>
           </div>
