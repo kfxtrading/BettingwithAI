@@ -30,6 +30,11 @@ class TTLCache:
         with self._lock:
             self._store[key] = (time.monotonic() + ttl, value)
 
+    def delete(self, key: str) -> None:
+        """Evict a single key (no-op if missing)."""
+        with self._lock:
+            self._store.pop(key, None)
+
     def clear(self) -> None:
         with self._lock:
             self._store.clear()

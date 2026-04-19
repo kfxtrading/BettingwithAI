@@ -68,6 +68,7 @@ __all__ = [
     "get_league_summaries",
     "get_performance_summary",
     "get_performance_index",
+    "invalidate_performance_cache",
     "get_bankroll_curve",
     "get_seo_slugs",
     "get_team_detail",
@@ -755,6 +756,17 @@ def get_performance_summary() -> PerformanceSummary:
 
 _PERFORMANCE_INDEX_CACHE_KEY = "performance_index:public"
 _PERFORMANCE_INDEX_TTL = 3600.0  # 1 hour
+
+
+def invalidate_performance_cache() -> None:
+    """Evict only the performance-related cache entries.
+
+    Called by the grading pipeline / live-settle loop after
+    ``performance.json`` has been rewritten, so the next request to
+    ``/performance/index`` reads fresh data without flushing unrelated
+    entries (SEO slugs, Pi-Ratings, form tables, …).
+    """
+    cache.delete(_PERFORMANCE_INDEX_CACHE_KEY)
 
 
 def get_performance_index() -> PerformanceIndexOut:

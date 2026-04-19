@@ -266,13 +266,23 @@ def compute_payloads(
     if tracker is None:
         tracker = ResultsTracker()
         tracker.load()
-        # `predictions_log.json` often has pending entries without results.
-        # The daily/live pipeline settles outcomes into `graded_bets.jsonl`,
-        # so fall back to that whenever the tracker has no settled records.
-        if not tracker.completed_bets():
-            from football_betting.evaluation.grader import graded_as_prediction_records
+        # `predictions_log.json` often carries pending entries without
+        # results, while the daily/live pipeline settles outcomes into
+        # `graded_bets.jsonl`. Always merge both sources so a mixed state
+        # (some records already settled in the tracker + newly graded bets
+        # on disk) is covered; graded rows win on conflict because they
+        # reflect the latest CSV / Odds-API results.
+        from football_betting.evaluation.grader import graded_as_prediction_records
 
-            tracker.records = graded_as_prediction_records()
+        def _key(r: PredictionRecord) -> tuple:
+            return (r.date, r.league, r.home_team, r.away_team, r.bet_outcome)
+
+        merged: dict[tuple, PredictionRecord] = {}
+        for rec in tracker.completed_bets():
+            merged[_key(rec)] = rec
+        for rec in graded_as_prediction_records():  # overwrite → graded wins
+            merged[_key(rec)] = rec
+        tracker.records = list(merged.values())
     completed = tracker.completed_bets()
     completed.sort(key=lambda r: r.date)
 

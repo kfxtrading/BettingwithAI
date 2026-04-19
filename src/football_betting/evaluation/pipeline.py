@@ -93,9 +93,9 @@ def _refresh_performance_artifacts() -> None:
         logger.exception("[pipeline] Failed to refresh performance artefacts")
         return
     try:
-        from football_betting.api.cache import cache
+        from football_betting.api.services import invalidate_performance_cache
 
-        cache.clear()
+        invalidate_performance_cache()
     except Exception:
         logger.exception("[pipeline] Failed to clear performance cache")
 

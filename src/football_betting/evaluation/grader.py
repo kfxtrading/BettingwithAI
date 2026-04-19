@@ -106,12 +106,16 @@ def _load_results_for_league(code: str) -> dict[tuple[date, str, str], tuple[str
 
 
 def _stake_amount(bet: ValueBetOut) -> float:
-    """Value-Bets carry ``kelly_stake`` as a fractional unit (0..1).
+    """Return the € stake already carried on the value bet.
 
-    For the public index we display a normalised € amount = kelly_stake * 100,
-    which matches what the frontend already shows (e.g. "33.26" next to the bet).
+    ``ValueBetOut.kelly_stake`` is produced by
+    :func:`football_betting.betting.kelly.kelly_stake`, which returns a
+    monetary amount (``bankroll * capped_fraction``) — *not* a fractional
+    unit. Previously this helper multiplied by 100 under the mistaken
+    assumption of a (0..1) fraction, which inflated every stake 100× and
+    blew up the public equity index.
     """
-    return round(bet.kelly_stake * 100.0, 2)
+    return round(bet.kelly_stake, 2)
 
 
 def _grade_one(bet: ValueBetOut, results: dict) -> GradedBet:

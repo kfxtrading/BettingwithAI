@@ -143,8 +143,10 @@ def _settle_live_blocking() -> None:
                 added, settled,
             )
             try:
-                from football_betting.api.cache import cache
-                cache.clear()
+                from football_betting.api.services import (
+                    invalidate_performance_cache,
+                )
+                invalidate_performance_cache()
             except Exception:
                 logger.exception("[live-settle] cache clear failed")
     except Exception:  # noqa: BLE001
