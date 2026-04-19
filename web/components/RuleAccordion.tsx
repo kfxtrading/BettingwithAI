@@ -61,16 +61,7 @@ export function RuleAccordion() {
           Hypothetische Simulation eines statistischen Modells auf Basis
           vergangener Spieldaten. Keine Aufforderung zum Glücksspiel. Keine
           Gewähr auf zukünftige Ergebnisse. Glücksspiele bergen finanzielle
-          Risiken. Hilfe unter{' '}
-          <a
-            href="https://www.bundesweite-suchtberatung.de"
-            target="_blank"
-            rel="noreferrer"
-            className="underline hover:text-text"
-          >
-            bundesweite-suchtberatung.de
-          </a>{' '}
-          oder Tel. 0800 1 372 700. Nur für Personen ab 18 Jahren.
+          Risiken.
         </p>
       </Item>
     </div>

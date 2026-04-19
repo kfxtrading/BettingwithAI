@@ -134,9 +134,7 @@ export function PerformanceTracker() {
             Hypothetische Simulation eines statistischen Modells auf Basis
             vergangener Spieldaten. Keine Aufforderung zum Glücksspiel.
             Keine Gewähr auf zukünftige Ergebnisse. Glücksspiele bergen
-            finanzielle Risiken. Hilfe unter
-            www.bundesweite-suchtberatung.de oder Tel. 0800 1 372 700. Nur
-            für Personen ab 18 Jahren.
+            finanzielle Risiken.
           </p>
 
           <div className="flex justify-center pt-2">
