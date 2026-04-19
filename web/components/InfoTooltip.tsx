@@ -23,9 +23,9 @@ export function InfoTooltip({ label, children }: InfoTooltipProps) {
         type="button"
         aria-label={label}
         aria-describedby={open ? id : undefined}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-muted/40 text-2xs font-medium italic text-muted transition-colors hover:border-accent hover:text-accent focus-ring"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-muted/40 font-serif text-2xs font-medium text-muted transition-colors hover:border-accent hover:text-accent focus-ring"
       >
-        i
+        <span aria-hidden="true" className="-translate-x-[0.5px]">i</span>
       </button>
       <span
         id={id}
