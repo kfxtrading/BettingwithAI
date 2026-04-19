@@ -652,15 +652,33 @@ def get_team_detail(league_key: str, team: str) -> TeamDetail | None:
 # ─────────────────────────────────────────────────────────────────
 
 def _load_tracker() -> ResultsTracker:
-    """Load the canonical tracker; fall back to ``graded_bets.jsonl`` when
-    ``predictions_log.json`` is absent/empty so the performance endpoints
-    stay in sync with the automated daily grading pipeline."""
+    """Load the canonical tracker and *always* merge in graded-bet history.
+
+    ``predictions_log.json`` typically carries many ``pending`` entries
+    while the daily/live pipeline writes settled outcomes to
+    ``graded_bets.jsonl``. The previous "if-empty fallback" silently
+    skipped graded history whenever the tracker file existed (which is
+    nearly always), so ``/performance/summary`` and
+    ``/performance/bankroll`` would report 0 bets even though graded
+    results were on disk. We now merge both sources, dedup on
+    ``(date, league, home, away, outcome)``, with graded rows winning on
+    conflict so the latest CSV/Odds-API result is reflected.
+    """
+    from football_betting.evaluation.grader import graded_as_prediction_records
+    from football_betting.tracking.tracker import PredictionRecord
+
     tracker = ResultsTracker()
     tracker.load()
-    if not tracker.records:
-        from football_betting.evaluation.grader import graded_as_prediction_records
 
-        tracker.records = graded_as_prediction_records()
+    def _key(r: PredictionRecord) -> tuple:
+        return (r.date, r.league, r.home_team, r.away_team, r.bet_outcome)
+
+    merged: dict[tuple, PredictionRecord] = {}
+    for rec in tracker.records:
+        merged[_key(rec)] = rec
+    for rec in graded_as_prediction_records():  # graded wins on conflict
+        merged[_key(rec)] = rec
+    tracker.records = list(merged.values())
     return tracker
 
 
