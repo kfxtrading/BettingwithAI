@@ -9,6 +9,7 @@ from rich.console import Console
 
 from football_betting.config import LEAGUES, RAW_DIR
 from football_betting.data.models import Match, MatchOdds
+from football_betting.utils.timezones import local_to_utc
 
 console = Console()
 
@@ -34,8 +35,13 @@ ODDS_PRIORITY = [
 ]
 
 
-def _extract_kickoff(row: pd.Series) -> datetime | None:
-    """Combine Date + Time → naive datetime (local kickoff)."""
+def _extract_kickoff(row: pd.Series, league_key: str) -> datetime | None:
+    """Combine Date + Time → UTC-aware datetime.
+
+    football-data.co.uk provides kickoff in league-local wall-clock time. We
+    attach the league's IANA timezone so DST (summer/winter time) is resolved
+    correctly via ``zoneinfo``, then convert to UTC for downstream consumers.
+    """
     if COL_TIME not in row or pd.isna(row[COL_TIME]):
         return None
     raw_date = row[COL_DATE]
@@ -54,9 +60,12 @@ def _extract_kickoff(row: pd.Series) -> datetime | None:
         return None
     try:
         hh, mm = raw_time.split(":")[:2]
-        return datetime(parsed_date.year, parsed_date.month, parsed_date.day, int(hh), int(mm))
+        naive_local = datetime(
+            parsed_date.year, parsed_date.month, parsed_date.day, int(hh), int(mm)
+        )
     except (ValueError, IndexError):
         return None
+    return local_to_utc(naive_local, league_key)
 
 
 def _extract_odds(row: pd.Series) -> MatchOdds | None:
@@ -113,7 +122,7 @@ def load_csv(path: Path, league_key: str) -> list[Match]:
                     int(row[COL_AST]) if COL_AST in row and pd.notna(row[COL_AST]) else None
                 ),
                 odds=_extract_odds(row),
-                kickoff_datetime_utc=_extract_kickoff(row),
+                kickoff_datetime_utc=_extract_kickoff(row, league_key),
             )
             matches.append(match)
         except Exception as e:

@@ -3,6 +3,7 @@ import { localizedPath } from '@/lib/seo';
 import { getDictionary } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 import type { LeagueFixtureRow, LeagueFixtures } from '@/lib/server-api';
+import { formatKickoff, formatMatchDate } from '@/lib/datetime';
 
 type Props = {
   locale: Locale;
@@ -51,10 +52,16 @@ export function LeagueFixturesWidget({ locale, leagueKey, fixtures }: Props) {
                   </span>
                   <time
                     className="font-mono text-2xs uppercase tracking-[0.08em] text-muted"
-                    dateTime={row.date}
+                    dateTime={row.kickoff_utc ?? row.date}
                   >
-                    {row.date}
-                    {row.kickoff_time ? ` · ${row.kickoff_time}` : ''}
+                    {formatMatchDate(row.date, locale)}
+                    {(() => {
+                      const t = formatKickoff(row.kickoff_utc, {
+                        locale,
+                        fallback: row.kickoff_time ?? '',
+                      });
+                      return t ? ` · ${t}` : '';
+                    })()}
                   </time>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-3 text-2xs uppercase tracking-[0.08em] text-muted">
@@ -119,7 +126,7 @@ export function LeagueFixturesWidget({ locale, leagueKey, fixtures }: Props) {
                       className="font-mono text-2xs uppercase tracking-[0.08em] text-muted"
                       dateTime={row.date}
                     >
-                      {row.date}
+                      {formatMatchDate(row.date, locale)}
                     </time>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3 text-2xs uppercase tracking-[0.08em] text-muted">

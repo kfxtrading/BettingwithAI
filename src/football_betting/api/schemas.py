@@ -30,6 +30,8 @@ class PredictionOut(BaseModel):
     home_team: str
     away_team: str
     kickoff_time: str | None = None
+    kickoff_utc: str | None = None  # ISO-8601 with trailing Z (DST-aware)
+    league_timezone: str | None = None  # IANA tz name for client-side local rendering
     prob_home: float = Field(ge=0.0, le=1.0)
     prob_draw: float = Field(ge=0.0, le=1.0)
     prob_away: float = Field(ge=0.0, le=1.0)
@@ -271,6 +273,8 @@ class MatchSlugOut(BaseModel):
     away_team: str
     date: str
     kickoff_time: str | None = None
+    kickoff_utc: str | None = None
+    league_timezone: str | None = None
 
 
 class MatchSlugsOut(BaseModel):
@@ -308,6 +312,8 @@ class LeagueFixtureOut(BaseModel):
     home_team: str
     away_team: str
     kickoff_time: str | None = None
+    kickoff_utc: str | None = None
+    league_timezone: str | None = None
     # Upcoming-only model probabilities.
     prob_home: float | None = None
     prob_draw: float | None = None

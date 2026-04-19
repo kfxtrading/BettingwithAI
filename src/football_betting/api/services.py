@@ -9,7 +9,7 @@ import json
 import logging
 import re
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from football_betting.api.cache import cache
@@ -180,6 +180,8 @@ def _latest_fixtures_file() -> Path | None:
 
 
 def _to_prediction_out(pred: Prediction, league_name: str) -> PredictionOut:
+    from football_betting.utils.timezones import isoformat_utc, league_tz_name
+
     fx = pred.fixture
     odds = (
         OddsOut(
@@ -191,6 +193,9 @@ def _to_prediction_out(pred: Prediction, league_name: str) -> PredictionOut:
         if fx.odds is not None
         else None
     )
+    kickoff_utc_iso: str | None = None
+    if fx.kickoff_datetime_utc is not None:
+        kickoff_utc_iso = isoformat_utc(fx.kickoff_datetime_utc)
     return PredictionOut(
         date=fx.date.isoformat(),
         league=fx.league,
@@ -198,6 +203,8 @@ def _to_prediction_out(pred: Prediction, league_name: str) -> PredictionOut:
         home_team=fx.home_team,
         away_team=fx.away_team,
         kickoff_time=fx.kickoff_time,
+        kickoff_utc=kickoff_utc_iso,
+        league_timezone=league_tz_name(fx.league),
         prob_home=pred.prob_home,
         prob_draw=pred.prob_draw,
         prob_away=pred.prob_away,
@@ -327,6 +334,7 @@ def build_predictions_for_fixtures(
                 kickoff_time=fd.get("kickoff_time"),
                 odds=odds,
                 season=fd.get("season"),
+                kickoff_datetime_utc=fd.get("kickoff_utc"),
             )
             try:
                 pred = model.predict(fixture)
@@ -362,7 +370,7 @@ def build_predictions_for_fixtures(
     )
 
     return TodayPayload(
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(timezone.utc),
         predictions=predictions,
         value_bets=value_bets,
         data_sources=data_sources,
@@ -490,12 +498,12 @@ def get_today_payload(league: str | None = None) -> TodayPayload:
         fixtures_file = _latest_fixtures_file()
         if fixtures_file is None:
             logger.info("[api] /predictions/today — no snapshot, no fixtures file; returning empty.")
-            return TodayPayload(generated_at=datetime.utcnow())
+            return TodayPayload(generated_at=datetime.now(timezone.utc))
         try:
             data = json.loads(fixtures_file.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             logger.warning("[api] /predictions/today — malformed fixtures file %s", fixtures_file)
-            return TodayPayload(generated_at=datetime.utcnow())
+            return TodayPayload(generated_at=datetime.now(timezone.utc))
         logger.info("[api] /predictions/today — no snapshot; computing on-demand from %s", fixtures_file.name)
         snapshot = build_predictions_for_fixtures(data)
 
@@ -578,7 +586,7 @@ def get_history(days: int | None = 14) -> HistoryPayload:
     hit_rate = round(total_won / settled, 4) if settled > 0 else None
 
     return HistoryPayload(
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(timezone.utc),
         n_days=len(day_rows),
         total_bets=total_bets,
         total_won=total_won,
@@ -1037,6 +1045,8 @@ def get_upcoming_match_slugs(league: str | None = None) -> MatchSlugsOut:
                 away_team=p.away_team,
                 date=p.date,
                 kickoff_time=p.kickoff_time,
+                kickoff_utc=p.kickoff_utc,
+                league_timezone=p.league_timezone,
             )
         )
     return MatchSlugsOut(league=league, n_matches=len(matches), matches=matches)
@@ -1114,6 +1124,8 @@ def get_league_fixtures(league_key: str, limit: int = 5) -> LeagueFixturesOut:
                     home_team=p.home_team,
                     away_team=p.away_team,
                     kickoff_time=p.kickoff_time,
+                    kickoff_utc=p.kickoff_utc,
+                    league_timezone=p.league_timezone,
                     prob_home=round(p.prob_home, 4),
                     prob_draw=round(p.prob_draw, 4),
                     prob_away=round(p.prob_away, 4),

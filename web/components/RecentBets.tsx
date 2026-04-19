@@ -8,12 +8,15 @@ import { api, queryKeys } from '@/lib/api';
 import type { BetStatus, GradedBet, HistoryDay } from '@/lib/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { DictionaryKey } from '@/lib/i18n';
+import { parseLocalDate } from '@/lib/datetime';
 
 const DAYS = 14;
 
 function formatDay(iso: string, locale: string): string {
   try {
-    const d = new Date(iso);
+    // ``new Date("YYYY-MM-DD")`` is UTC midnight, which shifts the day for
+    // users west of UTC. Parse as a local calendar day instead.
+    const d = parseLocalDate(iso) ?? new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return new Intl.DateTimeFormat(locale, {
       weekday: 'short',

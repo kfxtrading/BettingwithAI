@@ -66,6 +66,8 @@ export type LeagueFixtureRow = {
   home_team: string;
   away_team: string;
   kickoff_time?: string | null;
+  kickoff_utc?: string | null;
+  league_timezone?: string | null;
   prob_home?: number | null;
   prob_draw?: number | null;
   prob_away?: number | null;

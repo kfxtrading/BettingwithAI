@@ -17,19 +17,15 @@ import requests
 
 from football_betting.config import LEAGUES, ODDS_API_CFG, OddsApiConfig
 from football_betting.scraping.team_names import normalize
+from football_betting.utils.timezones import (
+    LEAGUE_TIMEZONES as _LEAGUE_TIMEZONES,
+    isoformat_utc,
+    league_tz_name,
+)
 
 
 class OddsApiError(RuntimeError):
     """Raised on missing key, HTTP failure, or unexpected payload shape."""
-
-
-_LEAGUE_TIMEZONES: dict[str, str] = {
-    "PL": "Europe/London",
-    "CH": "Europe/London",
-    "BL": "Europe/Berlin",
-    "SA": "Europe/Rome",
-    "LL": "Europe/Madrid",
-}
 
 
 @dataclass(slots=True)
@@ -63,27 +59,32 @@ class FixtureOdds:
 
     league: str
     date: date
-    kickoff_local: str  # "HH:MM" in league-local timezone
+    kickoff_local: str  # "HH:MM" in league-local timezone (DST-aware via ZoneInfo)
     home_team: str
     away_team: str
     odds_home: float
     odds_draw: float
     odds_away: float
     n_bookmakers: int
+    kickoff_utc: datetime | None = None  # UTC-aware kickoff for client-side TZ conversion
 
     def to_fixture_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "date": self.date.isoformat(),
             "league": self.league,
             "home_team": self.home_team,
             "away_team": self.away_team,
             "kickoff_time": self.kickoff_local,
+            "league_timezone": league_tz_name(self.league),
             "odds": {
                 "home": round(self.odds_home, 3),
                 "draw": round(self.odds_draw, 3),
                 "away": round(self.odds_away, 3),
             },
         }
+        if self.kickoff_utc is not None:
+            payload["kickoff_utc"] = isoformat_utc(self.kickoff_utc)
+        return payload
 
 
 @dataclass(slots=True)
@@ -295,6 +296,7 @@ class OddsApiClient:
             odds_draw=od,
             odds_away=oa,
             n_bookmakers=n_books,
+            kickoff_utc=kickoff_utc,
         )
 
 

@@ -16,6 +16,8 @@ export interface Prediction {
   home_team: string;
   away_team: string;
   kickoff_time: string | null;
+  kickoff_utc?: string | null;
+  league_timezone?: string | null;
   prob_home: number;
   prob_draw: number;
   prob_away: number;

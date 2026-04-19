@@ -48,8 +48,10 @@ class Match(BaseModel):
     home_shots_on_target: int | None = None
     away_shots_on_target: int | None = None
     odds: MatchOdds | None = None
-    # v0.4: best-effort kickoff timestamp. UTC when sourced from Sofascore;
-    # naive local-time when parsed from football-data.co.uk Time column.
+    # v0.4: best-effort kickoff timestamp. Always UTC-aware when populated from
+    # the Sofascore scraper or football-data.co.uk loader (DST-resolved via
+    # ``football_betting.utils.timezones``). Legacy naive values may appear in
+    # older snapshots; downstream code should treat ``tzinfo is None`` as UTC.
     kickoff_datetime_utc: datetime | None = None
 
     @property
