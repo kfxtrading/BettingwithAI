@@ -8,7 +8,7 @@ import {
   absoluteUrl,
   localizedPath,
 } from '@/lib/seo';
-import { fetchLeaguesServer } from '@/lib/server-api';
+import { fetchLeagueRatingsServer, fetchLeaguesServer } from '@/lib/server-api';
 import { locales, type Locale } from '@/lib/i18n';
 
 type PageProps = {
@@ -85,12 +85,20 @@ export default async function LeagueDetailPage({ params }: PageProps) {
     ],
   };
 
+  const ratings = await fetchLeagueRatingsServer(leagueKey, 30);
+  const teams = ratings.map((r) => ({
+    '@type': 'SportsTeam' as const,
+    name: r.team,
+    sport: 'Association football',
+  }));
+
   const sportsLeagueLd = {
     '@context': 'https://schema.org',
     '@type': 'SportsOrganization',
     name,
     sport: 'Association football',
     url: absoluteUrl(localizedPath(locale, `/leagues/${leagueKey}`)),
+    ...(teams.length > 0 ? { subOrganization: teams } : {}),
   };
 
   return (

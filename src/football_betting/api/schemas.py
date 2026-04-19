@@ -238,6 +238,25 @@ class SeoSlugsOut(BaseModel):
     teams: list[SeoTeamSlug] = Field(default_factory=list)
 
 
+class CalibrationBucketOut(BaseModel):
+    """One reliability-diagram bucket: predicted vs actual frequency."""
+
+    bin_lower: float
+    bin_upper: float
+    n: int
+    predicted_mean: float
+    actual_rate: float
+
+
+class TrackRecordCalibrationOut(BaseModel):
+    """Calibration buckets for SEO /track-record page."""
+
+    league: str | None = None
+    n_records: int
+    n_settled: int
+    buckets: list[CalibrationBucketOut] = Field(default_factory=list)
+
+
 class ConsentIn(BaseModel):
     """Cookie-consent submission from the frontend banner."""
 

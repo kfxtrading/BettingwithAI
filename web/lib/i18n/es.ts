@@ -148,6 +148,25 @@ export const es: Dictionary = {
   'page.impressum.title': 'Aviso legal',
   'page.impressum.description':
     'Información legal sobre el editor del sitio Betting with AI.',
+  'page.trackRecord.title': 'Historial · Precisión verificada',
+  'page.trackRecord.description':
+    'Historial público y descargable de cada pronóstico de Betting with AI frente al resultado real, con gráfico de calibración y descarga en CSV. Sin cherry-picking.',
+  'page.learn.title': 'Aprende · Conceptos de apuestas de fútbol',
+  'page.learn.description':
+    'Guías claras sobre value bets, goles esperados, criterio de Kelly, calibración del modelo y más — por un analista IA independiente de fútbol.',
+  'trackRecord.calibration.title': 'Gráfico de calibración',
+  'trackRecord.calibration.caption':
+    'Probabilidad predicha vs frecuencia observada en todos los resultados finalizados. La diagonal es la calibración perfecta.',
+  'trackRecord.csv.title': 'Descargar el dataset completo',
+  'trackRecord.csv.caption':
+    'Cada pronóstico, con probabilidades del modelo, resultado real e indicador de acierto. CSV, UTF-8.',
+  'trackRecord.csv.button': 'Descargar track-record.csv',
+  'trackRecord.stats.records': 'Pronósticos registrados',
+  'trackRecord.stats.settled': 'Finalizados (con resultado)',
+  'learn.heading': 'Conceptos de apuestas de fútbol, explicados con claridad.',
+  'learn.intro':
+    'Guías breves y basadas en datos sobre value bets, calibración del modelo, gestión del bankroll y las métricas con las que se evalúa este sitio.',
+  'learn.readMore': 'Leer →',
   'cookie.title': 'Usamos cookies',
   'cookie.body':
     'Este sitio utiliza cookies y tecnologías similares para garantizar su funcionamiento y para medir el alcance y el rendimiento. Tu consentimiento se almacena junto con un hash de tu dirección IP para poder reconocerlo en tu próxima visita. Puedes retirarlo en cualquier momento.',

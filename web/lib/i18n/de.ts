@@ -144,6 +144,25 @@ export const de: Dictionary = {
   'page.impressum.title': 'Impressum',
   'page.impressum.description':
     'Anbieterkennzeichnung gemäß § 5 DDG (vormals § 5 TMG) und § 18 MStV.',
+  'page.trackRecord.title': 'Track Record · Verifizierte Trefferquote',
+  'page.trackRecord.description':
+    'Öffentliche, herunterladbare Historie aller Betting-with-AI-Vorhersagen vs. tatsächlichem Ergebnis, inkl. Kalibrierungs-Plot und CSV-Download. Kein Cherry-Picking.',
+  'page.learn.title': 'Lernen · Konzepte rund um Sportwetten',
+  'page.learn.description':
+    'Verständliche Leitfäden zu Value Bets, Expected Goals, Kelly-Kriterium, Modell-Kalibrierung und mehr — von einem unabhängigen KI-Fußballanalysten.',
+  'trackRecord.calibration.title': 'Kalibrierungs-Plot',
+  'trackRecord.calibration.caption':
+    'Vorhergesagte Wahrscheinlichkeit vs. beobachtete Häufigkeit über alle abgeschlossenen Spiele. Die Diagonale ist perfekte Kalibrierung.',
+  'trackRecord.csv.title': 'Vollständigen Datensatz herunterladen',
+  'trackRecord.csv.caption':
+    'Jede Vorhersage mit Modell-Wahrscheinlichkeiten, tatsächlichem Ergebnis und Korrektheits-Flag. CSV, UTF-8.',
+  'trackRecord.csv.button': 'track-record.csv herunterladen',
+  'trackRecord.stats.records': 'Erfasste Vorhersagen',
+  'trackRecord.stats.settled': 'Abgeschlossen (mit Ergebnis)',
+  'learn.heading': 'Konzepte rund um Sportwetten — verständlich erklärt.',
+  'learn.intro':
+    'Kurze, evidenzbasierte Leitfäden zu Value Bets, Modell-Kalibrierung, Bankroll-Management und den Metriken, an denen sich diese Seite messen lässt.',
+  'learn.readMore': 'Weiterlesen →',
   'cookie.title': 'Wir nutzen Cookies',
   'cookie.body':
     'Diese Website verwendet Cookies und vergleichbare Technologien, um die Funktion sicherzustellen sowie Reichweite und Performance zu analysieren. Deine Einwilligung wird zusammen mit einem Hash deiner IP-Adresse gespeichert, damit wir sie bei deinem nächsten Besuch erneut erkennen. Du kannst sie jederzeit widerrufen.',

@@ -121,6 +121,20 @@ export type DictionaryKey =
   | 'page.cookies.description'
   | 'page.impressum.title'
   | 'page.impressum.description'
+  | 'page.trackRecord.title'
+  | 'page.trackRecord.description'
+  | 'page.learn.title'
+  | 'page.learn.description'
+  | 'trackRecord.calibration.title'
+  | 'trackRecord.calibration.caption'
+  | 'trackRecord.csv.title'
+  | 'trackRecord.csv.caption'
+  | 'trackRecord.csv.button'
+  | 'trackRecord.stats.records'
+  | 'trackRecord.stats.settled'
+  | 'learn.heading'
+  | 'learn.intro'
+  | 'learn.readMore'
   | 'cookie.title'
   | 'cookie.body'
   | 'cookie.necessary.title'
@@ -278,6 +292,25 @@ export const en: Dictionary = {
   'page.impressum.title': 'Impressum',
   'page.impressum.description':
     'Anbieterkennzeichnung gemäß § 5 DDG (vormals § 5 TMG) und § 18 MStV.',
+  'page.trackRecord.title': 'Track Record · Verified accuracy',
+  'page.trackRecord.description':
+    'Public, downloadable history of every Betting with AI prediction vs the actual result, with calibration plot and CSV download. No cherry-picking.',
+  'page.learn.title': 'Learn · Football betting concepts',
+  'page.learn.description':
+    'Plain-language guides to value bets, expected goals, the Kelly criterion, model calibration and more — by an independent AI football analyst.',
+  'trackRecord.calibration.title': 'Calibration plot',
+  'trackRecord.calibration.caption':
+    'Predicted probability vs observed frequency across all settled outcomes. The diagonal is perfect calibration.',
+  'trackRecord.csv.title': 'Download the full dataset',
+  'trackRecord.csv.caption':
+    'Every prediction, with model probabilities, the actual result and a correctness flag. CSV, UTF-8.',
+  'trackRecord.csv.button': 'Download track-record.csv',
+  'trackRecord.stats.records': 'Predictions logged',
+  'trackRecord.stats.settled': 'Settled (with result)',
+  'learn.heading': 'Football betting concepts, in plain language.',
+  'learn.intro':
+    'Short, evidence-based guides to value bets, model calibration, bankroll management and the metrics this site is judged on.',
+  'learn.readMore': 'Read →',
   'cookie.title': 'We use cookies',
   'cookie.body':
     'This site uses cookies and similar technologies to keep the service running and to measure reach and performance. Your choice is stored together with a hash of your IP address so we can recognise it on your next visit. You can withdraw it at any time.',

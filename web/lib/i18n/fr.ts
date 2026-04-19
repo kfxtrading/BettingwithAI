@@ -148,6 +148,25 @@ export const fr: Dictionary = {
   'page.impressum.title': 'Mentions légales',
   'page.impressum.description':
     "Informations légales sur l'éditeur du site Betting with AI.",
+  'page.trackRecord.title': 'Historique · Précision vérifiée',
+  'page.trackRecord.description':
+    "Historique public et téléchargeable de chaque pronostic Betting with AI face au résultat réel, avec graphique de calibration et téléchargement CSV. Sans cherry-picking.",
+  'page.learn.title': 'Apprendre · Concepts des paris sportifs',
+  'page.learn.description':
+    "Guides clairs sur les value bets, les xG, le critère de Kelly, la calibration des modèles et plus encore — par un analyste IA indépendant du football.",
+  'trackRecord.calibration.title': 'Graphique de calibration',
+  'trackRecord.calibration.caption':
+    'Probabilité prédite vs fréquence observée sur tous les résultats joués. La diagonale correspond à une calibration parfaite.',
+  'trackRecord.csv.title': 'Télécharger le jeu de données complet',
+  'trackRecord.csv.caption':
+    'Chaque pronostic, avec les probabilités du modèle, le résultat réel et un indicateur de justesse. CSV, UTF-8.',
+  'trackRecord.csv.button': 'Télécharger track-record.csv',
+  'trackRecord.stats.records': 'Pronostics enregistrés',
+  'trackRecord.stats.settled': 'Joués (avec résultat)',
+  'learn.heading': 'Concepts des paris sportifs, expliqués clairement.',
+  'learn.intro':
+    "Guides courts et fondés sur des données pour les value bets, la calibration des modèles, la gestion de bankroll et les métriques utilisées pour juger ce site.",
+  'learn.readMore': 'Lire →',
   'cookie.title': 'Nous utilisons des cookies',
   'cookie.body':
     "Ce site utilise des cookies et des technologies similaires pour assurer son fonctionnement et mesurer l'audience et les performances. Votre consentement est enregistré avec un hachage de votre adresse IP afin que nous puissions le reconnaître lors de votre prochaine visite. Vous pouvez le retirer à tout moment.",

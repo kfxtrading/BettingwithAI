@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi.responses import PlainTextResponse
 
 from football_betting.api import consent as consent_store
 from football_betting.api import services
 from football_betting.api.schemas import (
     BankrollPoint,
+    CalibrationBucketOut,
     ConsentIn,
     ConsentOut,
     FormRow,
@@ -20,9 +22,15 @@ from football_betting.api.schemas import (
     SeoSlugsOut,
     TeamDetail,
     TodayPayload,
+    TrackRecordCalibrationOut,
     ValueBetOut,
 )
 from football_betting.config import LEAGUES
+from football_betting.seo.track_record import (
+    build_calibration,
+    build_csv,
+    load_records,
+)
 
 
 API_VERSION = "0.3.0"
@@ -149,6 +157,48 @@ def history(
 ) -> HistoryPayload:
     """Graded value bets grouped by day, newest first."""
     return services.get_history(days=days)
+
+
+@router.get(
+    "/seo/track-record.csv",
+    tags=["seo"],
+    response_class=PlainTextResponse,
+    responses={200: {"content": {"text/csv": {}}}},
+)
+def seo_track_record_csv(response: Response) -> PlainTextResponse:
+    """Downloadable predictions-vs-results CSV for SEO Dataset asset."""
+    records = load_records()
+    body = build_csv(records)
+    headers = {
+        "Cache-Control": "public, max-age=3600",
+        "Content-Disposition": 'attachment; filename="track-record.csv"',
+    }
+    return PlainTextResponse(content=body, media_type="text/csv", headers=headers)
+
+
+@router.get(
+    "/seo/track-record/calibration",
+    response_model=TrackRecordCalibrationOut,
+    tags=["seo"],
+)
+def seo_track_record_calibration(
+    response: Response,
+    league: str | None = Query(None),
+    bins: int = Query(10, ge=2, le=50),
+) -> TrackRecordCalibrationOut:
+    """Reliability-diagram buckets for SEO calibration plot."""
+    if league is not None:
+        league = _validate_league(league)
+    records = load_records()
+    n_settled = sum(1 for r in records if r.actual_outcome is not None)
+    buckets = build_calibration(records, n_bins=bins, league=league)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return TrackRecordCalibrationOut(
+        league=league,
+        n_records=len(records),
+        n_settled=n_settled,
+        buckets=[CalibrationBucketOut(**b.__dict__) for b in buckets],
+    )
 
 
 @router.get(

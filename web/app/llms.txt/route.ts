@@ -1,5 +1,6 @@
 import { SITE_NAME, SITE_URL, absoluteUrl, localizedPath } from '@/lib/seo';
 import { defaultLocale, locales } from '@/lib/i18n';
+import { LEARN_SLUGS } from '@/content/learn';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -37,6 +38,7 @@ export async function GET(): Promise<Response> {
   lines.push(bullet('Today\'s predictions and value bets', '/'));
   lines.push(bullet('League hub', '/leagues'));
   lines.push(bullet('Performance and accuracy tracker', '/performance'));
+  lines.push(bullet('Track record (Dataset, CSV download, calibration plot)', '/track-record'));
   lines.push('');
   lines.push('## About & methodology');
   lines.push(bullet('About — independent, non-affiliate AI football analytics', '/about'));
@@ -55,6 +57,11 @@ export async function GET(): Promise<Response> {
     }
     lines.push('');
   }
+  lines.push('## Learn (educational pillar)');
+  for (const slug of LEARN_SLUGS) {
+    lines.push(bullet(slug.replace(/-/g, ' '), `/learn/${slug}`));
+  }
+  lines.push('');
   lines.push('## Localized variants');
   for (const locale of locales) {
     lines.push(`- ${locale.toUpperCase()}: ${absoluteUrl(localizedPath(locale, '/'))}`);
