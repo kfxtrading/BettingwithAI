@@ -10,6 +10,7 @@ import {
 } from '@/lib/seo';
 import { getServerDictionary } from '@/lib/i18n/server';
 import type { Locale } from '@/lib/i18n';
+import { fetchLeaguesServer, fetchTodayServer } from '@/lib/server-api';
 
 type PageProps = { params: { locale: Locale } };
 
@@ -31,7 +32,12 @@ const sportsOrgLd = {
   sport: 'Association football',
 };
 
-export default function HomePage({ params }: PageProps) {
+export default async function HomePage({ params }: PageProps) {
+  const [initialToday, initialLeagues] = await Promise.all([
+    fetchTodayServer(),
+    fetchLeaguesServer(),
+  ]);
+
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -48,7 +54,10 @@ export default function HomePage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={[sportsOrgLd, breadcrumbLd]} />
-      <HomeClient />
+      <HomeClient
+        initialToday={initialToday}
+        initialLeagues={initialLeagues}
+      />
     </>
   );
 }

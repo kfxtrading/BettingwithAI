@@ -7,7 +7,10 @@ import {
   absoluteUrl,
   localizedPath,
 } from '@/lib/seo';
-import { fetchLeaguesServer } from '@/lib/server-api';
+import {
+  fetchLeaguesServer,
+  fetchLeagueSummariesServer,
+} from '@/lib/server-api';
 import { getServerDictionary } from '@/lib/i18n/server';
 import type { Locale } from '@/lib/i18n';
 
@@ -24,7 +27,10 @@ export function generateMetadata({ params }: PageProps): Metadata {
 }
 
 export default async function LeaguesPage({ params }: PageProps) {
-  const leagues = await fetchLeaguesServer();
+  const [leagues, summaries] = await Promise.all([
+    fetchLeaguesServer(),
+    fetchLeagueSummariesServer(),
+  ]);
   const locale = params.locale;
 
   const breadcrumbLd = {
@@ -61,7 +67,7 @@ export default async function LeaguesPage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={[breadcrumbLd, itemListLd]} />
-      <LeaguesClient />
+      <LeaguesClient initialSummaries={summaries} />
     </>
   );
 }

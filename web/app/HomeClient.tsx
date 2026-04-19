@@ -11,6 +11,12 @@ import { Empty } from '@/components/Empty';
 import { ValueBetBadge } from '@/components/ValueBetBadge';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import type { League, TodayPayload } from '@/lib/types';
+
+type HomeClientProps = {
+  initialToday?: TodayPayload | null;
+  initialLeagues?: League[];
+};
 
 function formatGenerated(iso: string, locale: string): string {
   try {
@@ -23,18 +29,23 @@ function formatGenerated(iso: string, locale: string): string {
   }
 }
 
-export function HomeClient() {
+export function HomeClient({
+  initialToday,
+  initialLeagues,
+}: HomeClientProps = {}) {
   const [league, setLeague] = useState<string | null>(null);
   const { t, locale } = useLocale();
 
   const leaguesQuery = useQuery({
     queryKey: queryKeys.leagues,
     queryFn: api.leagues,
+    initialData: initialLeagues,
   });
 
   const todayQuery = useQuery({
     queryKey: queryKeys.today(league ?? undefined),
     queryFn: () => api.today(league ?? undefined),
+    initialData: league === null ? initialToday ?? undefined : undefined,
   });
 
   const predictions = todayQuery.data?.predictions ?? [];

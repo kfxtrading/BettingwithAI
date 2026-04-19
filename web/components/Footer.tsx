@@ -12,6 +12,7 @@ type FooterLink = {
     | 'footer.link.about'
     | 'footer.link.methodology'
     | 'footer.link.changelog'
+    | 'footer.link.sourceCode'
     | 'footer.link.terms'
     | 'footer.link.privacy'
     | 'footer.link.cookies'
@@ -28,9 +29,15 @@ const PRODUCT_LINKS: FooterLink[] = [
   { href: '/performance', labelKey: 'footer.link.performance' },
 ];
 
+const SOURCE_CODE_URL =
+  process.env.NEXT_PUBLIC_SOURCE_URL ??
+  'https://github.com/marcelr/BettingwithAI';
+
 const ABOUT_LINKS: FooterLink[] = [
   { href: '/about', labelKey: 'footer.link.about' },
   { href: '/methodology', labelKey: 'footer.link.methodology' },
+  { href: '/track-record', labelKey: 'footer.link.changelog' },
+  { href: SOURCE_CODE_URL, labelKey: 'footer.link.sourceCode', external: true },
 ];
 
 const LEGAL_LINKS: FooterLink[] = [

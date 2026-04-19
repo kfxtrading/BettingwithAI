@@ -1,6 +1,29 @@
-import type { League } from './types';
+import type {
+  BankrollPoint,
+  League,
+  LeagueSummary,
+  PerformanceSummary,
+  TodayPayload,
+} from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const API_URL =
+  process.env.API_INTERNAL_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  'http://localhost:8000';
+
+async function fetchJson<T>(
+  path: string,
+  revalidate: number,
+  fallback: T,
+): Promise<T> {
+  try {
+    const res = await fetch(`${API_URL}${path}`, { next: { revalidate } });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 export async function fetchLeaguesServer(): Promise<League[]> {
   try {
@@ -75,4 +98,31 @@ export async function fetchLeagueFixturesServer(
   } catch {
     return null;
   }
+}
+
+export async function fetchTodayServer(
+  league?: string,
+): Promise<TodayPayload | null> {
+  const qs = league ? `?league=${encodeURIComponent(league)}` : '';
+  return fetchJson<TodayPayload | null>(
+    `/predictions/today${qs}`,
+    60,
+    null,
+  );
+}
+
+export async function fetchPerformanceSummaryServer(): Promise<PerformanceSummary | null> {
+  return fetchJson<PerformanceSummary | null>(
+    '/performance/summary',
+    300,
+    null,
+  );
+}
+
+export async function fetchBankrollServer(): Promise<BankrollPoint[]> {
+  return fetchJson<BankrollPoint[]>('/performance/bankroll', 300, []);
+}
+
+export async function fetchLeagueSummariesServer(): Promise<LeagueSummary[]> {
+  return fetchJson<LeagueSummary[]>('/leagues/summaries', 3600, []);
 }

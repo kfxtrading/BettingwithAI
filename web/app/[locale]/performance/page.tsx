@@ -4,6 +4,10 @@ import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, absoluteUrl, localizedPath } from '@/lib/seo';
 import { getServerDictionary } from '@/lib/i18n/server';
 import type { Locale } from '@/lib/i18n';
+import {
+  fetchBankrollServer,
+  fetchPerformanceSummaryServer,
+} from '@/lib/server-api';
 
 type PageProps = { params: { locale: Locale } };
 
@@ -17,7 +21,12 @@ export function generateMetadata({ params }: PageProps): Metadata {
   });
 }
 
-export default function PerformancePage({ params }: PageProps) {
+export default async function PerformancePage({ params }: PageProps) {
+  const [initialSummary, initialBankroll] = await Promise.all([
+    fetchPerformanceSummaryServer(),
+    fetchBankrollServer(),
+  ]);
+
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -40,7 +49,10 @@ export default function PerformancePage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={breadcrumbLd} />
-      <PerformanceClient />
+      <PerformanceClient
+        initialSummary={initialSummary}
+        initialBankroll={initialBankroll}
+      />
     </>
   );
 }

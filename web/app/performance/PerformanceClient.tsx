@@ -6,20 +6,31 @@ import { KpiTile } from '@/components/KpiTile';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import type { BankrollPoint, PerformanceSummary } from '@/lib/types';
+
+type PerformanceClientProps = {
+  initialSummary?: PerformanceSummary | null;
+  initialBankroll?: BankrollPoint[];
+};
 
 function pct(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
-export function PerformanceClient() {
+export function PerformanceClient({
+  initialSummary,
+  initialBankroll,
+}: PerformanceClientProps = {}) {
   const { t } = useLocale();
   const summaryQuery = useQuery({
     queryKey: queryKeys.performance,
     queryFn: api.performance,
+    initialData: initialSummary ?? undefined,
   });
   const bankrollQuery = useQuery({
     queryKey: queryKeys.bankroll,
     queryFn: api.bankroll,
+    initialData: initialBankroll,
   });
 
   const s = summaryQuery.data;

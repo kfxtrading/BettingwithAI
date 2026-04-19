@@ -5,12 +5,20 @@ import { useQuery } from '@tanstack/react-query';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import type { LeagueSummary } from '@/lib/types';
 
-export function LeaguesClient() {
+type LeaguesClientProps = {
+  initialSummaries?: LeagueSummary[];
+};
+
+export function LeaguesClient({
+  initialSummaries,
+}: LeaguesClientProps = {}) {
   const { t, href } = useLocale();
   const summariesQuery = useQuery({
     queryKey: queryKeys.leagueSummaries,
     queryFn: api.leagueSummaries,
+    initialData: initialSummaries,
   });
 
   return (

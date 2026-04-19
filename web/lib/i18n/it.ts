@@ -116,6 +116,7 @@ export const it: Dictionary = {
   'footer.link.about': 'Chi siamo',
   'footer.link.methodology': 'Metodologia',
   'footer.link.changelog': 'Changelog del modello',
+  'footer.link.sourceCode': 'Codice sorgente ↗',
   'footer.link.terms': 'Termini di servizio',
   'footer.link.privacy': 'Informativa sulla privacy',
   'footer.link.cookies': 'Cookie',

@@ -114,6 +114,7 @@ export const de: Dictionary = {
   'footer.link.about': 'Über uns',
   'footer.link.methodology': 'Methodik',
   'footer.link.changelog': 'Modell-Changelog',
+  'footer.link.sourceCode': 'Quellcode ↗',
   'footer.link.terms': 'Nutzungsbedingungen',
   'footer.link.privacy': 'Datenschutz',
   'footer.link.cookies': 'Cookies',

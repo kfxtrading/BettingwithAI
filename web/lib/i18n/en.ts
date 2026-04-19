@@ -99,6 +99,7 @@ export type DictionaryKey =
   | 'footer.link.about'
   | 'footer.link.methodology'
   | 'footer.link.changelog'
+  | 'footer.link.sourceCode'
   | 'footer.link.terms'
   | 'footer.link.privacy'
   | 'footer.link.cookies'
@@ -269,6 +270,7 @@ export const en: Dictionary = {
   'footer.link.about': 'About',
   'footer.link.methodology': 'Methodology',
   'footer.link.changelog': 'Model changelog',
+  'footer.link.sourceCode': 'Source code ↗',
   'footer.link.terms': 'Terms of Service',
   'footer.link.privacy': 'Privacy Policy',
   'footer.link.cookies': 'Cookies',
