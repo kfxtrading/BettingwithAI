@@ -1,22 +1,31 @@
 import type { Metadata } from 'next';
-import { LeaguesClient } from './LeaguesClient';
+import { LeaguesClient } from '@/app/leagues/LeaguesClient';
 import { JsonLd } from '@/components/JsonLd';
-import { buildMetadata, SITE_NAME, absoluteUrl } from '@/lib/seo';
+import {
+  buildMetadata,
+  SITE_NAME,
+  absoluteUrl,
+  localizedPath,
+} from '@/lib/seo';
 import { fetchLeaguesServer } from '@/lib/server-api';
 import { getServerDictionary } from '@/lib/i18n/server';
+import type { Locale } from '@/lib/i18n';
 
-export function generateMetadata(): Metadata {
-  const { locale, dict } = getServerDictionary();
+type PageProps = { params: { locale: Locale } };
+
+export function generateMetadata({ params }: PageProps): Metadata {
+  const { locale, dict } = getServerDictionary(params.locale);
   return buildMetadata({
-    title: `${dict['leagues.heading']}`,
+    title: dict['leagues.heading'],
     description: dict['leagues.description'],
     path: '/leagues',
     locale,
   });
 }
 
-export default async function LeaguesPage() {
+export default async function LeaguesPage({ params }: PageProps) {
   const leagues = await fetchLeaguesServer();
+  const locale = params.locale;
 
   const breadcrumbLd = {
     '@context': 'https://schema.org',
@@ -26,13 +35,13 @@ export default async function LeaguesPage() {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: absoluteUrl('/'),
+        item: absoluteUrl(localizedPath(locale, '/')),
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Leagues',
-        item: absoluteUrl('/leagues'),
+        item: absoluteUrl(localizedPath(locale, '/leagues')),
       },
     ],
   };
@@ -45,7 +54,7 @@ export default async function LeaguesPage() {
       '@type': 'ListItem',
       position: i + 1,
       name: l.name,
-      url: absoluteUrl(`/leagues/${l.key}`),
+      url: absoluteUrl(localizedPath(locale, `/leagues/${l.key}`)),
     })),
   };
 

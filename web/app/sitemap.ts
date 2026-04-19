@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
-import { absoluteUrl } from '@/lib/seo';
+import { absoluteUrl, buildLanguageAlternates, localizedPath } from '@/lib/seo';
+import { defaultLocale, locales } from '@/lib/i18n';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -17,36 +18,67 @@ async function fetchLeagues(): Promise<LeagueOut[]> {
   }
 }
 
+type StaticEntry = {
+  path: string;
+  changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
+  priority: number;
+};
+
+const STATIC_ROUTES: StaticEntry[] = [
+  { path: '/', changeFrequency: 'daily', priority: 1.0 },
+  { path: '/leagues', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/performance', changeFrequency: 'daily', priority: 0.7 },
+  { path: '/about', changeFrequency: 'monthly', priority: 0.5 },
+  { path: '/methodology', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/responsible-gambling', changeFrequency: 'yearly', priority: 0.4 },
+  { path: '/legal/terms', changeFrequency: 'yearly', priority: 0.3 },
+  { path: '/legal/privacy', changeFrequency: 'yearly', priority: 0.3 },
+  { path: '/legal/cookies', changeFrequency: 'yearly', priority: 0.3 },
+];
+
+const DE_ONLY_ROUTES: StaticEntry[] = [
+  { path: '/impressum', changeFrequency: 'yearly', priority: 0.3 },
+];
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const staticPaths: MetadataRoute.Sitemap = [
-    {
-      url: absoluteUrl('/'),
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 1.0,
-    },
-    {
-      url: absoluteUrl('/leagues'),
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.8,
-    },
-    {
-      url: absoluteUrl('/performance'),
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.7,
-    },
-  ];
-
   const leagues = await fetchLeagues();
-  const leaguePaths: MetadataRoute.Sitemap = leagues.map((l) => ({
-    url: absoluteUrl(`/leagues/${l.key}`),
-    lastModified: now,
-    changeFrequency: 'daily',
-    priority: 0.7,
-  }));
 
-  return [...staticPaths, ...leaguePaths];
+  const entries: MetadataRoute.Sitemap = [];
+
+  for (const route of STATIC_ROUTES) {
+    for (const locale of locales) {
+      entries.push({
+        url: absoluteUrl(localizedPath(locale, route.path)),
+        lastModified: now,
+        changeFrequency: route.changeFrequency,
+        priority: locale === defaultLocale ? route.priority : route.priority * 0.9,
+        alternates: { languages: buildLanguageAlternates(route.path) },
+      });
+    }
+  }
+
+  for (const route of DE_ONLY_ROUTES) {
+    entries.push({
+      url: absoluteUrl(localizedPath('de', route.path)),
+      lastModified: now,
+      changeFrequency: route.changeFrequency,
+      priority: route.priority,
+    });
+  }
+
+  for (const l of leagues) {
+    const path = `/leagues/${l.key}`;
+    for (const locale of locales) {
+      entries.push({
+        url: absoluteUrl(localizedPath(locale, path)),
+        lastModified: now,
+        changeFrequency: 'daily',
+        priority: locale === defaultLocale ? 0.7 : 0.6,
+        alternates: { languages: buildLanguageAlternates(path) },
+      });
+    }
+  }
+
+  return entries;
 }

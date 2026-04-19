@@ -15,7 +15,7 @@ type Props = {
 };
 
 export function LeagueClient({ leagueKey, leagueName }: Props) {
-  const { t } = useLocale();
+  const { t, href } = useLocale();
   const ratingsQuery = useQuery({
     queryKey: queryKeys.ratings(leagueKey, 24),
     queryFn: () => api.ratings(leagueKey, 24),
@@ -36,7 +36,7 @@ export function LeagueClient({ leagueKey, leagueName }: Props) {
     <>
       <header className="flex flex-col gap-3">
         <Link
-          href="/leagues"
+          href={href('/leagues')}
           className="focus-ring text-2xs uppercase tracking-[0.12em] text-muted hover:text-text"
         >
           {t('league.back')}

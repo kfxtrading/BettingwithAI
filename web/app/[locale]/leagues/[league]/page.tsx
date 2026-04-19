@@ -1,17 +1,31 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { LeagueClient } from './LeagueClient';
+import { LeagueClient } from '@/app/leagues/[league]/LeagueClient';
 import { JsonLd } from '@/components/JsonLd';
-import { buildMetadata, SITE_NAME, absoluteUrl } from '@/lib/seo';
+import {
+  buildMetadata,
+  SITE_NAME,
+  absoluteUrl,
+  localizedPath,
+} from '@/lib/seo';
 import { fetchLeaguesServer } from '@/lib/server-api';
+import { locales, type Locale } from '@/lib/i18n';
 
 type PageProps = {
-  params: { league: string };
+  params: { locale: Locale; league: string };
 };
 
-export async function generateStaticParams(): Promise<{ league: string }[]> {
+export async function generateStaticParams(): Promise<
+  { locale: Locale; league: string }[]
+> {
   const leagues = await fetchLeaguesServer();
-  return leagues.map((l) => ({ league: l.key }));
+  const params: { locale: Locale; league: string }[] = [];
+  for (const locale of locales) {
+    for (const l of leagues) {
+      params.push({ locale, league: l.key });
+    }
+  }
+  return params;
 }
 
 export async function generateMetadata({
@@ -26,6 +40,7 @@ export async function generateMetadata({
     title: `${name} · Pi-Ratings, Form & Predictions`,
     description: `${name} Pi-Ratings, recent form, head-to-head data and AI-driven match predictions from the ${SITE_NAME} ensemble model.`,
     path: `/leagues/${leagueKey}`,
+    locale: params.locale,
     keywords: [
       `${name} predictions`,
       `${name} Pi-Ratings`,
@@ -43,23 +58,29 @@ export default async function LeagueDetailPage({ params }: PageProps) {
     notFound();
   }
   const name = league?.name ?? leagueKey;
+  const locale = params.locale;
 
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: absoluteUrl(localizedPath(locale, '/')),
+      },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Leagues',
-        item: absoluteUrl('/leagues'),
+        item: absoluteUrl(localizedPath(locale, '/leagues')),
       },
       {
         '@type': 'ListItem',
         position: 3,
         name,
-        item: absoluteUrl(`/leagues/${leagueKey}`),
+        item: absoluteUrl(localizedPath(locale, `/leagues/${leagueKey}`)),
       },
     ],
   };
@@ -69,7 +90,7 @@ export default async function LeagueDetailPage({ params }: PageProps) {
     '@type': 'SportsOrganization',
     name,
     sport: 'Association football',
-    url: absoluteUrl(`/leagues/${leagueKey}`),
+    url: absoluteUrl(localizedPath(locale, `/leagues/${leagueKey}`)),
   };
 
   return (

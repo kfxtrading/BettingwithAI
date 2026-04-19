@@ -14,7 +14,7 @@ function pct(value: number, digits = 1): string {
 }
 
 export function PerformanceTracker() {
-  const { t } = useLocale();
+  const { t, href } = useLocale();
   const summaryQuery = useQuery({
     queryKey: queryKeys.performance,
     queryFn: api.performance,
@@ -87,7 +87,7 @@ export function PerformanceTracker() {
 
           <div className="flex justify-center pt-2">
             <Link
-              href="/performance"
+              href={href('/performance')}
               className="focus-ring press inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-medium text-white"
             >
               {t('transparency.viewFullDetails')}

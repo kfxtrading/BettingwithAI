@@ -104,8 +104,50 @@ export const es: Dictionary = {
   'nav.performance': 'Rendimiento',
   'nav.leagues': 'Ligas',
   'nav.language': 'Idioma',
+  'nav.about': 'Acerca de',
+  'nav.methodology': 'Metodología',
   'footer.text':
     'Betting with AI · Ensamble CatBoost + Poisson + MLP · Modelo v0.3',
+  'footer.col.product': 'Producto',
+  'footer.col.about': 'Acerca de',
+  'footer.col.legal': 'Aviso legal',
+  'footer.col.responsible': 'Juego responsable',
+  'footer.link.today': 'Pronósticos de hoy',
+  'footer.link.leagues': 'Ligas',
+  'footer.link.performance': 'Tracker de rendimiento',
+  'footer.link.about': 'Acerca de',
+  'footer.link.methodology': 'Metodología',
+  'footer.link.changelog': 'Changelog del modelo',
+  'footer.link.terms': 'Términos del servicio',
+  'footer.link.privacy': 'Política de privacidad',
+  'footer.link.cookies': 'Cookies',
+  'footer.link.impressum': 'Aviso legal',
+  'footer.link.responsibleGambling': 'Juego responsable',
+  'footer.link.helpline': 'FEJAR · Juego responsable (ES)',
+  'footer.disclaimer':
+    'Contenido solo informativo. No es asesoramiento de apuestas. No aceptamos apuestas ni recibimos comisiones de las casas de apuestas. El rendimiento pasado del modelo no garantiza resultados futuros.',
+  'footer.ageBadge.label': '+18 · Solo informativo',
+  'page.about.title': 'Acerca de Betting with AI',
+  'page.about.description':
+    'Analítica de fútbol IA independiente y sin afiliaciones, construida por un científico de datos en solitario. Por qué existimos, quiénes somos y en qué nos diferenciamos de los sitios de pronósticos afiliados.',
+  'page.methodology.title': 'Metodología · Cómo funciona nuestro modelo',
+  'page.methodology.description':
+    'Pi-Ratings, CatBoost, Poisson Dixon-Coles, ensamble MLP, calibración isotónica y backtesting walk-forward — cada componente explicado con transparencia.',
+  'page.responsibleGambling.title': 'Juego responsable',
+  'page.responsibleGambling.description':
+    'Ayuda, autoexclusión y líneas nacionales contra la ludopatía en España, Reino Unido, Alemania, Francia e Italia.',
+  'page.terms.title': 'Términos del servicio',
+  'page.terms.description':
+    'Términos legales que rigen el uso de Betting with AI. Solo contenido editorial — no somos una casa de apuestas y no aceptamos apuestas.',
+  'page.privacy.title': 'Política de privacidad',
+  'page.privacy.description':
+    'Cómo Betting with AI gestiona los datos personales, cookies y analítica conforme al RGPD.',
+  'page.cookies.title': 'Política de cookies',
+  'page.cookies.description':
+    'Qué cookies utilizamos, por qué y cómo gestionar tus preferencias.',
+  'page.impressum.title': 'Aviso legal',
+  'page.impressum.description':
+    'Información legal sobre el editor del sitio Betting with AI.',
   'cookie.title': 'Usamos cookies',
   'cookie.body':
     'Este sitio utiliza cookies y tecnologías similares para garantizar su funcionamiento y para medir el alcance y el rendimiento. Tu consentimiento se almacena junto con un hash de tu dirección IP para poder reconocerlo en tu próxima visita. Puedes retirarlo en cualquier momento.',

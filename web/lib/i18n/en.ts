@@ -86,7 +86,41 @@ export type DictionaryKey =
   | 'nav.performance'
   | 'nav.leagues'
   | 'nav.language'
+  | 'nav.about'
+  | 'nav.methodology'
   | 'footer.text'
+  | 'footer.col.product'
+  | 'footer.col.about'
+  | 'footer.col.legal'
+  | 'footer.col.responsible'
+  | 'footer.link.today'
+  | 'footer.link.leagues'
+  | 'footer.link.performance'
+  | 'footer.link.about'
+  | 'footer.link.methodology'
+  | 'footer.link.changelog'
+  | 'footer.link.terms'
+  | 'footer.link.privacy'
+  | 'footer.link.cookies'
+  | 'footer.link.impressum'
+  | 'footer.link.responsibleGambling'
+  | 'footer.link.helpline'
+  | 'footer.disclaimer'
+  | 'footer.ageBadge.label'
+  | 'page.about.title'
+  | 'page.about.description'
+  | 'page.methodology.title'
+  | 'page.methodology.description'
+  | 'page.responsibleGambling.title'
+  | 'page.responsibleGambling.description'
+  | 'page.terms.title'
+  | 'page.terms.description'
+  | 'page.privacy.title'
+  | 'page.privacy.description'
+  | 'page.cookies.title'
+  | 'page.cookies.description'
+  | 'page.impressum.title'
+  | 'page.impressum.description'
   | 'cookie.title'
   | 'cookie.body'
   | 'cookie.necessary.title'
@@ -200,8 +234,50 @@ export const en: Dictionary = {
   'nav.performance': 'Performance',
   'nav.leagues': 'Leagues',
   'nav.language': 'Language',
+  'nav.about': 'About',
+  'nav.methodology': 'Methodology',
   'footer.text':
     'Betting with AI · CatBoost + Poisson + MLP ensemble · Model v0.3',
+  'footer.col.product': 'Product',
+  'footer.col.about': 'About',
+  'footer.col.legal': 'Legal',
+  'footer.col.responsible': 'Responsible Gambling',
+  'footer.link.today': "Today's predictions",
+  'footer.link.leagues': 'Leagues',
+  'footer.link.performance': 'Performance tracker',
+  'footer.link.about': 'About',
+  'footer.link.methodology': 'Methodology',
+  'footer.link.changelog': 'Model changelog',
+  'footer.link.terms': 'Terms of Service',
+  'footer.link.privacy': 'Privacy Policy',
+  'footer.link.cookies': 'Cookies',
+  'footer.link.impressum': 'Impressum',
+  'footer.link.responsibleGambling': 'Responsible Gambling',
+  'footer.link.helpline': 'GambleAware (UK helpline)',
+  'footer.disclaimer':
+    'Informational content only. Not betting advice. We do not accept stakes and do not earn commission from bookmakers. Past model performance is no guarantee of future results.',
+  'footer.ageBadge.label': '18+ · Information only',
+  'page.about.title': 'About Betting with AI',
+  'page.about.description':
+    'Independent, non-affiliate AI football analytics built by a solo data scientist. Why we exist, who we are, and how we differ from affiliate-driven prediction sites.',
+  'page.methodology.title': 'Methodology · How our model works',
+  'page.methodology.description':
+    'Pi-Ratings, CatBoost, Dixon-Coles Poisson, MLP ensemble, isotonic calibration and walk-forward backtesting — every component explained transparently.',
+  'page.responsibleGambling.title': 'Responsible Gambling',
+  'page.responsibleGambling.description':
+    'Help, self-exclusion tools and national helplines for problem gambling across the UK, Germany, France, Italy and Spain.',
+  'page.terms.title': 'Terms of Service',
+  'page.terms.description':
+    'Legal terms governing your use of Betting with AI. Educational content only — we are not a bookmaker and never accept wagers.',
+  'page.privacy.title': 'Privacy Policy',
+  'page.privacy.description':
+    'How Betting with AI handles personal data, cookies and analytics under GDPR.',
+  'page.cookies.title': 'Cookie Policy',
+  'page.cookies.description':
+    'Which cookies we set, why, and how to manage your preferences.',
+  'page.impressum.title': 'Impressum',
+  'page.impressum.description':
+    'Anbieterkennzeichnung gemäß § 5 DDG (vormals § 5 TMG) und § 18 MStV.',
   'cookie.title': 'We use cookies',
   'cookie.body':
     'This site uses cookies and similar technologies to keep the service running and to measure reach and performance. Your choice is stored together with a hash of your IP address so we can recognise it on your next visit. You can withdraw it at any time.',

@@ -706,6 +706,17 @@ def snapshot(fixtures: str | None, bankroll: float) -> None:
         f"({len(payload.predictions)} predictions, {len(payload.value_bets)} value bets)"
     )
 
+    # Best-effort IndexNow ping so Bing/Yandex/Yep see fresh content quickly.
+    try:
+        from football_betting.seo.indexnow import build_snapshot_urls, ping_indexnow
+
+        leagues = sorted({p.league for p in payload.predictions if getattr(p, "league", None)})
+        urls = build_snapshot_urls(leagues=leagues)
+        if urls and ping_indexnow(urls):
+            console.log(f"[green]IndexNow notified ({len(urls)} URLs)[/green]")
+    except Exception as exc:  # pragma: no cover - never block snapshotting
+        console.log(f"[yellow]IndexNow skipped: {exc}[/yellow]")
+
 
 # ───────────────────────── weather-stadiums (v0.4) ─────────────────────────
 

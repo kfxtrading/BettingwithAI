@@ -100,8 +100,50 @@ export const de: Dictionary = {
   'nav.performance': 'Performance',
   'nav.leagues': 'Ligen',
   'nav.language': 'Sprache',
+  'nav.about': 'Über uns',
+  'nav.methodology': 'Methodik',
   'footer.text':
     'Betting with AI · CatBoost + Poisson + MLP Ensemble · Modell v0.3',
+  'footer.col.product': 'Produkt',
+  'footer.col.about': 'Über uns',
+  'footer.col.legal': 'Rechtliches',
+  'footer.col.responsible': 'Verantwortungsvolles Spielen',
+  'footer.link.today': 'Heutige Prognosen',
+  'footer.link.leagues': 'Ligen',
+  'footer.link.performance': 'Performance-Tracker',
+  'footer.link.about': 'Über uns',
+  'footer.link.methodology': 'Methodik',
+  'footer.link.changelog': 'Modell-Changelog',
+  'footer.link.terms': 'Nutzungsbedingungen',
+  'footer.link.privacy': 'Datenschutz',
+  'footer.link.cookies': 'Cookies',
+  'footer.link.impressum': 'Impressum',
+  'footer.link.responsibleGambling': 'Verantwortungsvolles Spielen',
+  'footer.link.helpline': 'BZgA · Check dein Spiel (DE)',
+  'footer.disclaimer':
+    'Nur informative Inhalte. Keine Wett-Beratung. Wir nehmen keine Einsätze entgegen und erhalten keine Provision von Buchmachern. Frühere Modell-Performance ist keine Garantie für zukünftige Ergebnisse.',
+  'footer.ageBadge.label': '18+ · Nur Information',
+  'page.about.title': 'Über Betting with AI',
+  'page.about.description':
+    'Unabhängige, partnerfreie KI-Fußballanalytik eines einzelnen Data Scientist. Warum es uns gibt, wer wir sind und wie wir uns von affiliate-getriebenen Tipp-Seiten unterscheiden.',
+  'page.methodology.title': 'Methodik · Wie unser Modell arbeitet',
+  'page.methodology.description':
+    'Pi-Ratings, CatBoost, Dixon-Coles-Poisson, MLP-Ensemble, isotonische Kalibrierung und Walk-Forward-Backtesting — jede Komponente transparent erklärt.',
+  'page.responsibleGambling.title': 'Verantwortungsvolles Spielen',
+  'page.responsibleGambling.description':
+    'Hilfe, Selbstsperre und Beratungsstellen bei Glücksspielsucht in DE, AT, CH, UK, FR, IT und ES.',
+  'page.terms.title': 'Nutzungsbedingungen',
+  'page.terms.description':
+    'Rechtliche Bedingungen für die Nutzung von Betting with AI. Ausschließlich redaktionelle Inhalte — wir sind kein Buchmacher und nehmen keine Wetten an.',
+  'page.privacy.title': 'Datenschutzerklärung',
+  'page.privacy.description':
+    'Wie Betting with AI personenbezogene Daten, Cookies und Analytics gemäß DSGVO verarbeitet.',
+  'page.cookies.title': 'Cookie-Richtlinie',
+  'page.cookies.description':
+    'Welche Cookies wir setzen, warum, und wie du deine Präferenzen verwaltest.',
+  'page.impressum.title': 'Impressum',
+  'page.impressum.description':
+    'Anbieterkennzeichnung gemäß § 5 DDG (vormals § 5 TMG) und § 18 MStV.',
   'cookie.title': 'Wir nutzen Cookies',
   'cookie.body':
     'Diese Website verwendet Cookies und vergleichbare Technologien, um die Funktion sicherzustellen sowie Reichweite und Performance zu analysieren. Deine Einwilligung wird zusammen mit einem Hash deiner IP-Adresse gespeichert, damit wir sie bei deinem nächsten Besuch erneut erkennen. Du kannst sie jederzeit widerrufen.',

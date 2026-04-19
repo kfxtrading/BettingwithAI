@@ -107,6 +107,14 @@ const websiteLd = {
   inLanguage: ['en', 'de', 'fr', 'it', 'es'],
   description:
     'Data-driven football predictions and value bets for the Top 5 leagues.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${SITE_URL.replace(/\/$/, '')}/leagues?q={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
 };
 
 export default function RootLayout({

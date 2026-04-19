@@ -104,8 +104,50 @@ export const fr: Dictionary = {
   'nav.performance': 'Performance',
   'nav.leagues': 'Championnats',
   'nav.language': 'Langue',
+  'nav.about': 'À propos',
+  'nav.methodology': 'Méthodologie',
   'footer.text':
     'Betting with AI · Ensemble CatBoost + Poisson + MLP · Modèle v0.3',
+  'footer.col.product': 'Produit',
+  'footer.col.about': 'À propos',
+  'footer.col.legal': 'Mentions légales',
+  'footer.col.responsible': 'Jeu responsable',
+  'footer.link.today': "Pronostics du jour",
+  'footer.link.leagues': 'Championnats',
+  'footer.link.performance': 'Suivi de performance',
+  'footer.link.about': 'À propos',
+  'footer.link.methodology': 'Méthodologie',
+  'footer.link.changelog': 'Changelog du modèle',
+  'footer.link.terms': "Conditions d'utilisation",
+  'footer.link.privacy': 'Politique de confidentialité',
+  'footer.link.cookies': 'Cookies',
+  'footer.link.impressum': 'Mentions légales',
+  'footer.link.responsibleGambling': 'Jeu responsable',
+  'footer.link.helpline': 'Joueurs Info Service (FR)',
+  'footer.disclaimer':
+    "Contenu uniquement informatif. Pas de conseils de paris. Nous n'acceptons aucun enjeu et ne percevons aucune commission des bookmakers. Les performances passées du modèle ne garantissent pas les résultats futurs.",
+  'footer.ageBadge.label': '18+ · Informations uniquement',
+  'page.about.title': 'À propos de Betting with AI',
+  'page.about.description':
+    "Analytique football IA indépendante et sans partenariat, développée par un data scientist solo. Pourquoi nous existons, qui nous sommes et en quoi nous différons des sites de pronostics affiliés.",
+  'page.methodology.title': 'Méthodologie · Comment notre modèle fonctionne',
+  'page.methodology.description':
+    'Pi-Ratings, CatBoost, Poisson Dixon-Coles, ensemble MLP, calibration isotonique et backtesting walk-forward — chaque composant expliqué en toute transparence.',
+  'page.responsibleGambling.title': 'Jeu responsable',
+  'page.responsibleGambling.description':
+    "Aide, auto-exclusion et lignes d'écoute nationales en cas d'addiction au jeu en France, au Royaume-Uni, en Allemagne, en Italie et en Espagne.",
+  'page.terms.title': "Conditions d'utilisation",
+  'page.terms.description':
+    "Conditions juridiques régissant l'utilisation de Betting with AI. Contenu purement éditorial — nous ne sommes pas un bookmaker et n'acceptons aucun pari.",
+  'page.privacy.title': 'Politique de confidentialité',
+  'page.privacy.description':
+    'Comment Betting with AI traite les données personnelles, les cookies et les analytics selon le RGPD.',
+  'page.cookies.title': 'Politique relative aux cookies',
+  'page.cookies.description':
+    'Quels cookies nous déposons, pourquoi, et comment gérer vos préférences.',
+  'page.impressum.title': 'Mentions légales',
+  'page.impressum.description':
+    "Informations légales sur l'éditeur du site Betting with AI.",
   'cookie.title': 'Nous utilisons des cookies',
   'cookie.body':
     "Ce site utilise des cookies et des technologies similaires pour assurer son fonctionnement et mesurer l'audience et les performances. Votre consentement est enregistré avec un hachage de votre adresse IP afin que nous puissions le reconnaître lors de votre prochaine visite. Vous pouvez le retirer à tout moment.",

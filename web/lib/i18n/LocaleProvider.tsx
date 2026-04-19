@@ -16,6 +16,7 @@ import {
   type DictionaryKey,
   type Locale,
 } from './index';
+import { localizedHref } from '../localizedHref';
 
 const LOCALE_COOKIE = 'NEXT_LOCALE';
 
@@ -27,6 +28,8 @@ type LocaleContextValue = {
   t: (key: DictionaryKey, vars?: Vars) => string;
   setLocale: (next: Locale) => void;
   availableLocales: readonly Locale[];
+  /** Convert a locale-agnostic in-app path to a locale-prefixed one. */
+  href: (path: string) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -69,6 +72,11 @@ export function LocaleProvider({
     [dict],
   );
 
+  const href = useCallback(
+    (path: string) => localizedHref(locale, path),
+    [locale],
+  );
+
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
@@ -76,8 +84,9 @@ export function LocaleProvider({
       t,
       setLocale,
       availableLocales: locales,
+      href,
     }),
-    [locale, dict, t, setLocale],
+    [locale, dict, t, setLocale, href],
   );
 
   return (
@@ -94,6 +103,7 @@ export function useLocale(): LocaleContextValue {
       t: (key, vars) => format(getDictionary(defaultLocale)[key] ?? key, vars),
       setLocale: () => {},
       availableLocales: locales,
+      href: (path: string) => localizedHref(defaultLocale, path),
     };
   }
   return ctx;

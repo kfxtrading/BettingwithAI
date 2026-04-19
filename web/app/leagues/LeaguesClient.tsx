@@ -7,7 +7,7 @@ import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export function LeaguesClient() {
-  const { t } = useLocale();
+  const { t, href } = useLocale();
   const summariesQuery = useQuery({
     queryKey: queryKeys.leagueSummaries,
     queryFn: api.leagueSummaries,
@@ -39,7 +39,7 @@ export function LeaguesClient() {
             {summariesQuery.data?.map((league) => (
               <Link
                 key={league.league}
-                href={`/leagues/${league.league}`}
+                href={href(`/leagues/${league.league}`)}
                 className="surface-card focus-ring press flex flex-col gap-4 px-5 py-5 transition-[transform,box-shadow] ease-ease hover:-translate-y-[1px]"
               >
                 <header className="flex items-baseline justify-between text-2xs">
