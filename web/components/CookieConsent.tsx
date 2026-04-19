@@ -118,10 +118,10 @@ export function CookieConsent() {
       role="dialog"
       aria-live="polite"
       aria-label={t('cookie.aria.dialog')}
-      className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4 md:px-6 md:pb-6"
+      className="fixed inset-x-0 bottom-0 z-50 px-3 pb-3 sm:px-4 sm:pb-4 md:px-6 md:pb-6"
     >
-      <div className="mx-auto w-full max-w-3xl rounded-2xl border border-white/10 bg-surface/95 p-5 text-sm shadow-soft backdrop-blur md:p-6">
-        <h2 className="text-base font-medium text-text">{t('cookie.title')}</h2>
+      <div className="mx-auto max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/10 bg-surface/95 p-4 text-sm shadow-soft backdrop-blur md:p-6">
+        <h2 className="text-sm font-medium text-text md:text-base">{t('cookie.title')}</h2>
         <p className="mt-2 text-muted">{t('cookie.body')}</p>
 
         {showDetails && (
@@ -177,11 +177,11 @@ export function CookieConsent() {
           </div>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
-            className="focus-ring rounded-full px-3.5 py-1.5 text-xs text-muted hover:text-text"
+            className="focus-ring w-full justify-center rounded-full px-3.5 py-1.5 text-xs text-muted hover:text-text sm:w-auto"
           >
             {showDetails ? t('cookie.btn.hideDetails') : t('cookie.btn.settings')}
           </button>
@@ -189,7 +189,7 @@ export function CookieConsent() {
             type="button"
             disabled={submitting}
             onClick={rejectAll}
-            className="focus-ring press rounded-full border border-white/10 px-4 py-1.5 text-text hover:bg-white/5 disabled:opacity-50"
+            className="focus-ring press w-full justify-center rounded-full border border-white/10 px-4 py-1.5 text-text hover:bg-white/5 disabled:opacity-50 sm:w-auto"
           >
             {t('cookie.btn.reject')}
           </button>
@@ -198,7 +198,7 @@ export function CookieConsent() {
               type="button"
               disabled={submitting}
               onClick={saveSelection}
-              className="focus-ring press rounded-full border border-white/10 px-4 py-1.5 text-text hover:bg-white/5 disabled:opacity-50"
+              className="focus-ring press w-full justify-center rounded-full border border-white/10 px-4 py-1.5 text-text hover:bg-white/5 disabled:opacity-50 sm:w-auto"
             >
               {t('cookie.btn.save')}
             </button>
@@ -207,7 +207,7 @@ export function CookieConsent() {
             type="button"
             disabled={submitting}
             onClick={acceptAll}
-            className="focus-ring press rounded-full bg-accent px-4 py-1.5 font-medium text-bg disabled:opacity-50"
+            className="focus-ring press w-full justify-center rounded-full bg-accent px-4 py-1.5 font-medium text-bg disabled:opacity-50 sm:w-auto"
           >
             {t('cookie.btn.acceptAll')}
           </button>

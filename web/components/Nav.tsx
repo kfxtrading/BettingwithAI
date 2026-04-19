@@ -19,7 +19,7 @@ export function Nav() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
-      <div className="mx-auto flex w-full max-w-page items-center justify-between gap-8 px-6 py-4 md:px-12">
+      <div className="mx-auto flex w-full max-w-page items-center justify-between gap-3 px-4 py-4 sm:px-6 md:gap-8 md:px-12">
         <Link
           href={href('/')}
           hrefLang={locale}
@@ -28,7 +28,7 @@ export function Nav() {
           <span className="inline-block h-2 w-2 rounded-full bg-accent" />
           Betting with AI
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex min-w-0 items-center gap-1 text-sm">
           {links.map((link) => {
             const active =
               link.path === '/'
