@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { KpiTile } from '@/components/KpiTile';
 import { PerformanceIndexChart } from '@/components/PerformanceIndexChart';
-import { RuleAccordion } from '@/components/RuleAccordion';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
 
@@ -124,8 +123,6 @@ export function PerformanceTracker() {
               {formatTrackingStart(data.updated_at)}).
             </p>
           )}
-
-          <RuleAccordion />
 
           <p className="text-2xs leading-relaxed text-muted">
             Hypothetical simulation of a statistical model based on
