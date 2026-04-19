@@ -15,7 +15,7 @@ v0.3 additions:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from football_betting.config import FEATURE_CFG, LEAGUES, POINT_DEDUCTIONS, FeatureConfig
@@ -26,6 +26,7 @@ from football_betting.features.market_movement import MarketMovementTracker
 from football_betting.features.real_xg import RealXgTracker
 from football_betting.features.rest_days import RestDaysTracker
 from football_betting.features.squad_quality import SquadQualityTracker
+from football_betting.features.weather import WeatherTracker
 from football_betting.features.xg_proxy import XgProxyTracker
 from football_betting.rating.pi_ratings import PiRatings
 
@@ -47,6 +48,7 @@ class FeatureBuilder:
     home_adv_tracker: HomeAdvantageTracker = field(default_factory=HomeAdvantageTracker)
     squad_tracker: SquadQualityTracker = field(default_factory=SquadQualityTracker)
     market_tracker: MarketMovementTracker = field(default_factory=MarketMovementTracker)
+    weather_tracker: WeatherTracker | None = None  # v0.4: optional, opt-in
     _sofascore_staged: dict[str, dict] = field(default_factory=dict)
 
     @staticmethod
@@ -65,6 +67,7 @@ class FeatureBuilder:
         odds_draw: float | None = None,
         odds_away: float | None = None,
         season: str | None = None,
+        kickoff_datetime_utc: datetime | None = None,
     ) -> dict[str, float]:
         """Full feature vector for a single fixture."""
         feats: dict[str, float] = {}
@@ -144,6 +147,14 @@ class FeatureBuilder:
             feats["home_point_ded"] = 0.0
             feats["away_point_ded"] = 0.0
 
+        # Weather (v0.4 — Familie A)
+        if self.cfg.use_weather and self.weather_tracker is not None:
+            feats.update(
+                self.weather_tracker.features_for_match(
+                    home_team, away_team, match_date, kickoff_datetime_utc,
+                )
+            )
+
         return feats
 
     def features_for_fixture(self, fixture: Fixture) -> dict[str, float]:
@@ -157,6 +168,7 @@ class FeatureBuilder:
             odds_draw=odds.draw if odds else None,
             odds_away=odds.away if odds else None,
             season=fixture.effective_season(),
+            kickoff_datetime_utc=fixture.resolve_kickoff(),
         )
 
     # ───────────────────────── State update ─────────────────────────

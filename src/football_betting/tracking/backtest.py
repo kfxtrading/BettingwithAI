@@ -239,4 +239,5 @@ class Backtester:
             home_team=m.home_team,
             away_team=m.away_team,
             odds=m.odds,
+            kickoff_datetime_utc=m.kickoff_datetime_utc,
         )

@@ -13,9 +13,10 @@ import numpy as np
 from rich.console import Console
 from rich.table import Table
 
-from football_betting.config import LEAGUES, MODELS_DIR
+from football_betting.config import LEAGUES, MODELS_DIR, WEATHER_CFG
 from football_betting.data.loader import load_league
 from football_betting.features.builder import FeatureBuilder
+from football_betting.features.weather import WeatherTracker
 from football_betting.predict.calibration import expected_calibration_error
 from football_betting.predict.catboost_model import CatBoostPredictor
 from football_betting.scraping.sofascore import SofascoreClient
@@ -34,7 +35,14 @@ def train_league(league_key: str) -> dict[str, float | int | str]:
     matches = load_league(league_key, seasons=list(TRAIN_SEASONS))
     console.log(f"Loaded {len(matches)} training matches")
 
-    fb = FeatureBuilder()
+    # v0.4: opt-in weather features (Familie A — Match-Day Weather)
+    weather_tracker = WeatherTracker() if WEATHER_CFG.enabled else None
+    if weather_tracker is not None and not weather_tracker.stadiums:
+        console.log(
+            "[yellow]Weather enabled but no stadiums.json found — "
+            "run `fb weather-stadiums` first to populate it.[/yellow]"
+        )
+    fb = FeatureBuilder(weather_tracker=weather_tracker)
 
     # Stage Sofascore data so chronological replay consumes it (real xG / squad)
     staged = 0

@@ -32,7 +32,7 @@ from rich.progress import Progress
 from rich.table import Table
 
 from football_betting.betting.value import find_value_bets, rank_value_bets
-from football_betting.config import LEAGUES, MODELS_DIR, SOFASCORE_DIR
+from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR, SOFASCORE_DIR
 from football_betting.data.downloader import download_all
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, MatchOdds
@@ -549,6 +549,7 @@ def monitor(league: str, recent_days: int) -> None:
             odds_home=m.odds.home if m.odds else None,
             odds_draw=m.odds.draw if m.odds else None,
             odds_away=m.odds.away if m.odds else None,
+            kickoff_datetime_utc=m.kickoff_datetime_utc,
         )
         train_rows.append(feats)
     train_df = pd.DataFrame(train_rows)
@@ -560,6 +561,7 @@ def monitor(league: str, recent_days: int) -> None:
             odds_home=m.odds.home if m.odds else None,
             odds_draw=m.odds.draw if m.odds else None,
             odds_away=m.odds.away if m.odds else None,
+            kickoff_datetime_utc=m.kickoff_datetime_utc,
         )
         prod_rows.append(feats)
         train_fb.update_with_match(m)  # update for next
@@ -679,6 +681,95 @@ def snapshot(fixtures: str | None, bankroll: float) -> None:
         f"[green]Snapshot written: {out_path}[/green] "
         f"({len(payload.predictions)} predictions, {len(payload.value_bets)} value bets)"
     )
+
+
+# ───────────────────────── weather-stadiums (v0.4) ─────────────────────────
+
+
+@main.command("weather-stadiums")
+@click.option(
+    "--league", "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    default="all",
+    help="Resolve stadiums for one league or all.",
+)
+@click.option(
+    "--seasons", "-s", multiple=True,
+    default=("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"),
+    help="Seasons to scan for the team universe.",
+)
+@click.option(
+    "--out", "-o",
+    type=click.Path(),
+    default=str(DATA_DIR / "stadiums.json"),
+    help="Output JSON path.",
+)
+@click.option("--force", is_flag=True, help="Overwrite existing entries.")
+def weather_stadiums(league: str, seasons: tuple[str, ...], out: str, force: bool) -> None:
+    """Geocode stadium coordinates for all teams via Open-Meteo (v0.4).
+
+    Iterates teams encountered in football-data.co.uk CSVs, resolves
+    each via the Open-Meteo geocoding API, and writes a JSON lookup
+    consumed by `WeatherTracker`.
+    """
+    from football_betting.scraping.weather import OpenMeteoClient
+
+    out_path = Path(out)
+    existing: dict[str, dict] = {}
+    if out_path.exists() and not force:
+        try:
+            existing = json.loads(out_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            existing = {}
+
+    keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+    teams: dict[str, str] = {}  # canonical team name → league key (for context)
+    for k in keys:
+        try:
+            matches = load_league(k, seasons=list(seasons))
+        except FileNotFoundError as e:
+            console.log(f"[yellow]Skip {k}: {e}[/yellow]")
+            continue
+        for m in matches:
+            teams.setdefault(m.home_team, k)
+            teams.setdefault(m.away_team, k)
+
+    console.log(f"[cyan]Resolving {len(teams)} unique teams[/cyan]")
+    client = OpenMeteoClient()
+    resolved = dict(existing)
+    failed: list[str] = []
+
+    with Progress(console=console) as progress:
+        task = progress.add_task("Geocoding", total=len(teams))
+        for team, league_key in teams.items():
+            if team in resolved and resolved[team] is not None and not force:
+                progress.advance(task)
+                continue
+            # Try team name first (often resolves to home city); fall back to a
+            # bare city/country query if needed.
+            result = client.geocode(team)
+            if result is None:
+                result = client.geocode(f"{team} football")
+            if result is None:
+                failed.append(team)
+                resolved[team] = None
+            else:
+                resolved[team] = {
+                    "lat": result.lat,
+                    "lon": result.lon,
+                    "city": result.name,
+                    "country": result.country,
+                    "league": league_key,
+                }
+                console.log(f"  {team} → {result.name}, {result.country} ({result.lat:.3f}, {result.lon:.3f})")
+            progress.advance(task)
+
+    out_path.write_text(json.dumps(resolved, indent=2, ensure_ascii=False), encoding="utf-8")
+    console.log(f"[green]Wrote {out_path}[/green]")
+    console.log(f"  resolved: {sum(1 for v in resolved.values() if v)}")
+    console.log(f"  unresolved: {len(failed)}")
+    if failed:
+        console.log(f"[yellow]Unresolved: {', '.join(failed[:10])}{'...' if len(failed) > 10 else ''}[/yellow]")
 
 
 # ───────────────────────── serve (web UI) ─────────────────────────

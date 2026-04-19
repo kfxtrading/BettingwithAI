@@ -16,11 +16,12 @@ BACKTEST_DIR = DATA_DIR / "backtests"
 SOFASCORE_DIR = DATA_DIR / "sofascore"
 MONITORING_DIR = DATA_DIR / "monitoring"
 SNAPSHOT_DIR = DATA_DIR / "snapshots"
+WEATHER_DIR = DATA_DIR / "weather"
 MODELS_DIR = PROJECT_ROOT / "models"
 
 for d in (
     RAW_DIR, PROCESSED_DIR, PREDICTIONS_DIR,
-    BACKTEST_DIR, SOFASCORE_DIR, MONITORING_DIR, SNAPSHOT_DIR, MODELS_DIR,
+    BACKTEST_DIR, SOFASCORE_DIR, MONITORING_DIR, SNAPSHOT_DIR, WEATHER_DIR, MODELS_DIR,
 ):
     d.mkdir(parents=True, exist_ok=True)
 
@@ -155,6 +156,7 @@ class FeatureConfig:
     use_market_odds: bool = True
     use_squad_quality: bool = True  # v0.3
     use_market_movement: bool = True  # v0.3
+    use_weather: bool = True  # v0.4 (Familie A — Match-Day Weather)
 
     form: FormConfig = field(default_factory=FormConfig)
     xg: XgProxyConfig = field(default_factory=XgProxyConfig)
@@ -223,6 +225,38 @@ class SofascoreConfig:
     def enabled(self) -> bool:
         """Opt-in via env var for safety."""
         return os.getenv("SCRAPING_ENABLED", "0") == "1"
+
+
+# ───────────────────────── Weather (v0.4) ─────────────────────────
+
+@dataclass(frozen=True, slots=True)
+class WeatherConfig:
+    """Open-Meteo weather feature configuration (v0.4 — Phase 1+2)."""
+
+    enabled: bool = True
+    use_match_day_weather: bool = True   # Familie A — active in this phase
+    use_weather_shock: bool = False      # Familie B — Phase 3
+    use_simons_signal: bool = False      # Familie C — Phase 3
+
+    # ±hours around kickoff to average hourly observations
+    kickoff_window_hours: int = 3
+    # Fallback when Match.kickoff_datetime_utc is None
+    default_kickoff_hour_utc: int = 19
+
+    # Open-Meteo endpoints (no API key required)
+    historical_api: str = "https://archive-api.open-meteo.com/v1/archive"
+    forecast_api: str = "https://api.open-meteo.com/v1/forecast"
+    geocoding_api: str = "https://geocoding-api.open-meteo.com/v1/search"
+
+    # Rate limit (Open-Meteo allows 10k req/day; 0.5s ≈ 7200/h is fine)
+    request_delay_seconds: float = 0.5
+    timeout_seconds: float = 30.0
+    max_retries: int = 3
+    retry_backoff_base: float = 2.0
+    cache_ttl_days: int = 30  # historical weather is immutable
+
+    # Forecast vs archive routing: dates older than (today - this) → archive
+    forecast_horizon_days: int = 14
 
 
 # ───────────────────────── The Odds API ─────────────────────────
@@ -320,6 +354,7 @@ FEATURE_CFG = FeatureConfig()
 CATBOOST_CFG = CatBoostConfig()
 MLP_CFG = MLPConfig()
 SOFASCORE_CFG = SofascoreConfig()
+WEATHER_CFG = WeatherConfig()
 ODDS_API_CFG = OddsApiConfig()
 CALIBRATION_CFG = CalibrationConfig()
 MONITORING_CFG = MonitoringConfig()

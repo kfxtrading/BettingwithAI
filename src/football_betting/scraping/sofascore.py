@@ -19,6 +19,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from datetime import timezone
+
 from curl_cffi import requests
 from rich.console import Console
 
@@ -67,6 +69,11 @@ class SofascoreMatch:
     def date(self) -> date:
         return datetime.fromtimestamp(self.start_timestamp).date()
 
+    @property
+    def kickoff_datetime_utc(self) -> datetime:
+        """Anpfiff in UTC (v0.4 weather features)."""
+        return datetime.fromtimestamp(self.start_timestamp, tz=timezone.utc)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "event_id": self.event_id,
@@ -76,6 +83,7 @@ class SofascoreMatch:
             "home_goals": self.home_goals,
             "away_goals": self.away_goals,
             "date": self.date.isoformat(),
+            "kickoff_datetime_utc": self.kickoff_datetime_utc.isoformat(),
             "status": self.status,
             "home_xg": self.home_xg,
             "away_xg": self.away_xg,

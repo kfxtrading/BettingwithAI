@@ -48,6 +48,9 @@ class Match(BaseModel):
     home_shots_on_target: int | None = None
     away_shots_on_target: int | None = None
     odds: MatchOdds | None = None
+    # v0.4: best-effort kickoff timestamp. UTC when sourced from Sofascore;
+    # naive local-time when parsed from football-data.co.uk Time column.
+    kickoff_datetime_utc: datetime | None = None
 
     @property
     def result(self) -> Outcome:
@@ -77,6 +80,15 @@ class Match(BaseModel):
             raise ValueError(f"Unrecognised date: {v}")
         raise TypeError(f"Bad date type: {type(v)}")
 
+    @field_validator("kickoff_datetime_utc", mode="before")
+    @classmethod
+    def _parse_kickoff(cls, v: str | datetime | None) -> datetime | None:
+        if v is None or isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            return datetime.fromisoformat(v)
+        raise TypeError(f"Bad kickoff_datetime_utc type: {type(v)}")
+
 
 class Fixture(BaseModel):
     """Upcoming match without a result yet."""
@@ -88,6 +100,8 @@ class Fixture(BaseModel):
     kickoff_time: str | None = None
     odds: MatchOdds | None = None
     season: str | None = None
+    # v0.4: same semantics as Match.kickoff_datetime_utc.
+    kickoff_datetime_utc: datetime | None = None
 
     @field_validator("date", mode="before")
     @classmethod
@@ -104,6 +118,27 @@ class Fixture(BaseModel):
                     continue
             raise ValueError(f"Unrecognised date: {v}")
         raise TypeError(f"Bad date type: {type(v)}")
+
+    @field_validator("kickoff_datetime_utc", mode="before")
+    @classmethod
+    def _parse_kickoff(cls, v: str | datetime | None) -> datetime | None:
+        if v is None or isinstance(v, datetime):
+            return v
+        if isinstance(v, str):
+            return datetime.fromisoformat(v)
+        raise TypeError(f"Bad kickoff_datetime_utc type: {type(v)}")
+
+    def resolve_kickoff(self) -> datetime | None:
+        """Return kickoff datetime, deriving from `kickoff_time` (HH:MM) if needed."""
+        if self.kickoff_datetime_utc is not None:
+            return self.kickoff_datetime_utc
+        if self.kickoff_time:
+            try:
+                hh, mm = self.kickoff_time.split(":")[:2]
+                return datetime(self.date.year, self.date.month, self.date.day, int(hh), int(mm))
+            except (ValueError, IndexError):
+                return None
+        return None
 
     def effective_season(self) -> str:
         """Return `season` if provided, else infer from `date` (Aug split)."""

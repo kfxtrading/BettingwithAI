@@ -101,6 +101,7 @@ class MLPPredictor:
                     odds_draw=match.odds.draw if match.odds else None,
                     odds_away=match.odds.away if match.odds else None,
                     season=match.season,
+                    kickoff_datetime_utc=match.kickoff_datetime_utc,
                 )
                 rows.append(feats)
                 labels.append(OUTCOME_TO_INT[match.result])

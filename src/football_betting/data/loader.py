@@ -1,6 +1,7 @@
 """Load & parse football-data.co.uk CSVs into typed Match objects."""
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -14,6 +15,7 @@ console = Console()
 
 # football-data.co.uk column mapping
 COL_DATE = "Date"
+COL_TIME = "Time"  # HH:MM, local kickoff (v0.4 weather features)
 COL_HOME = "HomeTeam"
 COL_AWAY = "AwayTeam"
 COL_HG = "FTHG"  # full-time home goals
@@ -30,6 +32,31 @@ ODDS_PRIORITY = [
     ("AvgH", "AvgD", "AvgA", "avg"),
     ("BbAvH", "BbAvD", "BbAvA", "avg_legacy"),
 ]
+
+
+def _extract_kickoff(row: pd.Series) -> datetime | None:
+    """Combine Date + Time → naive datetime (local kickoff)."""
+    if COL_TIME not in row or pd.isna(row[COL_TIME]):
+        return None
+    raw_date = row[COL_DATE]
+    raw_time = str(row[COL_TIME]).strip()
+    parsed_date = None
+    if isinstance(raw_date, str):
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y"):
+            try:
+                parsed_date = datetime.strptime(raw_date, fmt).date()
+                break
+            except ValueError:
+                continue
+    elif hasattr(raw_date, "date"):
+        parsed_date = raw_date.date() if isinstance(raw_date, datetime) else raw_date
+    if parsed_date is None:
+        return None
+    try:
+        hh, mm = raw_time.split(":")[:2]
+        return datetime(parsed_date.year, parsed_date.month, parsed_date.day, int(hh), int(mm))
+    except (ValueError, IndexError):
+        return None
 
 
 def _extract_odds(row: pd.Series) -> MatchOdds | None:
@@ -86,6 +113,7 @@ def load_csv(path: Path, league_key: str) -> list[Match]:
                     int(row[COL_AST]) if COL_AST in row and pd.notna(row[COL_AST]) else None
                 ),
                 odds=_extract_odds(row),
+                kickoff_datetime_utc=_extract_kickoff(row),
             )
             matches.append(match)
         except Exception as e:

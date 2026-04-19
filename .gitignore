@@ -27,6 +27,7 @@ data/predictions/*.json
 data/snapshots/*.json
 data/sofascore/*.sqlite
 data/sofascore/*.json
+data/weather/*.sqlite
 data/fixtures_*.json
 data/monitoring/*.json
 data/backtests/*.json
