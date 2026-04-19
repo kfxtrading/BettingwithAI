@@ -13,7 +13,7 @@ function formatDay(iso: string): string {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    return new Intl.DateTimeFormat('de-DE', {
+    return new Intl.DateTimeFormat('en-US', {
       weekday: 'short',
       day: '2-digit',
       month: 'short',
@@ -29,20 +29,20 @@ function StatusBadge({ status }: { status: BetStatus }) {
   if (status === 'won') {
     return (
       <span className={`${base} bg-positive/15 text-positive`}>
-        <Check size={12} /> Gewonnen
+        <Check size={12} /> Won
       </span>
     );
   }
   if (status === 'lost') {
     return (
       <span className={`${base} bg-negative/15 text-negative`}>
-        <X size={12} /> Verloren
+        <X size={12} /> Lost
       </span>
     );
   }
   return (
     <span className={`${base} bg-surface-2 text-muted`}>
-      <Clock size={12} /> Offen
+      <Clock size={12} /> Pending
     </span>
   );
 }
@@ -90,7 +90,7 @@ function DayBlock({ day }: { day: HistoryDay }) {
             {day.n_won + day.n_lost > 0
               ? `  ·  ${day.n_won}W / ${day.n_lost}L`
               : ''}
-            {day.n_pending > 0 ? `  ·  ${day.n_pending} offen` : ''}
+            {day.n_pending > 0 ? `  ·  ${day.n_pending} pending` : ''}
           </p>
         </div>
         {day.n_won + day.n_lost > 0 && <Pnl value={day.pnl} />}
@@ -115,13 +115,13 @@ export function RecentBets() {
   });
 
   const caption = data
-    ? `Letzte ${data.n_days} ${data.n_days === 1 ? 'Tag' : 'Tage'} · ${data.total_bets} Bets · Trefferquote ${
+    ? `Last ${data.n_days} ${data.n_days === 1 ? 'day' : 'days'} · ${data.total_bets} bets · Hit rate ${
         data.hit_rate != null ? `${(data.hit_rate * 100).toFixed(1)}%` : '—'
       }`
-    : 'Auswertung vergangener Value-Bets';
+    : 'Evaluation of past value bets';
 
   return (
-    <Section title="Bisherige Bets" caption={caption}>
+    <Section title="Recent Bets" caption={caption}>
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[0, 1].map((i) => (
@@ -133,12 +133,12 @@ export function RecentBets() {
         </div>
       ) : isError || !data ? (
         <div className="surface-card px-5 py-12 text-center text-sm text-muted">
-          Historie wird aktualisiert.
+          History is being updated.
         </div>
       ) : data.days.length === 0 ? (
         <Empty
-          title="Noch keine ausgewerteten Bets"
-          hint="Sobald die ersten Spiele abgeschlossen sind, erscheinen hier die Ergebnisse mit grün/rot-Auswertung."
+          title="No settled bets yet"
+          hint="As soon as the first matches finish, results will appear here with green/red evaluation."
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
