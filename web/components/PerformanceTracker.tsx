@@ -131,10 +131,9 @@ export function PerformanceTracker() {
           <RuleAccordion />
 
           <p className="text-2xs leading-relaxed text-muted">
-            Hypothetische Simulation eines statistischen Modells auf Basis
-            vergangener Spieldaten. Keine Aufforderung zum Glücksspiel.
-            Keine Gewähr auf zukünftige Ergebnisse. Glücksspiele bergen
-            finanzielle Risiken.
+            Hypothetical simulation of a statistical model based on
+            historical match data. Not a solicitation to gamble. No
+            guarantee of future results. Gambling involves financial risk.
           </p>
 
           <div className="flex justify-center pt-2">
