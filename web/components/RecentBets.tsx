@@ -59,21 +59,72 @@ function Pnl({ value }: { value: number }) {
   );
 }
 
-function BetRow({ bet }: { bet: GradedBet }) {
+function matchKey(bet: GradedBet): string {
+  return `${bet.date}|${bet.league}|${bet.home_team}|${bet.away_team}`;
+}
+
+function groupByMatch(bets: GradedBet[]): GradedBet[][] {
+  const groups = new Map<string, GradedBet[]>();
+  for (const bet of bets) {
+    const key = matchKey(bet);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(bet);
+    } else {
+      groups.set(key, [bet]);
+    }
+  }
+  return Array.from(groups.values());
+}
+
+function MatchRow({ bets }: { bets: GradedBet[] }) {
+  const first = bets[0];
+  const combinedPnl = bets.reduce((sum, b) => sum + b.pnl, 0);
+  const hasSettled = bets.some((b) => b.status !== 'pending');
+  const groupStatus: BetStatus = bets.some((b) => b.status === 'won')
+    ? 'won'
+    : bets.every((b) => b.status === 'lost')
+      ? 'lost'
+      : bets.some((b) => b.status === 'pending')
+        ? 'pending'
+        : 'lost';
+
   return (
     <li className="grid grid-cols-[1fr_auto] items-center gap-3 border-t border-border/40 py-3 first:border-t-0">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">
-          {bet.home_team} <span className="text-muted">vs</span> {bet.away_team}
+          {first.home_team} <span className="text-muted">vs</span> {first.away_team}
         </p>
         <p className="mt-0.5 truncate text-2xs uppercase tracking-[0.08em] text-muted">
-          {bet.league_name} · {bet.bet_label} @ {bet.odds.toFixed(2)}
-          {bet.ft_score ? `  ·  ${bet.ft_score}` : ''}
+          {first.league_name}
+          {first.ft_score ? `  ·  ${first.ft_score}` : ''}
         </p>
+        <ul className="mt-1 space-y-0.5">
+          {bets.map((bet, i) => (
+            <li
+              key={`${bet.outcome}-${bet.bet_label}-${i}`}
+              className="truncate text-2xs text-muted"
+            >
+              <span className="uppercase tracking-[0.08em]">
+                {bet.bet_label} @ {bet.odds.toFixed(2)}
+              </span>
+              {bet.status !== 'pending' && (
+                <span
+                  className={`ml-2 font-mono ${
+                    bet.status === 'won' ? 'text-positive' : 'text-negative'
+                  }`}
+                >
+                  {bet.pnl > 0 ? '+' : ''}
+                  {bet.pnl.toFixed(2)}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
       <div className="flex flex-col items-end gap-1">
-        <StatusBadge status={bet.status} />
-        {bet.status !== 'pending' && <Pnl value={bet.pnl} />}
+        <StatusBadge status={groupStatus} />
+        {hasSettled && <Pnl value={Math.round(combinedPnl * 100) / 100} />}
       </div>
     </li>
   );
@@ -96,11 +147,8 @@ function DayBlock({ day }: { day: HistoryDay }) {
         {day.n_won + day.n_lost > 0 && <Pnl value={day.pnl} />}
       </header>
       <ul>
-        {day.bets.map((bet, i) => (
-          <BetRow
-            key={`${bet.home_team}-${bet.away_team}-${bet.outcome}-${i}`}
-            bet={bet}
-          />
+        {groupByMatch(day.bets).map((bets) => (
+          <MatchRow key={matchKey(bets[0])} bets={bets} />
         ))}
       </ul>
     </div>
