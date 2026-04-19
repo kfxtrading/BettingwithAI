@@ -71,11 +71,25 @@ def _load_current_graded() -> list[GradedBet]:
 
 
 def regrade_all() -> list[GradedBet]:
-    graded: list[GradedBet] = []
-    for snap_date, payload in iter_historical_snapshots():
+    # A match can appear in multiple daily snapshots until kickoff; dedupe
+    # by (match_date, league, home, away, outcome) so each value bet is
+    # graded exactly once. Iteration is sorted by snapshot date ascending,
+    # so later (more recent) snapshots overwrite earlier ones — giving us
+    # the freshest odds/stake for each unique bet.
+    deduped: dict[tuple[str, str, str, str, str], object] = {}
+    for _snap_date, payload in iter_historical_snapshots():
         if not payload.value_bets:
             continue
-        graded.extend(grade_bets(payload.value_bets))
+        for bet in payload.value_bets:
+            key = (
+                bet.date,
+                bet.league,
+                bet.home_team.lower().strip(),
+                bet.away_team.lower().strip(),
+                bet.outcome,
+            )
+            deduped[key] = bet
+    graded = grade_bets(deduped.values())
     write_graded(graded)
     _refresh_performance_artifacts()
     return graded
