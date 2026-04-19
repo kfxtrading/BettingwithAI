@@ -266,8 +266,10 @@ def compute_payloads(
     if tracker is None:
         tracker = ResultsTracker()
         tracker.load()
-        if not tracker.records:
-            # Fall back to graded-bets artefact written by the daily pipeline.
+        # `predictions_log.json` often has pending entries without results.
+        # The daily/live pipeline settles outcomes into `graded_bets.jsonl`,
+        # so fall back to that whenever the tracker has no settled records.
+        if not tracker.completed_bets():
             from football_betting.evaluation.grader import graded_as_prediction_records
 
             tracker.records = graded_as_prediction_records()

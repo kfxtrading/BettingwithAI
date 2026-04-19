@@ -33,6 +33,31 @@ _LEAGUE_TIMEZONES: dict[str, str] = {
 
 
 @dataclass(slots=True)
+class ScoreResult:
+    """Completed / in-progress match result from The Odds API /scores."""
+
+    league: str
+    date: date
+    kickoff_utc: datetime
+    home_team: str  # normalised
+    away_team: str  # normalised
+    home_goals: int | None
+    away_goals: int | None
+    completed: bool
+    last_update: str | None
+
+    @property
+    def ftr(self) -> str | None:
+        if self.home_goals is None or self.away_goals is None:
+            return None
+        if self.home_goals > self.away_goals:
+            return "H"
+        if self.home_goals < self.away_goals:
+            return "A"
+        return "D"
+
+
+@dataclass(slots=True)
 class FixtureOdds:
     """Normalised fixture + consensus odds, ready for the pipeline."""
 
@@ -141,6 +166,83 @@ class OddsApiClient:
                 continue
             out.extend(self.fetch_for_date(key, target_date))
         return out
+
+    # ───────────────────────── Scores ─────────────────────────
+
+    def fetch_scores(
+        self,
+        league_key: str,
+        days_from: int = 1,
+    ) -> list[ScoreResult]:
+        """Live + completed matches up to `days_from` days old (max 3)."""
+        league_key = league_key.upper()
+        sport = self.cfg.sport_keys.get(league_key)
+        if sport is None:
+            raise OddsApiError(f"No Odds-API sport_key configured for league {league_key}")
+        days_from = max(1, min(days_from, 3))
+
+        payload = self._get(
+            f"/sports/{sport}/scores",
+            {"daysFrom": days_from, "dateFormat": self.cfg.date_format},
+        )
+        if not isinstance(payload, list):
+            raise OddsApiError(f"Unexpected scores payload for {league_key}: {payload!r:200}")
+
+        tz_name = _LEAGUE_TIMEZONES.get(league_key, "UTC")
+        local_tz = ZoneInfo(tz_name)
+
+        out: list[ScoreResult] = []
+        for event in payload:
+            res = self._parse_score(event, league_key, local_tz)
+            if res is not None:
+                out.append(res)
+        return out
+
+    @staticmethod
+    def _parse_score(
+        event: dict[str, Any],
+        league_key: str,
+        local_tz: ZoneInfo,
+    ) -> ScoreResult | None:
+        try:
+            raw_home = event["home_team"]
+            raw_away = event["away_team"]
+            commence = event["commence_time"]
+        except KeyError:
+            return None
+
+        kickoff_utc = datetime.fromisoformat(commence.replace("Z", "+00:00"))
+        if kickoff_utc.tzinfo is None:
+            kickoff_utc = kickoff_utc.replace(tzinfo=timezone.utc)
+        match_date = kickoff_utc.astimezone(local_tz).date()
+
+        home = normalize(league_key, raw_home)
+        away = normalize(league_key, raw_away)
+
+        hg: int | None = None
+        ag: int | None = None
+        for s in event.get("scores") or []:
+            try:
+                val = int(s.get("score"))
+            except (TypeError, ValueError):
+                continue
+            name = s.get("name")
+            if name == raw_home:
+                hg = val
+            elif name == raw_away:
+                ag = val
+
+        return ScoreResult(
+            league=league_key,
+            date=match_date,
+            kickoff_utc=kickoff_utc,
+            home_team=home,
+            away_team=away,
+            home_goals=hg,
+            away_goals=ag,
+            completed=bool(event.get("completed", False)),
+            last_update=event.get("last_update"),
+        )
 
     # ───────────────────────── Parsing ─────────────────────────
 

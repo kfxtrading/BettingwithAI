@@ -37,6 +37,39 @@ def capture_today_snapshot() -> str:
     return str(path)
 
 
+def settle_live(days_from: int = 3) -> tuple[int, int]:
+    """Poll Odds-API `/scores` for leagues with pending bets, re-grade.
+
+    Returns (n_new_live_rows, n_bets_settled_delta).
+    Cheap to call — skips the HTTP round-trip entirely when no bet is
+    pending.
+    """
+    from football_betting.evaluation.live_results import (
+        pending_league_codes,
+        poll_and_store_scores,
+    )
+
+    codes = pending_league_codes()
+    if not codes:
+        logger.debug("[live] No pending bets — skipping Odds-API poll")
+        return (0, 0)
+
+    before_pending = len([g for g in _load_current_graded() if g.status == "pending"])
+    added = poll_and_store_scores(codes, days_from=days_from)
+    regrade_all()
+    after_pending = len([g for g in _load_current_graded() if g.status == "pending"])
+    settled = max(0, before_pending - after_pending)
+    if settled or added:
+        logger.info("[live] Settled %d bets (added %d live rows)", settled, added)
+    return (added, settled)
+
+
+def _load_current_graded() -> list[GradedBet]:
+    from football_betting.evaluation.grader import load_graded
+
+    return load_graded()
+
+
 def regrade_all() -> list[GradedBet]:
     graded: list[GradedBet] = []
     for snap_date, payload in iter_historical_snapshots():

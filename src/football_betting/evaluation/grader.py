@@ -59,8 +59,21 @@ def _norm(name: str) -> str:
 
 
 def _load_results_for_league(code: str) -> dict[tuple[date, str, str], tuple[str, int, int]]:
-    """Return {(match_date, home_norm, away_norm): (ftr, fthg, ftag)} for a league."""
+    """Return {(match_date, home_norm, away_norm): (ftr, fthg, ftag)} for a league.
+
+    Merges football-data.co.uk CSV archive (authoritative) with the live
+    results cache populated by the Odds-API poller. CSV wins on conflict
+    so the nightly reconcile corrects any live misses.
+    """
     out: dict[tuple[date, str, str], tuple[str, int, int]] = {}
+    # Live results first — CSV overrides below.
+    try:
+        from football_betting.evaluation.live_results import load_live_results_for_code
+
+        out.update(load_live_results_for_code(code))
+    except Exception:
+        # Live cache is optional — never let it break grading.
+        pass
     for csv_path in RAW_DIR.glob(f"{code}_*.csv"):
         try:
             with csv_path.open("r", encoding="utf-8-sig", newline="") as fh:

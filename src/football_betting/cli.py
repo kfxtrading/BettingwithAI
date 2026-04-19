@@ -646,6 +646,30 @@ def update_performance(tracking_start: str | None) -> None:
     console.log(f"[green]Wrote {private_path}[/green]")
 
 
+# ───────────────────────── settle-live ─────────────────────────
+
+@main.command("settle-live")
+@click.option(
+    "--days-from",
+    type=click.IntRange(1, 3),
+    default=3,
+    help="How many days of scores to pull from the Odds API (max 3).",
+)
+def settle_live_cmd(days_from: int) -> None:
+    """Poll The Odds API /scores and settle pending bets."""
+    from football_betting.evaluation.pipeline import settle_live
+    from football_betting.evaluation.live_results import pending_league_codes
+
+    pending = pending_league_codes()
+    if not pending:
+        console.log("[yellow]No pending bets — nothing to settle.[/yellow]")
+        return
+    console.log(f"Pending leagues: {sorted(pending)}")
+    added, settled = settle_live(days_from=days_from)
+    console.log(f"[green]+{added} live result rows[/green]")
+    console.log(f"[green]{settled} bet(s) newly settled[/green]")
+
+
 # ───────────────────────── snapshot (web UI) ─────────────────────────
 
 @main.command()

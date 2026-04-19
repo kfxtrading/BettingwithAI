@@ -1,0 +1,215 @@
+"""Live match-result settlement via The Odds API `/scores` endpoint.
+
+Maintains ``data/live_scores.jsonl`` — one row per completed fixture keyed
+by ``(league_code, date, home_norm, away_norm)``. This file is merged into
+:func:`football_betting.evaluation.grader._load_results_for_league` so
+``regrade_all()`` can settle pending bets as soon as the Odds API reports
+the final whistle (typically 1–3 min post-game), long before the
+football-data.co.uk CSVs are refreshed.
+
+Workflow::
+
+    pending_league_codes()          # which leagues still have pending bets?
+    poll_and_store_scores([...])    # hit Odds API /scores, append new rows
+    regrade_all()                   # now includes live results
+
+The daily football-data cron still runs and overwrites live rows on
+conflict — football-data is the authoritative ground truth.
+"""
+from __future__ import annotations
+
+import json
+import logging
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, timezone
+from pathlib import Path
+from typing import Iterable
+
+from football_betting.config import DATA_DIR, LEAGUES
+from football_betting.evaluation.grader import GRADED_FILE, _norm, load_graded
+from football_betting.scraping.odds_api import OddsApiClient, OddsApiError, ScoreResult
+
+logger = logging.getLogger(__name__)
+
+LIVE_SCORES_FILE: Path = DATA_DIR / "live_scores.jsonl"
+
+_CODE_TO_KEY: dict[str, str] = {cfg.code: key for key, cfg in LEAGUES.items()}
+
+
+@dataclass(slots=True)
+class LiveScoreRow:
+    league_code: str
+    date: str  # YYYY-MM-DD (local league date)
+    home_norm: str
+    away_norm: str
+    ftr: str  # "H" | "D" | "A"
+    fthg: int
+    ftag: int
+    source: str  # "odds_api"
+    fetched_at: str  # ISO UTC
+
+    def key(self) -> tuple[str, date, str, str]:
+        return (
+            self.league_code,
+            datetime.strptime(self.date, "%Y-%m-%d").date(),
+            self.home_norm,
+            self.away_norm,
+        )
+
+
+# ───────────────────────── Persistence ─────────────────────────
+
+
+def _load_rows() -> list[LiveScoreRow]:
+    if not LIVE_SCORES_FILE.exists():
+        return []
+    rows: list[LiveScoreRow] = []
+    with LIVE_SCORES_FILE.open("r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rows.append(LiveScoreRow(**json.loads(line)))
+            except (json.JSONDecodeError, TypeError):
+                continue
+    return rows
+
+
+def _write_rows(rows: Iterable[LiveScoreRow]) -> None:
+    LIVE_SCORES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = LIVE_SCORES_FILE.with_suffix(".tmp")
+    with tmp.open("w", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps(asdict(r), ensure_ascii=False) + "\n")
+    tmp.replace(LIVE_SCORES_FILE)
+
+
+def load_live_results_for_code(
+    code: str,
+) -> dict[tuple[date, str, str], tuple[str, int, int]]:
+    """Return {(date, home_norm, away_norm): (ftr, fthg, ftag)} for a league code.
+
+    Shape matches :func:`grader._load_results_for_league` so it can be merged.
+    """
+    out: dict[tuple[date, str, str], tuple[str, int, int]] = {}
+    for r in _load_rows():
+        if r.league_code != code:
+            continue
+        try:
+            d = datetime.strptime(r.date, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        out[(d, r.home_norm, r.away_norm)] = (r.ftr, r.fthg, r.ftag)
+    return out
+
+
+# ───────────────────────── Pending-bet discovery ─────────────────────────
+
+
+def pending_league_codes() -> set[str]:
+    """League codes that still have `status == "pending"` bets in graded log."""
+    if not GRADED_FILE.exists():
+        return set()
+    codes: set[str] = set()
+    for g in load_graded():
+        if g.status != "pending":
+            continue
+        cfg = LEAGUES.get(g.league)
+        if cfg is not None:
+            codes.add(cfg.code)
+    return codes
+
+
+# ───────────────────────── Polling ─────────────────────────
+
+
+def _now_utc_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
+        "+00:00", "Z"
+    )
+
+
+def _score_to_row(s: ScoreResult, code: str) -> LiveScoreRow | None:
+    if not s.completed or s.home_goals is None or s.away_goals is None:
+        return None
+    ftr = s.ftr
+    if ftr is None:
+        return None
+    return LiveScoreRow(
+        league_code=code,
+        date=s.date.isoformat(),
+        home_norm=_norm(s.home_team),
+        away_norm=_norm(s.away_team),
+        ftr=ftr,
+        fthg=int(s.home_goals),
+        ftag=int(s.away_goals),
+        source="odds_api",
+        fetched_at=_now_utc_iso(),
+    )
+
+
+def poll_and_store_scores(
+    league_codes: Iterable[str] | None = None,
+    *,
+    client: OddsApiClient | None = None,
+    days_from: int = 3,
+) -> int:
+    """Hit The Odds API `/scores` for each league, append newly completed matches.
+
+    Returns the number of *new* rows written (dedup by key). Existing rows
+    are preserved; re-polling the same match is a no-op.
+    """
+    client = client or OddsApiClient()
+    codes = list(league_codes) if league_codes is not None else [
+        cfg.code for cfg in LEAGUES.values()
+    ]
+    if not codes:
+        return 0
+
+    existing = {r.key(): r for r in _load_rows()}
+    added = 0
+    updated = 0
+    for code in codes:
+        league_key = _CODE_TO_KEY.get(code)
+        if league_key is None:
+            continue
+        try:
+            scores = client.fetch_scores(league_key, days_from=days_from)
+        except OddsApiError as e:
+            logger.warning("[live] Odds API scores failed for %s: %s", league_key, e)
+            continue
+        for s in scores:
+            row = _score_to_row(s, code)
+            if row is None:
+                continue
+            prev = existing.get(row.key())
+            if prev is None:
+                existing[row.key()] = row
+                added += 1
+            elif (prev.ftr, prev.fthg, prev.ftag) != (row.ftr, row.fthg, row.ftag):
+                # Score correction from the upstream feed — trust the newer pull.
+                logger.info(
+                    "[live] Score correction %s %s %s-%s: %d-%d (%s) -> %d-%d (%s)",
+                    row.date, code, row.home_norm, row.away_norm,
+                    prev.fthg, prev.ftag, prev.ftr,
+                    row.fthg, row.ftag, row.ftr,
+                )
+                existing[row.key()] = row
+                updated += 1
+
+    if added or updated:
+        _write_rows(existing.values())
+        logger.info(
+            "[live] Added %d new + %d corrected completed results", added, updated,
+        )
+    return added + updated
+
+
+__all__ = [
+    "LIVE_SCORES_FILE",
+    "LiveScoreRow",
+    "load_live_results_for_code",
+    "pending_league_codes",
+    "poll_and_store_scores",
+]

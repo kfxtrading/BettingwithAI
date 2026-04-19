@@ -10,6 +10,8 @@ Flow on each refresh:
 Configuration (env vars):
     ODDS_API_KEY              — required; without it the scheduler logs and idles.
     SNAPSHOT_REFRESH_HOUR_UTC — integer 0-23, default 7 (=08:00 Berlin in winter).
+    LIVE_SETTLE_INTERVAL_MIN  — minutes between /scores polls, default 10. Set
+                                to 0 to disable the live-settlement loop.
 """
 from __future__ import annotations
 
@@ -118,9 +120,60 @@ async def _daily_loop() -> None:
             logger.exception("[scheduler] Refresh iteration failed.")
 
 
+def _live_settle_interval_min() -> int:
+    raw = os.environ.get("LIVE_SETTLE_INTERVAL_MIN", "10")
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        logger.warning("[scheduler] Invalid LIVE_SETTLE_INTERVAL_MIN=%r, defaulting to 10.", raw)
+        return 10
+
+
+def _settle_live_blocking() -> None:
+    """Hit Odds-API /scores for leagues with pending bets and re-grade."""
+    if not ODDS_API_CFG.api_key:
+        return  # quiet — daily loop already warned at startup
+    try:
+        from football_betting.evaluation.pipeline import settle_live
+
+        added, settled = settle_live()
+        if added or settled:
+            logger.info(
+                "[live-settle] +%d live results, %d bet(s) newly settled.",
+                added, settled,
+            )
+            try:
+                from football_betting.api.cache import cache
+                cache.clear()
+            except Exception:
+                logger.exception("[live-settle] cache clear failed")
+    except Exception:  # noqa: BLE001
+        logger.exception("[live-settle] iteration failed")
+
+
+async def settle_live_once() -> None:
+    await asyncio.to_thread(_settle_live_blocking)
+
+
+async def _live_settle_loop() -> None:
+    interval_min = _live_settle_interval_min()
+    if interval_min <= 0:
+        logger.info("[live-settle] disabled (LIVE_SETTLE_INTERVAL_MIN=0)")
+        return
+    logger.info("[live-settle] polling /scores every %d min", interval_min)
+    interval_s = interval_min * 60
+    while True:
+        await asyncio.sleep(interval_s)
+        try:
+            await settle_live_once()
+        except Exception:  # noqa: BLE001
+            logger.exception("[live-settle] loop iteration failed")
+
+
 async def start(run_initial_if_missing: bool = True) -> None:
     """Install as a FastAPI startup hook."""
     if run_initial_if_missing and not snapshot_exists():
         logger.info("[scheduler] No snapshot on disk — refreshing now (background).")
         asyncio.create_task(refresh_snapshot_once())
     asyncio.create_task(_daily_loop())
+    asyncio.create_task(_live_settle_loop())
