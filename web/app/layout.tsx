@@ -7,6 +7,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { Providers } from './providers';
 import { SITE_NAME, SITE_URL, absoluteUrl, buildLanguageAlternates } from '@/lib/seo';
 import { defaultLocale, locales, ogLocaleMap } from '@/lib/i18n';
+import { Analytics } from '@vercel/analytics/next';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -132,6 +133,7 @@ export default function RootLayout({
             </div>
           </footer>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
