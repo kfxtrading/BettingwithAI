@@ -33,10 +33,7 @@ export function PerformanceTracker() {
     v > 0 ? 'positive' : v < 0 ? 'negative' : 'default';
 
   return (
-    <Section
-      title="Transparency Tracker"
-      caption="Bankroll curve · starting bankroll 1,000"
-    >
+    <Section title="Transparency Tracker">
       {isLoading ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
