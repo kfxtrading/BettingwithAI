@@ -793,15 +793,39 @@ def get_performance_index() -> PerformanceIndexOut:
     Prefers the pre-computed `performance.json` artefact written by
     `fb update-performance`; falls back to on-the-fly computation so the
     endpoint works even without the cron job.
-    """
-    cached = cache.get(_PERFORMANCE_INDEX_CACHE_KEY)
-    if cached is not None:
-        return cached
 
+    Self-heals like ``/history``: captures today's snapshot (idempotent)
+    and re-grades all persisted snapshots before reading, so the
+    homepage Transparency Tracker shows the same fresh pipeline data
+    that the ``/performance`` page receives — without having to wait for
+    the daily cron or the in-memory TTL to expire.
+
+    The cache is keyed by the on-disk mtime of ``performance.json`` so
+    out-of-band rewrites (cron, manual ``fb update-performance``,
+    pipeline) are picked up on the very next request.
+    """
     from football_betting.config import PREDICTIONS_DIR
     from football_betting.tracking import performance_index as pi
 
     public_path = PREDICTIONS_DIR / pi.PUBLIC_FILENAME
+
+    try:
+        from football_betting.evaluation.pipeline import (
+            capture_today_snapshot,
+            regrade_all,
+        )
+
+        capture_today_snapshot()
+        regrade_all()
+    except Exception as exc:  # pragma: no cover — never block the endpoint
+        logger.warning("[api] /performance/index refresh failed: %s", exc)
+
+    mtime = public_path.stat().st_mtime if public_path.exists() else 0.0
+    cache_key = f"{_PERFORMANCE_INDEX_CACHE_KEY}:{mtime}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     payload: dict | None = None
     if public_path.exists():
         try:
@@ -838,6 +862,6 @@ def get_performance_index() -> PerformanceIndexOut:
         rule_hash=payload.get("rule_hash", ""),
         model_version=payload.get("model_version", pi.MODEL_VERSION),
     )
-    cache.set(_PERFORMANCE_INDEX_CACHE_KEY, result, ttl=_PERFORMANCE_INDEX_TTL)
+    cache.set(cache_key, result, ttl=_PERFORMANCE_INDEX_TTL)
     return result
 
