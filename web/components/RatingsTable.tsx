@@ -1,5 +1,8 @@
+'use client';
+
 import type { FormRow, RatingRow } from '@/lib/types';
 import { FormChip } from './FormChip';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 interface RatingsTableProps {
   rows: RatingRow[];
@@ -11,15 +14,16 @@ function fmt(value: number): string {
 }
 
 export function RatingsTable({ rows, forms }: RatingsTableProps) {
+  const { t } = useLocale();
   return (
     <div className="surface-card overflow-hidden">
       <div className="hidden grid-cols-[3rem_1fr_4rem_4rem_4rem_minmax(8rem,auto)] gap-4 px-5 py-3 text-2xs uppercase tracking-[0.08em] text-muted md:grid">
         <span>#</span>
-        <span>Team</span>
-        <span className="text-right">Home</span>
-        <span className="text-right">Away</span>
-        <span className="text-right">Overall</span>
-        <span className="text-right">Form</span>
+        <span>{t('ratings.col.team')}</span>
+        <span className="text-right">{t('ratings.col.home')}</span>
+        <span className="text-right">{t('ratings.col.away')}</span>
+        <span className="text-right">{t('ratings.col.overall')}</span>
+        <span className="text-right">{t('ratings.col.form')}</span>
       </div>
       <ul>
         {rows.map((row) => {

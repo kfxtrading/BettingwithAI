@@ -3,13 +3,17 @@ import { LeaguesClient } from './LeaguesClient';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, SITE_NAME, absoluteUrl } from '@/lib/seo';
 import { fetchLeaguesServer } from '@/lib/server-api';
+import { getServerDictionary } from '@/lib/i18n/server';
 
-export const metadata: Metadata = buildMetadata({
-  title: 'Football Leagues · Pi-Ratings, Form & Predictions',
-  description:
-    'Pi-Ratings, recent form and head-to-head data for the Premier League, Bundesliga, Serie A, La Liga and EFL Championship — powered by the Betting with AI ensemble model.',
-  path: '/leagues',
-});
+export function generateMetadata(): Metadata {
+  const { locale, dict } = getServerDictionary();
+  return buildMetadata({
+    title: `${dict['leagues.heading']}`,
+    description: dict['leagues.description'],
+    path: '/leagues',
+    locale,
+  });
+}
 
 export default async function LeaguesPage() {
   const leagues = await fetchLeaguesServer();

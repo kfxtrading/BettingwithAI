@@ -10,12 +10,14 @@ import {
   YAxis,
 } from 'recharts';
 import type { BankrollPoint } from '@/lib/types';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export function BankrollChart({ data }: { data: BankrollPoint[] }) {
+  const { t } = useLocale();
   if (data.length === 0) {
     return (
       <div className="surface-card flex h-64 items-center justify-center text-sm text-muted">
-        No bankroll data yet — log some bets to start tracking.
+        {t('bankroll.empty')}
       </div>
     );
   }

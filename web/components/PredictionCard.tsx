@@ -1,15 +1,12 @@
+'use client';
+
 import type { Prediction } from '@/lib/types';
 import { ProbabilityBar } from './ProbabilityBar';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
-const outcomeLabel: Record<Prediction['most_likely'], string> = {
-  H: 'Home win',
-  D: 'Draw',
-  A: 'Away win',
-};
-
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: string): string {
   const date = new Date(iso + 'T00:00:00');
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale, {
     weekday: 'short',
     day: '2-digit',
     month: 'short',
@@ -17,14 +14,21 @@ function formatDate(iso: string): string {
 }
 
 export function PredictionCard({ prediction }: { prediction: Prediction }) {
+  const { t, locale } = useLocale();
   const { home_team, away_team, league_name, kickoff_time, odds } = prediction;
+
+  const outcomeLabel: Record<Prediction['most_likely'], string> = {
+    H: t('predictionCard.outcome.home'),
+    D: t('predictionCard.outcome.draw'),
+    A: t('predictionCard.outcome.away'),
+  };
 
   return (
     <article className="surface-card flex flex-col gap-5 px-5 py-5 transition-[box-shadow,transform] ease-ease hover:-translate-y-[1px]">
       <header className="flex items-baseline justify-between text-2xs">
         <span className="pill">{league_name}</span>
         <span className="font-mono text-muted">
-          {formatDate(prediction.date)}
+          {formatDate(prediction.date, locale)}
           {kickoff_time ? ` · ${kickoff_time}` : ''}
         </span>
       </header>
@@ -32,7 +36,7 @@ export function PredictionCard({ prediction }: { prediction: Prediction }) {
       <div className="flex items-baseline justify-between gap-4">
         <h3 className="text-base font-medium tracking-tight">
           {home_team}
-          <span className="px-2 text-muted">vs</span>
+          <span className="px-2 text-muted">{t('predictionCard.vs')}</span>
           {away_team}
         </h3>
       </div>
@@ -47,7 +51,7 @@ export function PredictionCard({ prediction }: { prediction: Prediction }) {
 
       <footer className="flex flex-wrap items-center justify-between gap-3 text-2xs text-muted">
         <span>
-          Pick:{' '}
+          {t('predictionCard.pick')}{' '}
           <span className="text-text">
             {outcomeLabel[prediction.most_likely]}
           </span>

@@ -1,18 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, type ConsentCategory, type ConsentPayload } from '@/lib/api';
-import {
-  defaultLocale,
-  getDictionary,
-  locales,
-  type Dictionary,
-  type Locale,
-} from '@/lib/i18n';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 const STORAGE_KEY = 'bwai.cookie-consent.v1';
 const CONSENT_VERSION = '1.0';
-const LOCALE_COOKIE = 'NEXT_LOCALE';
 
 type StoredConsent = {
   accepted: boolean;
@@ -42,38 +35,15 @@ function writeStored(value: StoredConsent): void {
   }
 }
 
-function readCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const target = `${name}=`;
-  for (const part of document.cookie.split(';')) {
-    const trimmed = part.trim();
-    if (trimmed.startsWith(target)) return trimmed.slice(target.length);
-  }
-  return null;
-}
-
-function detectLocale(): Locale {
-  const fromCookie = readCookie(LOCALE_COOKIE);
-  if (fromCookie && (locales as readonly string[]).includes(fromCookie)) {
-    return fromCookie as Locale;
-  }
-  if (typeof navigator !== 'undefined' && navigator.language) {
-    const tag = navigator.language.toLowerCase().slice(0, 2);
-    if ((locales as readonly string[]).includes(tag)) return tag as Locale;
-  }
-  return defaultLocale;
-}
-
 export function CookieConsent() {
+  const { t } = useLocale();
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [analytics, setAnalytics] = useState(true);
   const [marketing, setMarketing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [locale, setLocale] = useState<Locale>(defaultLocale);
 
   useEffect(() => {
-    setLocale(detectLocale());
     const stored = readStored();
     if (stored) return;
     let cancelled = false;
@@ -99,8 +69,6 @@ export function CookieConsent() {
       cancelled = true;
     };
   }, []);
-
-  const dict: Dictionary = useMemo(() => getDictionary(locale), [locale]);
 
   const persist = async (payload: ConsentPayload): Promise<void> => {
     setSubmitting(true);
@@ -149,12 +117,12 @@ export function CookieConsent() {
     <div
       role="dialog"
       aria-live="polite"
-      aria-label={dict['cookie.aria.dialog']}
+      aria-label={t('cookie.aria.dialog')}
       className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4 md:px-6 md:pb-6"
     >
       <div className="mx-auto w-full max-w-3xl rounded-2xl border border-white/10 bg-surface/95 p-5 text-sm shadow-soft backdrop-blur md:p-6">
-        <h2 className="text-base font-medium text-text">{dict['cookie.title']}</h2>
-        <p className="mt-2 text-muted">{dict['cookie.body']}</p>
+        <h2 className="text-base font-medium text-text">{t('cookie.title')}</h2>
+        <p className="mt-2 text-muted">{t('cookie.body')}</p>
 
         {showDetails && (
           <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-bg/50 p-3">
@@ -167,10 +135,10 @@ export function CookieConsent() {
               />
               <span>
                 <span className="block font-medium text-text">
-                  {dict['cookie.necessary.title']}
+                  {t('cookie.necessary.title')}
                 </span>
                 <span className="text-xs text-muted">
-                  {dict['cookie.necessary.desc']}
+                  {t('cookie.necessary.desc')}
                 </span>
               </span>
             </label>
@@ -183,10 +151,10 @@ export function CookieConsent() {
               />
               <span>
                 <span className="block font-medium text-text">
-                  {dict['cookie.analytics.title']}
+                  {t('cookie.analytics.title')}
                 </span>
                 <span className="text-xs text-muted">
-                  {dict['cookie.analytics.desc']}
+                  {t('cookie.analytics.desc')}
                 </span>
               </span>
             </label>
@@ -199,10 +167,10 @@ export function CookieConsent() {
               />
               <span>
                 <span className="block font-medium text-text">
-                  {dict['cookie.marketing.title']}
+                  {t('cookie.marketing.title')}
                 </span>
                 <span className="text-xs text-muted">
-                  {dict['cookie.marketing.desc']}
+                  {t('cookie.marketing.desc')}
                 </span>
               </span>
             </label>
@@ -215,7 +183,7 @@ export function CookieConsent() {
             onClick={() => setShowDetails((v) => !v)}
             className="focus-ring rounded-full px-3.5 py-1.5 text-xs text-muted hover:text-text"
           >
-            {showDetails ? dict['cookie.btn.hideDetails'] : dict['cookie.btn.settings']}
+            {showDetails ? t('cookie.btn.hideDetails') : t('cookie.btn.settings')}
           </button>
           <button
             type="button"
@@ -223,7 +191,7 @@ export function CookieConsent() {
             onClick={rejectAll}
             className="focus-ring press rounded-full border border-white/10 px-4 py-1.5 text-text hover:bg-white/5 disabled:opacity-50"
           >
-            {dict['cookie.btn.reject']}
+            {t('cookie.btn.reject')}
           </button>
           {showDetails && (
             <button
@@ -232,7 +200,7 @@ export function CookieConsent() {
               onClick={saveSelection}
               className="focus-ring press rounded-full border border-white/10 px-4 py-1.5 text-text hover:bg-white/5 disabled:opacity-50"
             >
-              {dict['cookie.btn.save']}
+              {t('cookie.btn.save')}
             </button>
           )}
           <button
@@ -241,7 +209,7 @@ export function CookieConsent() {
             onClick={acceptAll}
             className="focus-ring press rounded-full bg-accent px-4 py-1.5 font-medium text-bg disabled:opacity-50"
           >
-            {dict['cookie.btn.acceptAll']}
+            {t('cookie.btn.acceptAll')}
           </button>
         </div>
       </div>

@@ -1,10 +1,7 @@
-import type { ValueBet } from '@/lib/types';
+'use client';
 
-const confidenceLabel: Record<ValueBet['confidence'], string> = {
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-};
+import type { ValueBet } from '@/lib/types';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 const confidenceTone: Record<ValueBet['confidence'], string> = {
   high: 'pill-positive',
@@ -13,6 +10,13 @@ const confidenceTone: Record<ValueBet['confidence'], string> = {
 };
 
 export function ValueBetBadge({ bet }: { bet: ValueBet }) {
+  const { t } = useLocale();
+  const confidenceLabel: Record<ValueBet['confidence'], string> = {
+    high: t('valueBet.confidence.high'),
+    medium: t('valueBet.confidence.medium'),
+    low: t('valueBet.confidence.low'),
+  };
+
   return (
     <article className="surface-card flex min-w-[260px] flex-col gap-4 px-5 py-5">
       <header className="flex items-baseline justify-between text-2xs">
@@ -33,17 +37,17 @@ export function ValueBetBadge({ bet }: { bet: ValueBet }) {
 
       <dl className="grid grid-cols-3 gap-3 font-mono text-2xs">
         <div>
-          <dt className="text-muted">Odds</dt>
+          <dt className="text-muted">{t('valueBet.odds')}</dt>
           <dd className="mt-0.5 text-sm">{bet.odds.toFixed(2)}</dd>
         </div>
         <div>
-          <dt className="text-muted">Edge</dt>
+          <dt className="text-muted">{t('valueBet.edge')}</dt>
           <dd className="mt-0.5 text-sm text-accent">
             +{bet.edge_pct.toFixed(1)}%
           </dd>
         </div>
         <div>
-          <dt className="text-muted">Stake</dt>
+          <dt className="text-muted">{t('valueBet.stake')}</dt>
           <dd className="mt-0.5 text-sm">{bet.kelly_stake.toFixed(2)}</dd>
         </div>
       </dl>

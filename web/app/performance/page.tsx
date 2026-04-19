@@ -2,13 +2,17 @@ import type { Metadata } from 'next';
 import { PerformanceClient } from './PerformanceClient';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, absoluteUrl } from '@/lib/seo';
+import { getServerDictionary } from '@/lib/i18n/server';
 
-export const metadata: Metadata = buildMetadata({
-  title: 'Model Performance · Hit Rate, ROI & Bankroll',
-  description:
-    'Full transparency over hit rate, ROI, maximum drawdown and per-league breakdowns of the Betting with AI ensemble model. Updated after every matchday.',
-  path: '/performance',
-});
+export function generateMetadata(): Metadata {
+  const { locale, dict } = getServerDictionary();
+  return buildMetadata({
+    title: dict['performance.heading'],
+    description: dict['performance.description'],
+    path: '/performance',
+    locale,
+  });
+}
 
 const breadcrumbLd = {
   '@context': 'https://schema.org',

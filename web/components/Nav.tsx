@@ -2,15 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-const links = [
-  { href: '/', label: 'Today' },
-  { href: '/performance', label: 'Performance' },
-  { href: '/leagues', label: 'Leagues' },
-];
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function Nav() {
   const pathname = usePathname();
+  const { t } = useLocale();
+
+  const links = [
+    { href: '/', label: t('nav.today') },
+    { href: '/performance', label: t('nav.performance') },
+    { href: '/leagues', label: t('nav.leagues') },
+  ];
 
   return (
     <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
@@ -42,6 +45,7 @@ export function Nav() {
               </Link>
             );
           })}
+          <LanguageSwitcher />
         </nav>
       </div>
     </header>

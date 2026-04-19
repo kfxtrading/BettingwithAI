@@ -8,6 +8,8 @@ import { JsonLd } from '@/components/JsonLd';
 import { Providers } from './providers';
 import { SITE_NAME, SITE_URL, absoluteUrl, buildLanguageAlternates } from '@/lib/seo';
 import { defaultLocale, locales, ogLocaleMap } from '@/lib/i18n';
+import { getServerLocale } from '@/lib/i18n/server';
+import { Footer } from '@/components/Footer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -112,9 +114,10 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = getServerLocale();
   return (
     <html
-      lang={defaultLocale}
+      lang={locale}
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
       <head>
@@ -122,16 +125,12 @@ export default function RootLayout({
         <JsonLd data={[organizationLd, websiteLd]} />
       </head>
       <body className="min-h-screen bg-bg text-text antialiased">
-        <Providers>
+        <Providers initialLocale={locale}>
           <Nav />
           <main className="mx-auto w-full max-w-page px-6 pb-24 pt-10 md:px-12">
             {children}
           </main>
-          <footer className="mx-auto w-full max-w-page px-6 pb-12 text-2xs text-muted md:px-12">
-            <div className="hairline pt-6">
-              Betting with AI · CatBoost + Poisson + MLP ensemble · Model v0.3
-            </div>
-          </footer>
+          <Footer />
           <CookieConsent />
         </Providers>
       </body>

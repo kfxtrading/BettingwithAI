@@ -6,14 +6,16 @@ import { Empty } from '@/components/Empty';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
 import type { BetStatus, GradedBet, HistoryDay } from '@/lib/types';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import type { DictionaryKey } from '@/lib/i18n';
 
 const DAYS = 14;
 
-function formatDay(iso: string): string {
+function formatDay(iso: string, locale: string): string {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(locale, {
       weekday: 'short',
       day: '2-digit',
       month: 'short',
@@ -23,26 +25,32 @@ function formatDay(iso: string): string {
   }
 }
 
-function StatusBadge({ status }: { status: BetStatus }) {
+function StatusBadge({
+  status,
+  t,
+}: {
+  status: BetStatus;
+  t: (key: DictionaryKey) => string;
+}) {
   const base =
     'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-[0.08em]';
   if (status === 'won') {
     return (
       <span className={`${base} bg-positive/15 text-positive`}>
-        <Check size={12} /> Won
+        <Check size={12} /> {t('recentBets.status.won')}
       </span>
     );
   }
   if (status === 'lost') {
     return (
       <span className={`${base} bg-negative/15 text-negative`}>
-        <X size={12} /> Lost
+        <X size={12} /> {t('recentBets.status.lost')}
       </span>
     );
   }
   return (
     <span className={`${base} bg-surface-2 text-muted`}>
-      <Clock size={12} /> Pending
+      <Clock size={12} /> {t('recentBets.status.pending')}
     </span>
   );
 }
@@ -77,7 +85,13 @@ function groupByMatch(bets: GradedBet[]): GradedBet[][] {
   return Array.from(groups.values());
 }
 
-function MatchRow({ bets }: { bets: GradedBet[] }) {
+function MatchRow({
+  bets,
+  t,
+}: {
+  bets: GradedBet[];
+  t: (key: DictionaryKey) => string;
+}) {
   const first = bets[0];
   const combinedPnl = bets.reduce((sum, b) => sum + b.pnl, 0);
   const hasSettled = bets.some((b) => b.status !== 'pending');
@@ -123,32 +137,43 @@ function MatchRow({ bets }: { bets: GradedBet[] }) {
         </ul>
       </div>
       <div className="flex flex-col items-end gap-1">
-        <StatusBadge status={groupStatus} />
+        <StatusBadge status={groupStatus} t={t} />
         {hasSettled && <Pnl value={Math.round(combinedPnl * 100) / 100} />}
       </div>
     </li>
   );
 }
 
-function DayBlock({ day }: { day: HistoryDay }) {
+function DayBlock({
+  day,
+  t,
+  locale,
+}: {
+  day: HistoryDay;
+  t: (key: DictionaryKey, vars?: Record<string, string | number>) => string;
+  locale: string;
+}) {
+  const betsLabel = day.n_bets === 1 ? t('recentBets.day.bet') : t('recentBets.day.bets');
   return (
     <div className="surface-card px-5 py-4">
       <header className="mb-2 flex items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium">{formatDay(day.date)}</p>
+          <p className="text-sm font-medium">{formatDay(day.date, locale)}</p>
           <p className="mt-0.5 text-2xs uppercase tracking-[0.08em] text-muted">
-            {day.n_bets} {day.n_bets === 1 ? 'Bet' : 'Bets'}
+            {day.n_bets} {betsLabel}
             {day.n_won + day.n_lost > 0
               ? `  ·  ${day.n_won}W / ${day.n_lost}L`
               : ''}
-            {day.n_pending > 0 ? `  ·  ${day.n_pending} pending` : ''}
+            {day.n_pending > 0
+              ? `  ·  ${t('recentBets.day.pending', { n: day.n_pending })}`
+              : ''}
           </p>
         </div>
         {day.n_won + day.n_lost > 0 && <Pnl value={day.pnl} />}
       </header>
       <ul>
         {groupByMatch(day.bets).map((bets) => (
-          <MatchRow key={matchKey(bets[0])} bets={bets} />
+          <MatchRow key={matchKey(bets[0])} bets={bets} t={t} />
         ))}
       </ul>
     </div>
@@ -156,6 +181,7 @@ function DayBlock({ day }: { day: HistoryDay }) {
 }
 
 export function RecentBets() {
+  const { t, locale } = useLocale();
   const { data, isLoading, isError } = useQuery({
     queryKey: queryKeys.history(DAYS),
     queryFn: () => api.history(DAYS),
@@ -163,13 +189,18 @@ export function RecentBets() {
   });
 
   const caption = data
-    ? `Last ${data.n_days} ${data.n_days === 1 ? 'day' : 'days'} · ${data.total_bets} bets · Hit rate ${
-        data.hit_rate != null ? `${(data.hit_rate * 100).toFixed(1)}%` : '—'
-      }`
-    : 'Evaluation of past value bets';
+    ? t('recentBets.captionTemplate', {
+        n: data.n_days,
+        dayLabel:
+          data.n_days === 1 ? t('recentBets.day.day') : t('recentBets.day.days'),
+        bets: data.total_bets,
+        rate:
+          data.hit_rate != null ? `${(data.hit_rate * 100).toFixed(1)}%` : '—',
+      })
+    : t('recentBets.captionFallback');
 
   return (
-    <Section title="Recent Bets" caption={caption}>
+    <Section title={t('recentBets.title')} caption={caption}>
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[0, 1].map((i) => (
@@ -181,17 +212,17 @@ export function RecentBets() {
         </div>
       ) : isError || !data ? (
         <div className="surface-card px-5 py-12 text-center text-sm text-muted">
-          History is being updated.
+          {t('recentBets.updating')}
         </div>
       ) : data.days.length === 0 ? (
         <Empty
-          title="No settled bets yet"
-          hint="As soon as the first matches finish, results will appear here with green/red evaluation."
+          title={t('recentBets.empty.title')}
+          hint={t('recentBets.empty.hint')}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {data.days.map((day) => (
-            <DayBlock key={day.date} day={day} />
+            <DayBlock key={day.date} day={day} t={t} locale={locale} />
           ))}
         </div>
       )}

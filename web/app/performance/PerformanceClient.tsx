@@ -5,12 +5,14 @@ import { BankrollChart } from '@/components/BankrollChart';
 import { KpiTile } from '@/components/KpiTile';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 function pct(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
 export function PerformanceClient() {
+  const { t } = useLocale();
   const summaryQuery = useQuery({
     queryKey: queryKeys.performance,
     queryFn: api.performance,
@@ -28,38 +30,38 @@ export function PerformanceClient() {
     <>
       <header className="flex flex-col gap-3">
         <p className="text-2xs uppercase tracking-[0.12em] text-muted">
-          Model transparency
+          {t('performance.label')}
         </p>
         <h1 className="max-w-3xl text-2xl font-medium tracking-tight">
-          Performance across the entire betting history.
+          {t('performance.heading')}
         </h1>
       </header>
 
-      <Section title="Core Metrics">
+      <Section title={t('performance.section.coreMetrics')}>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <KpiTile
-            label="Bets"
+            label={t('kpi.bets')}
             value={s?.n_bets ?? '—'}
-            hint={s ? `${s.n_predictions} predictions total` : undefined}
+            hint={s ? t('kpi.bets.hint', { n: s.n_predictions }) : undefined}
           />
+          <KpiTile label={t('kpi.hitRate')} value={s ? pct(s.hit_rate) : '—'} />
           <KpiTile
-            label="Hit Rate"
-            value={s ? pct(s.hit_rate) : '—'}
-          />
-          <KpiTile
-            label="ROI"
+            label={t('kpi.roi')}
             value={s ? pct(s.roi, 2) : '—'}
             tone={s ? tone(s.roi) : 'default'}
           />
           <KpiTile
-            label="Max Drawdown"
+            label={t('kpi.maxDrawdown')}
             value={s ? `${s.max_drawdown_pct.toFixed(1)}%` : '—'}
             tone="negative"
           />
         </div>
       </Section>
 
-      <Section title="Bankroll Curve" caption="Starting bankroll 1,000.">
+      <Section
+        title={t('performance.section.bankroll')}
+        caption={t('performance.section.bankroll.caption')}
+      >
         {bankrollQuery.isLoading ? (
           <div className="h-72 animate-pulse rounded-[14px] bg-surface-2" />
         ) : (
@@ -67,19 +69,25 @@ export function PerformanceClient() {
         )}
       </Section>
 
-      <Section title="Breakdown by League">
+      <Section title={t('performance.section.byLeague')}>
         {!s || s.per_league.length === 0 ? (
           <div className="surface-card px-5 py-12 text-center text-sm text-muted">
-            No settled bets per league yet.
+            {t('performance.byLeague.empty')}
           </div>
         ) : (
           <div className="surface-card overflow-hidden">
             <div className="hidden grid-cols-[2.5rem_1fr_4rem_5rem_5rem] gap-4 px-5 py-3 text-2xs uppercase tracking-[0.08em] text-muted md:grid">
-              <span>League</span>
-              <span>Name</span>
-              <span className="text-right">Bets</span>
-              <span className="text-right">Hit Rate</span>
-              <span className="text-right">ROI</span>
+              <span>{t('performance.byLeague.col.league')}</span>
+              <span>{t('performance.byLeague.col.name')}</span>
+              <span className="text-right">
+                {t('performance.byLeague.col.bets')}
+              </span>
+              <span className="text-right">
+                {t('performance.byLeague.col.hitRate')}
+              </span>
+              <span className="text-right">
+                {t('performance.byLeague.col.roi')}
+              </span>
             </div>
             <ul>
               {s.per_league.map((row) => (

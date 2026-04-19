@@ -10,10 +10,11 @@ import { Section } from '@/components/Section';
 import { Empty } from '@/components/Empty';
 import { ValueBetBadge } from '@/components/ValueBetBadge';
 import { api, queryKeys } from '@/lib/api';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
-function formatGenerated(iso: string): string {
+function formatGenerated(iso: string, locale: string): string {
   try {
-    return new Intl.DateTimeFormat('en-GB', {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: 'long',
       timeStyle: 'short',
     }).format(new Date(iso));
@@ -24,6 +25,7 @@ function formatGenerated(iso: string): string {
 
 export function HomeClient() {
   const [league, setLeague] = useState<string | null>(null);
+  const { t, locale } = useLocale();
 
   const leaguesQuery = useQuery({
     queryKey: queryKeys.leagues,
@@ -43,17 +45,17 @@ export function HomeClient() {
       <header className="flex flex-col gap-3">
         <p className="text-2xs uppercase tracking-[0.12em] text-muted">
           {todayQuery.data
-            ? formatGenerated(todayQuery.data.generated_at)
-            : 'Loading predictions…'}
+            ? formatGenerated(todayQuery.data.generated_at, locale)
+            : t('home.loading')}
         </p>
         <h1 className="max-w-3xl text-2xl font-medium tracking-tight">
-          Today&apos;s betting analyses for the Top 5 leagues.
+          {t('home.heading')}
         </h1>
       </header>
 
       <Section
-        title="Value Bets"
-        caption="Discrepancies identified between model and market."
+        title={t('home.section.valueBets.title')}
+        caption={t('home.section.valueBets.caption')}
         action={
           leaguesQuery.data ? (
             <LeagueSwitcher
@@ -75,8 +77,8 @@ export function HomeClient() {
           </div>
         ) : valueBets.length === 0 ? (
           <Empty
-            title="No value bets right now"
-            hint="When the model finds a significant edge over the market, opportunities will appear here."
+            title={t('home.section.valueBets.empty.title')}
+            hint={t('home.section.valueBets.empty.hint')}
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -88,8 +90,8 @@ export function HomeClient() {
       </Section>
 
       <Section
-        title="Today's Predictions"
-        caption="Probabilities for Home · Draw · Away."
+        title={t('home.section.predictions.title')}
+        caption={t('home.section.predictions.caption')}
       >
         {todayQuery.isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -102,8 +104,8 @@ export function HomeClient() {
           </div>
         ) : predictions.length === 0 ? (
           <Empty
-            title="No predictions available"
-            hint='Generate a snapshot with `fb snapshot` or drop a fixtures file into "data/".'
+            title={t('home.section.predictions.empty.title')}
+            hint={t('home.section.predictions.empty.hint')}
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

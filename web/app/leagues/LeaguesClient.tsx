@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export function LeaguesClient() {
+  const { t } = useLocale();
   const summariesQuery = useQuery({
     queryKey: queryKeys.leagueSummaries,
     queryFn: api.leagueSummaries,
@@ -15,10 +17,10 @@ export function LeaguesClient() {
     <>
       <header className="flex flex-col gap-3">
         <p className="text-2xs uppercase tracking-[0.12em] text-muted">
-          Leagues
+          {t('leagues.label')}
         </p>
         <h1 className="max-w-3xl text-2xl font-medium tracking-tight">
-          Pi-Ratings and form across every top league.
+          {t('leagues.heading')}
         </h1>
       </header>
 
@@ -43,7 +45,7 @@ export function LeaguesClient() {
                 <header className="flex items-baseline justify-between text-2xs">
                   <span className="pill">{league.league}</span>
                   <span className="font-mono text-muted">
-                    {league.n_teams} teams
+                    {t('leagues.teams', { n: league.n_teams })}
                   </span>
                 </header>
                 <div>
@@ -52,7 +54,7 @@ export function LeaguesClient() {
                   </h3>
                   {league.leader ? (
                     <p className="mt-2 text-sm text-muted">
-                      Leader:{' '}
+                      {t('leagues.leader')}{' '}
                       <span className="text-text">{league.leader}</span>{' '}
                       <span className="font-mono">
                         ({league.leader_rating?.toFixed(3)})
@@ -60,12 +62,12 @@ export function LeaguesClient() {
                     </p>
                   ) : (
                     <p className="mt-2 text-sm text-muted">
-                      No data yet — run `fb download`.
+                      {t('leagues.noData')}
                     </p>
                   )}
                 </div>
                 <span className="mt-auto text-2xs text-accent">
-                  View details →
+                  {t('leagues.viewDetails')}
                 </span>
               </Link>
             ))}

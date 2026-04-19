@@ -7,12 +7,14 @@ import { BankrollChart } from '@/components/BankrollChart';
 import { KpiTile } from '@/components/KpiTile';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 function pct(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`;
 }
 
 export function PerformanceTracker() {
+  const { t } = useLocale();
   const summaryQuery = useQuery({
     queryKey: queryKeys.performance,
     queryFn: api.performance,
@@ -33,7 +35,7 @@ export function PerformanceTracker() {
     v > 0 ? 'positive' : v < 0 ? 'negative' : 'default';
 
   return (
-    <Section title="Transparency Tracker">
+    <Section title={t('transparency.title')}>
       {isLoading ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -48,28 +50,30 @@ export function PerformanceTracker() {
         </div>
       ) : isError || !s ? (
         <div className="surface-card px-5 py-12 text-center text-sm text-muted">
-          Performance data is being updated.
+          {t('transparency.updating')}
         </div>
       ) : (
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <KpiTile
-              label="Bets"
+              label={t('kpi.bets')}
               value={s.n_bets}
-              hint={`${s.n_predictions} predictions total`}
+              hint={t('kpi.bets.hint', { n: s.n_predictions })}
             />
             <KpiTile
-              label="Hit rate"
+              label={t('kpi.hitRate')}
               value={s.n_bets > 0 ? pct(s.hit_rate) : '—'}
-              hint={s.n_bets === 0 ? 'No settled bets yet' : 'Wins / settled bets'}
+              hint={
+                s.n_bets === 0 ? t('kpi.hitRate.noBets') : t('kpi.hitRate.hint')
+              }
             />
             <KpiTile
-              label="ROI"
+              label={t('kpi.roi')}
               value={s.n_bets > 0 ? pct(s.roi, 2) : '—'}
               tone={tone(s.roi)}
             />
             <KpiTile
-              label="Max drawdown"
+              label={t('kpi.maxDrawdown')}
               value={`${s.max_drawdown_pct.toFixed(1)}%`}
               tone="negative"
             />
@@ -78,9 +82,7 @@ export function PerformanceTracker() {
           <BankrollChart data={bankroll} />
 
           <p className="text-2xs leading-relaxed text-muted">
-            Hypothetical simulation of a statistical model based on
-            historical match data. Not a solicitation to gamble. No
-            guarantee of future results. Gambling involves financial risk.
+            {t('transparency.disclaimer')}
           </p>
 
           <div className="flex justify-center pt-2">
@@ -88,7 +90,7 @@ export function PerformanceTracker() {
               href="/performance"
               className="focus-ring press inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-medium text-white"
             >
-              View full details
+              {t('transparency.viewFullDetails')}
               <ArrowRight size={16} />
             </Link>
           </div>

@@ -2,13 +2,17 @@ import type { Metadata } from 'next';
 import { HomeClient } from './HomeClient';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, SITE_NAME, SITE_URL, absoluteUrl } from '@/lib/seo';
+import { getServerDictionary } from '@/lib/i18n/server';
 
-export const metadata: Metadata = buildMetadata({
-  title: `${SITE_NAME} · AI-driven football predictions & value bets`,
-  description:
-    "Today's AI-driven football betting analyses for the Top 5 leagues. Calibrated probabilities for Home, Draw, Away — plus value bets where the model disagrees with the market.",
-  path: '/',
-});
+export function generateMetadata(): Metadata {
+  const { locale, dict } = getServerDictionary();
+  return buildMetadata({
+    title: `${SITE_NAME} · ${dict['site.tagline']}`,
+    description: dict['home.subheading'],
+    path: '/',
+    locale,
+  });
+}
 
 const sportsOrgLd = {
   '@context': 'https://schema.org',
