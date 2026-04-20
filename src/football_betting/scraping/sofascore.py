@@ -13,6 +13,7 @@ For production/commercial use, switch to a paid API like API-Football or Sportmo
 from __future__ import annotations
 
 import json
+import logging
 import random
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -34,6 +35,7 @@ from football_betting.scraping.cache import ResponseCache
 from football_betting.scraping.rate_limiter import TokenBucketLimiter
 
 console = Console()
+logger = logging.getLogger("football_betting.scraping.sofascore")
 
 
 @dataclass(slots=True)
@@ -390,7 +392,7 @@ class SofascoreClient:
         league_key: str,
         home_team: str,
         away_team: str,
-        day: date,
+        day: date | datetime | str,
     ) -> int | None:
         """Best-effort lookup of the Sofascore ``event_id`` for a fixture.
 
@@ -403,10 +405,34 @@ class SofascoreClient:
             return None
         tid = cfg.sofascore_tournament_id
 
-        candidates: list[dict] = []
+        try:
+            if isinstance(day, datetime):
+                lookup_day = day.date()
+            elif isinstance(day, date):
+                lookup_day = day
+            elif isinstance(day, str):
+                text = day.strip()
+                try:
+                    lookup_day = date.fromisoformat(text[:10])
+                except ValueError:
+                    lookup_day = datetime.fromisoformat(text).date()
+            else:
+                raise TypeError(f"Unsupported match date type: {type(day)!r}")
+        except (TypeError, ValueError) as exc:
+            logger.warning(
+                "[sofascore] invalid lookup date for %s vs %s (%s): %r (%s)",
+                home_team,
+                away_team,
+                league_key,
+                day,
+                exc,
+            )
+            return None
+
+        candidates: dict[int, dict[str, Any]] = {}
         for delta in (0, -1, 1):
             try:
-                target = day.fromordinal(day.toordinal() + delta)
+                target = lookup_day.fromordinal(lookup_day.toordinal() + delta)
             except (OverflowError, ValueError):
                 continue
             for ev in self.get_scheduled_events_for_date(target):
@@ -415,15 +441,27 @@ class SofascoreClient:
                 ev_tid = int(ut_obj.get("id") or t_obj.get("id") or 0)
                 if ev_tid != tid:
                     continue
-                candidates.append(ev)
+                try:
+                    ev_id = int(ev.get("id") or 0)
+                except (ValueError, TypeError):
+                    continue
+                if ev_id > 0:
+                    candidates[ev_id] = ev
 
         if not candidates:
+            logger.debug(
+                "[sofascore] no scheduled candidates for %s vs %s (%s on %s)",
+                home_team,
+                away_team,
+                league_key,
+                lookup_day,
+            )
             return None
 
         h_norm = _normalise_team_name(home_team)
         a_norm = _normalise_team_name(away_team)
-        hits: list[int] = []
-        for ev in candidates:
+        hits: set[int] = set()
+        for ev_id, ev in candidates.items():
             home = _normalise_team_name(
                 str((ev.get("homeTeam") or {}).get("name", ""))
             )
@@ -431,13 +469,28 @@ class SofascoreClient:
                 str((ev.get("awayTeam") or {}).get("name", ""))
             )
             if _name_matches(home, h_norm) and _name_matches(away, a_norm):
-                try:
-                    hits.append(int(ev["id"]))
-                except (KeyError, ValueError, TypeError):
-                    continue
+                hits.add(ev_id)
         # Only return when match is unambiguous.
         if len(hits) == 1:
-            return hits[0]
+            return next(iter(hits))
+        if len(hits) > 1:
+            logger.warning(
+                "[sofascore] ambiguous event-id lookup for %s vs %s (%s on %s): %s",
+                home_team,
+                away_team,
+                league_key,
+                lookup_day,
+                sorted(hits),
+            )
+        else:
+            logger.debug(
+                "[sofascore] no name-matched candidate for %s vs %s (%s on %s); checked %d candidate(s)",
+                home_team,
+                away_team,
+                league_key,
+                lookup_day,
+                len(candidates),
+            )
         return None
 
 

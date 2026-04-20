@@ -6,7 +6,7 @@ import type { Locale } from '@/lib/i18n';
 
 type PageProps = { params: { locale: Locale } };
 
-const LAST_UPDATED = '2026-04-01';
+const LAST_UPDATED = '2026-04-20';
 
 export function generateMetadata({ params }: PageProps): Metadata {
   const { locale, dict } = getServerDictionary(params.locale);
@@ -43,11 +43,18 @@ const CONTENT: Record<Locale, () => JSX.Element> = {
           <strong>Analytics</strong> — only if you accept. Anonymised
           page-view counts, no cross-site tracking, no advertising.
         </li>
+        <li>
+          <strong>Embedded match widget</strong> — match pages load a
+          Sofascore iframe for lineups and player ratings. That request sends
+          your IP address, browser metadata and referrer to Sofascore and may
+          trigger provider-managed cookies.
+        </li>
       </ul>
       <h2>Recipients</h2>
       <p>
-        Hosting provider (Railway, USA — Standard Contractual Clauses).
-        No data is sold or shared with bookmakers or affiliate networks.
+        Hosting provider (Railway, USA — Standard Contractual Clauses) and
+        Sofascore as the third-party widget provider on match pages. No data is
+        sold or shared with bookmakers or affiliate networks.
       </p>
       <h2>Your rights</h2>
       <p>
@@ -83,11 +90,18 @@ const CONTENT: Record<Locale, () => JSX.Element> = {
           <strong>Analytics</strong> — nur bei Zustimmung. Anonymisierte
           Seitenaufrufe, kein Cross-Site-Tracking, keine Werbung.
         </li>
+        <li>
+          <strong>Eingebettetes Match-Widget</strong> — Match-Seiten laden
+          ein Sofascore-iframe für Aufstellungen und Spielerbewertungen. Dabei
+          werden IP-Adresse, Browser-Metadaten und Referrer an Sofascore
+          übertragen; außerdem können providerseitige Cookies gesetzt werden.
+        </li>
       </ul>
       <h2>Empfänger</h2>
       <p>
-        Hosting-Provider (Railway, USA — Standardvertragsklauseln). Keine
-        Weitergabe an Buchmacher oder Affiliate-Netzwerke.
+        Hosting-Provider (Railway, USA — Standardvertragsklauseln) sowie
+        Sofascore als Drittanbieter des Match-Widgets. Keine Weitergabe an
+        Buchmacher oder Affiliate-Netzwerke.
       </p>
       <h2>Deine Rechte</h2>
       <p>
@@ -122,11 +136,19 @@ const CONTENT: Record<Locale, () => JSX.Element> = {
           <strong>Analytics</strong> — uniquement avec votre accord. Vues de
           pages anonymisées, pas de suivi inter-sites.
         </li>
+        <li>
+          <strong>Widget de match intégré</strong> — les pages de match
+          chargent une iframe Sofascore pour les compositions et notes des
+          joueurs. Cette requête transmet votre adresse IP, des métadonnées du
+          navigateur et le référent à Sofascore et peut déclencher des cookies
+          gérés par le fournisseur.
+        </li>
       </ul>
       <h2>Destinataires</h2>
       <p>
-        Hébergeur (Railway, USA — Clauses contractuelles types). Aucune
-        donnée vendue à des bookmakers ou réseaux d&apos;affiliation.
+        Hébergeur (Railway, USA — Clauses contractuelles types) et Sofascore
+        en tant que fournisseur tiers du widget de match. Aucune donnée vendue
+        à des bookmakers ou réseaux d&apos;affiliation.
       </p>
       <h2>Vos droits</h2>
       <p>
@@ -161,11 +183,19 @@ const CONTENT: Record<Locale, () => JSX.Element> = {
           <strong>Analytics</strong> — solo con il tuo consenso. Conteggi di
           pagine anonimi, nessun tracciamento cross-site.
         </li>
+        <li>
+          <strong>Widget partita incorporato</strong> — le pagine partita
+          caricano un iframe Sofascore per formazioni e valutazioni dei
+          giocatori. Questa richiesta trasmette a Sofascore il tuo indirizzo
+          IP, metadati del browser e referrer e può attivare cookie gestiti dal
+          provider.
+        </li>
       </ul>
       <h2>Destinatari</h2>
       <p>
-        Provider di hosting (Railway, USA — Clausole Contrattuali Standard).
-        Nessun dato venduto a bookmaker o reti di affiliazione.
+        Provider di hosting (Railway, USA — Clausole Contrattuali Standard) e
+        Sofascore come fornitore terzo del widget partita. Nessun dato venduto
+        a bookmaker o reti di affiliazione.
       </p>
       <h2>I tuoi diritti</h2>
       <p>
@@ -200,12 +230,19 @@ const CONTENT: Record<Locale, () => JSX.Element> = {
           <strong>Analítica</strong> — solo con tu consentimiento. Recuentos
           de páginas anónimos, sin seguimiento entre sitios.
         </li>
+        <li>
+          <strong>Widget de partido incrustado</strong> — las páginas de
+          partido cargan un iframe de Sofascore para alineaciones y valoraciones
+          de jugadores. Esa solicitud envía tu dirección IP, metadatos del
+          navegador y el referente a Sofascore y puede activar cookies
+          gestionadas por el proveedor.
+        </li>
       </ul>
       <h2>Destinatarios</h2>
       <p>
         Proveedor de hosting (Railway, EE. UU. — Cláusulas Contractuales
-        Tipo). No se venden datos a casas de apuestas ni redes de
-        afiliación.
+        Tipo) y Sofascore como proveedor tercero del widget de partido. No se
+        venden datos a casas de apuestas ni redes de afiliación.
       </p>
       <h2>Tus derechos</h2>
       <p>

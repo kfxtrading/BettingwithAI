@@ -207,3 +207,56 @@ def test_seo_slugs_returns_league_slugs(client: TestClient) -> None:
         assert entry["slug"]
         assert " " not in entry["slug"]
         assert entry["slug"] == entry["slug"].lower()
+
+
+def test_get_match_wrapper_persists_lazy_sofascore_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import datetime
+
+    from football_betting.api import services
+    from football_betting.api.schemas import PredictionOut, TodayPayload
+    import football_betting.seo.match_slugs as match_slugs_mod
+
+    slug = "lecce-vs-fiorentina-2026-04-20"
+    snapshot = TodayPayload(
+        generated_at=datetime.utcnow(),
+        predictions=[
+            PredictionOut(
+                date="2026-04-20",
+                league="SA",
+                league_name="Serie A",
+                home_team="Lecce",
+                away_team="Fiorentina",
+                prob_home=0.24,
+                prob_draw=0.26,
+                prob_away=0.50,
+                model_name="Ensemble",
+                most_likely="A",
+            )
+        ],
+    )
+    persisted: dict[str, TodayPayload] = {}
+
+    class FakeSofascoreClient:
+        def find_event_id(self, *_args, **_kwargs) -> int:
+            return 13980099
+
+    def fake_write_today(payload: TodayPayload) -> str:
+        persisted["payload"] = payload.model_copy(deep=True)
+        return "today.json"
+
+    monkeypatch.setattr(services, "load_today", lambda: snapshot)
+    monkeypatch.setattr(services, "write_today", fake_write_today)
+    monkeypatch.setattr(
+        services,
+        "_new_sofascore_lookup_client",
+        lambda _context: FakeSofascoreClient(),
+    )
+    monkeypatch.setattr(match_slugs_mod, "attach_archive", lambda wrapper: wrapper)
+
+    wrapper = services.get_match_wrapper(slug)
+
+    assert wrapper is not None
+    assert wrapper.sofascore_event_id == 13980099
+    assert persisted["payload"].predictions[0].sofascore_event_id == 13980099

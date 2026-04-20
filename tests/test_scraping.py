@@ -1,14 +1,21 @@
 """Tests for v0.3 scraping infrastructure."""
 from __future__ import annotations
 
+from datetime import date, datetime
 import time
 from pathlib import Path
 
 import pytest
 
+from football_betting.config import LEAGUES
 from football_betting.scraping.cache import ResponseCache
 from football_betting.scraping.rate_limiter import TokenBucketLimiter
-from football_betting.scraping.sofascore import SofascoreClient, SofascoreMatch
+from football_betting.scraping.sofascore import (
+    SofascoreClient,
+    SofascoreMatch,
+    _name_matches,
+    _normalise_team_name,
+)
 
 
 class TestResponseCache:
@@ -123,6 +130,80 @@ class TestSofascoreClient:
         assert not client.cfg.enabled
         with pytest.raises(RuntimeError, match="disabled"):
             client._fetch_json("/test")
+
+    def test_find_event_id_accepts_string_date_and_deduplicates_hits(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        client = SofascoreClient()
+        tournament_id = LEAGUES["SA"].sofascore_tournament_id or 0
+        event = {
+            "id": 13980099,
+            "tournament": {"uniqueTournament": {"id": tournament_id}},
+            "homeTeam": {"name": "US Lecce"},
+            "awayTeam": {"name": "ACF Fiorentina"},
+        }
+
+        monkeypatch.setattr(
+            SofascoreClient,
+            "get_scheduled_events_for_date",
+            lambda self, *_args, **_kwargs: [event],
+        )
+
+        event_id = client.find_event_id(
+            "SA",
+            "Lecce",
+            "Fiorentina",
+            "2026-04-20",
+        )
+
+        assert event_id == 13980099
+
+    def test_find_event_id_returns_none_for_ambiguous_hits(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        client = SofascoreClient()
+        tournament_id = LEAGUES["SA"].sofascore_tournament_id or 0
+        events = [
+            {
+                "id": 1,
+                "tournament": {"uniqueTournament": {"id": tournament_id}},
+                "homeTeam": {"name": "US Lecce"},
+                "awayTeam": {"name": "ACF Fiorentina"},
+            },
+            {
+                "id": 2,
+                "tournament": {"uniqueTournament": {"id": tournament_id}},
+                "homeTeam": {"name": "Lecce"},
+                "awayTeam": {"name": "Fiorentina"},
+            },
+        ]
+
+        monkeypatch.setattr(
+            SofascoreClient,
+            "get_scheduled_events_for_date",
+            lambda self, *_args, **_kwargs: events,
+        )
+
+        event_id = client.find_event_id(
+            "SA",
+            "Lecce",
+            "Fiorentina",
+            datetime(2026, 4, 20, 20, 45),
+        )
+
+        assert event_id is None
+
+    def test_normalise_team_name_handles_common_aliases(self) -> None:
+        assert _normalise_team_name("US Lecce") == "lecce"
+        assert _normalise_team_name("ACF Fiorentina") == "fiorentina"
+        assert _normalise_team_name("1. FC Köln") == "koln"
+
+    def test_name_matches_handles_prefixes_and_misses(self) -> None:
+        assert _name_matches("lecce", "us lecce")
+        assert _name_matches("fiorentina", "acf fiorentina")
+        assert not _name_matches("lecce", "lazio")
 
 
 class TestSofascoreMatch:
