@@ -8,10 +8,16 @@ Flow on each refresh:
     Odds API -> fixtures_<today>.json -> today.json snapshot
 
 Configuration (env vars):
-    ODDS_API_KEY              — required; without it the scheduler logs and idles.
-    SNAPSHOT_REFRESH_HOUR_UTC — integer 0-23, default 7 (=08:00 Berlin in winter).
-    LIVE_SETTLE_INTERVAL_MIN  — minutes between /scores polls, default 2. Set
-                                to 0 to disable the live-settlement loop.
+    ODDS_API_KEY                     — required; without it the scheduler idles.
+    SNAPSHOT_REFRESH_HOUR_UTC        — integer 0-23, default 7 (=08:00 Berlin in winter).
+    LIVE_SETTLE_INTERVAL_MIN         — minutes between /scores polls, default 2.
+                                       Set to 0 to disable the live-settlement loop.
+    PREKICKOFF_SNAPSHOT_INTERVAL_MIN — minutes between pre-kickoff odds polls, default
+                                       5. A fresh odds snapshot per league is fetched
+                                       and appended to odds_<LEAGUE>.jsonl once per
+                                       match, ~30 min before kickoff, so the history
+                                       has line-movement info for later training.
+                                       Set to 0 to disable.
 """
 from __future__ import annotations
 
@@ -22,8 +28,10 @@ import os
 from datetime import date, datetime, timedelta, timezone
 
 from football_betting.api.services import build_predictions_for_fixtures
-from football_betting.api.snapshots import snapshot_is_stale, write_today
+from football_betting.api.snapshots import load_today, snapshot_is_stale, write_today
 from football_betting.config import DATA_DIR, ODDS_API_CFG
+from football_betting.data.models import MatchOdds
+from football_betting.data.odds_snapshots import append_snapshot as append_odds_snapshot
 from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
 
 logger = logging.getLogger("football_betting.api")
@@ -172,6 +180,114 @@ async def _live_settle_loop() -> None:
             logger.exception("[live-settle] loop iteration failed")
 
 
+# ──────────────────────── Pre-kickoff odds capture ────────────────────────
+
+_PREKICKOFF_WINDOW_START_MIN = 25  # begin capturing this many min before kickoff
+_PREKICKOFF_WINDOW_END_MIN = 35    # stop once kickoff is farther than this
+_captured_prekickoff: set[tuple[str, str, str, str]] = set()
+
+
+def _prekickoff_interval_min() -> int:
+    raw = os.environ.get("PREKICKOFF_SNAPSHOT_INTERVAL_MIN", "5")
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        logger.warning(
+            "[prekickoff] Invalid PREKICKOFF_SNAPSHOT_INTERVAL_MIN=%r, defaulting to 5.",
+            raw,
+        )
+        return 5
+
+
+def _parse_kickoff_utc(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _capture_prekickoff_blocking() -> None:
+    """Append a fresh odds snapshot per league with a match ~30 min from kickoff."""
+    if not ODDS_API_CFG.api_key:
+        return
+    payload = load_today()
+    if payload is None or not payload.predictions:
+        return
+
+    now = datetime.now(timezone.utc)
+    window_start = now + timedelta(minutes=_PREKICKOFF_WINDOW_START_MIN)
+    window_end = now + timedelta(minutes=_PREKICKOFF_WINDOW_END_MIN)
+
+    due_leagues: set[str] = set()
+    for p in payload.predictions:
+        key = (p.league.upper(), p.date, p.home_team, p.away_team)
+        if key in _captured_prekickoff:
+            continue
+        ko = _parse_kickoff_utc(p.kickoff_utc)
+        if ko is None:
+            continue
+        if window_start <= ko <= window_end:
+            due_leagues.add(p.league.upper())
+
+    if not due_leagues:
+        return
+
+    client = OddsApiClient()
+    today = date.today()
+
+    for league_key in sorted(due_leagues):
+        try:
+            fixtures = client.fetch_for_date(league_key, today)
+        except OddsApiError as exc:
+            logger.warning("[prekickoff] Odds API fetch failed for %s: %s", league_key, exc)
+            continue
+
+        appended = 0
+        for fx in fixtures:
+            odds = MatchOdds(
+                home=fx.odds_home,
+                draw=fx.odds_draw,
+                away=fx.odds_away,
+                bookmaker="avg",
+            )
+            append_odds_snapshot(
+                league_key,
+                fx.home_team,
+                fx.away_team,
+                fx.date.isoformat(),
+                odds,
+            )
+            _captured_prekickoff.add(
+                (league_key, fx.date.isoformat(), fx.home_team, fx.away_team)
+            )
+            appended += 1
+        logger.info(
+            "[prekickoff] %s: %d odds snapshot(s) appended.",
+            league_key, appended,
+        )
+
+
+async def capture_prekickoff_once() -> None:
+    await asyncio.to_thread(_capture_prekickoff_blocking)
+
+
+async def _prekickoff_loop() -> None:
+    interval_min = _prekickoff_interval_min()
+    if interval_min <= 0:
+        logger.info("[prekickoff] disabled (PREKICKOFF_SNAPSHOT_INTERVAL_MIN=0)")
+        return
+    logger.info("[prekickoff] polling fixtures every %d min", interval_min)
+    interval_s = interval_min * 60
+    while True:
+        await asyncio.sleep(interval_s)
+        try:
+            await capture_prekickoff_once()
+        except Exception:  # noqa: BLE001
+            logger.exception("[prekickoff] loop iteration failed")
+
+
 async def start(run_initial_if_stale: bool = True) -> None:
     """Install as a FastAPI startup hook."""
     if run_initial_if_stale and snapshot_is_stale(_refresh_hour_utc()):
@@ -181,3 +297,4 @@ async def start(run_initial_if_stale: bool = True) -> None:
         asyncio.create_task(refresh_snapshot_once())
     asyncio.create_task(_daily_loop())
     asyncio.create_task(_live_settle_loop())
+    asyncio.create_task(_prekickoff_loop())
