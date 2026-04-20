@@ -46,6 +46,20 @@ function formatGenerated(iso: string, locale: string): string {
   }
 }
 
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function isSnapshotStale(data: TodayPayload | undefined): boolean {
+  if (!data) return false;
+  const generated = new Date(data.generated_at);
+  if (Number.isNaN(generated.getTime())) return false;
+  return localDateKey(generated) < localDateKey(new Date());
+}
+
 export function HomeClient({
   initialToday,
   initialLeagues,
@@ -65,15 +79,18 @@ export function HomeClient({
     initialData: league === null ? initialToday ?? undefined : undefined,
     refetchInterval: (query) => {
       const data = query.state.data as TodayPayload | undefined;
-      if (!data) return false;
+      if (!data) return 60_000;
+      if (isSnapshotStale(data)) return 60_000;
       const hasLive = data.predictions.some((p) => p.is_live);
       return hasLive ? 45_000 : false;
     },
     refetchIntervalInBackground: false,
   });
 
-  const predictions = todayQuery.data?.predictions ?? [];
-  const valueBets = todayQuery.data?.value_bets ?? [];
+  const stale = isSnapshotStale(todayQuery.data);
+  const predictions = stale ? [] : todayQuery.data?.predictions ?? [];
+  const valueBets = stale ? [] : todayQuery.data?.value_bets ?? [];
+  const showPending = todayQuery.isLoading || stale;
 
   return (
     <>
@@ -87,6 +104,23 @@ export function HomeClient({
           {t('home.heading')}
         </h1>
       </header>
+
+      {stale && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="surface-card flex items-start gap-3 border-l-2 border-accent px-5 py-4"
+        >
+          <span
+            aria-hidden="true"
+            className="mt-1.5 inline-block h-2 w-2 flex-none animate-pulse rounded-full bg-accent"
+          />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium">{t('home.stale.title')}</p>
+            <p className="text-sm text-muted">{t('home.stale.hint')}</p>
+          </div>
+        </div>
+      )}
 
       <Section
         title={t('home.section.valueBets.title')}
@@ -106,7 +140,7 @@ export function HomeClient({
           ) : null
         }
       >
-        {todayQuery.isLoading ? (
+        {showPending ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[0, 1, 2].map((i) => (
               <div
@@ -138,7 +172,7 @@ export function HomeClient({
         title={t('home.section.predictions.title')}
         caption={t('home.section.predictions.caption')}
       >
-        {todayQuery.isLoading ? (
+        {showPending ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {[0, 1, 2, 3].map((i) => (
               <div

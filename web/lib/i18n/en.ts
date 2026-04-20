@@ -17,6 +17,8 @@ export type DictionaryKey =
   | 'home.section.predictions.caption'
   | 'home.section.predictions.empty.title'
   | 'home.section.predictions.empty.hint'
+  | 'home.stale.title'
+  | 'home.stale.hint'
   | 'leagues.label'
   | 'leagues.heading'
   | 'leagues.description'
@@ -150,6 +152,11 @@ export type DictionaryKey =
   | 'leagueHub.pickCorrect'
   | 'leagueHub.pickIncorrect'
   | 'leagueHub.viewMatch'
+  | 'match.lineups.title'
+  | 'match.lineups.attribution'
+  | 'match.lineups.consentPrompt'
+  | 'match.lineups.consentNote'
+  | 'match.lineups.consentButton'
   | 'cookie.title'
   | 'cookie.body'
   | 'cookie.necessary.title'
@@ -189,6 +196,9 @@ export const en: Dictionary = {
   'home.section.predictions.empty.title': 'No predictions available',
   'home.section.predictions.empty.hint':
     'Generate a snapshot with `fb snapshot` or drop a fixtures file into "data/".',
+  'home.stale.title': "Today's predictions are being generated",
+  'home.stale.hint':
+    'Fresh odds and model predictions are refreshed every morning. Please reload in a few minutes.',
   'leagues.label': 'Leagues',
   'leagues.heading': 'Pi-Ratings and form across every top league.',
   'leagues.description':
@@ -342,6 +352,13 @@ export const en: Dictionary = {
   'leagueHub.pickCorrect': 'Pick correct',
   'leagueHub.pickIncorrect': 'Pick incorrect',
   'leagueHub.viewMatch': 'Open prediction →',
+  'match.lineups.title': 'Lineups & player ratings',
+  'match.lineups.attribution': 'Live lineup data by Sofascore',
+  'match.lineups.consentPrompt':
+    'Live lineups with Sofascore player ratings are available for this match.',
+  'match.lineups.consentNote':
+    'Loading the widget transmits data to sofascore.com and sets third-party cookies.',
+  'match.lineups.consentButton': 'Load Sofascore lineups',
   'cookie.title': 'We use cookies',
   'cookie.body':
     'This site uses cookies and similar technologies to keep the service running and to measure reach and performance. Your choice is stored together with a hash of your IP address so we can recognise it on your next visit. You can withdraw it at any time.',

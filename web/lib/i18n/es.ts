@@ -25,6 +25,9 @@ export const es: Dictionary = {
   'home.section.predictions.empty.title': 'Sin pronósticos disponibles',
   'home.section.predictions.empty.hint':
     'Genera un snapshot con `fb snapshot` o coloca un archivo de partidos en «data/».',
+  'home.stale.title': 'Los pronósticos de hoy se están generando',
+  'home.stale.hint':
+    'Las cuotas y los pronósticos del modelo se actualizan cada mañana. Por favor, recarga en unos minutos.',
   'leagues.label': 'Ligas',
   'leagues.heading': 'Pi-Ratings y forma en todas las grandes ligas.',
   'leagues.description':
@@ -183,6 +186,13 @@ export const es: Dictionary = {
   'leagueHub.pickCorrect': 'Pronóstico acertado',
   'leagueHub.pickIncorrect': 'Pronóstico fallido',
   'leagueHub.viewMatch': 'Abrir predicción →',
+  'match.lineups.title': 'Alineaciones y valoraciones de jugadores',
+  'match.lineups.attribution': 'Datos de alineación en vivo de Sofascore',
+  'match.lineups.consentPrompt':
+    'Las alineaciones en vivo con las valoraciones de jugadores de Sofascore están disponibles para este partido.',
+  'match.lineups.consentNote':
+    'Cargar el widget transmite datos a sofascore.com y establece cookies de terceros.',
+  'match.lineups.consentButton': 'Cargar alineaciones de Sofascore',
   'cookie.title': 'Usamos cookies',
   'cookie.body':
     'Este sitio utiliza cookies y tecnologías similares para garantizar su funcionamiento y para medir el alcance y el rendimiento. Tu consentimiento se almacena junto con un hash de tu dirección IP para poder reconocerlo en tu próxima visita. Puedes retirarlo en cualquier momento.',
