@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LeagueSwitcher } from '@/components/LeagueSwitcher';
 import { PerformanceTracker } from '@/components/PerformanceTracker';
 import { PredictionCard } from '@/components/PredictionCard';
@@ -35,14 +35,11 @@ function groupValueBetsByMatch(bets: ValueBet[]): ValueBet[][] {
   return order.map((k) => groups.get(k)!);
 }
 
-function formatGenerated(iso: string, locale: string): string {
+function formatToday(date: Date, locale: string): string {
   try {
-    return new Intl.DateTimeFormat(locale, {
-      dateStyle: 'long',
-      timeStyle: 'short',
-    }).format(new Date(iso));
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(date);
   } catch {
-    return iso;
+    return date.toISOString().slice(0, 10);
   }
 }
 
@@ -65,7 +62,14 @@ export function HomeClient({
   initialLeagues,
 }: HomeClientProps = {}) {
   const [league, setLeague] = useState<string | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
   const { t, locale } = useLocale();
+
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const leaguesQuery = useQuery({
     queryKey: queryKeys.leagues,
@@ -95,10 +99,11 @@ export function HomeClient({
   return (
     <>
       <header className="flex flex-col gap-3">
-        <p className="text-2xs uppercase tracking-[0.12em] text-muted">
-          {todayQuery.data
-            ? formatGenerated(todayQuery.data.generated_at, locale)
-            : t('home.loading')}
+        <p
+          className="text-2xs uppercase tracking-[0.12em] text-muted"
+          suppressHydrationWarning
+        >
+          {now ? formatToday(now, locale) : '\u00A0'}
         </p>
         <h1 className="max-w-3xl text-2xl font-medium tracking-tight">
           {t('home.heading')}
