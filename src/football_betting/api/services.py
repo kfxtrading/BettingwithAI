@@ -39,6 +39,7 @@ from football_betting.api.schemas import (
     SeoLeagueSlug,
     SeoSlugsOut,
     SeoTeamSlug,
+    StrategyStats,
     TeamDetail,
     TodayPayload,
     ValueBetOut,
@@ -949,6 +950,7 @@ def _load_tracker() -> ResultsTracker:
 
 
 def _max_drawdown_pct(curve: list[BankrollPoint]) -> float:
+    """Max drawdown on the *combined* ``value`` series of the curve."""
     if not curve:
         return 0.0
     peak = curve[0].value
@@ -963,39 +965,78 @@ def _max_drawdown_pct(curve: list[BankrollPoint]) -> float:
     return round(max_dd * 100, 2)
 
 
+def _max_drawdown_from_series(series: list[float]) -> float:
+    if not series:
+        return 0.0
+    peak = series[0]
+    max_dd = 0.0
+    for v in series:
+        if v > peak:
+            peak = v
+        if peak > 0:
+            dd = (peak - v) / peak
+            if dd > max_dd:
+                max_dd = dd
+    return round(max_dd * 100, 2)
+
+
+def _daily_pnl_by_kind() -> tuple[
+    dict[str, float], dict[str, float], dict[str, float]
+]:
+    """Return ``(value_pnl, prediction_pnl, combined_pnl)`` keyed by date.
+
+    Source of truth is ``graded_bets.jsonl`` — it is the only place that
+    carries the ``kind`` discriminator. Pending rows are skipped.
+    Legacy rows without ``kind`` are treated as ``"value"``.
+    """
+    from football_betting.evaluation.grader import load_graded
+
+    value_pnl: dict[str, float] = defaultdict(float)
+    pred_pnl: dict[str, float] = defaultdict(float)
+    combined_pnl: dict[str, float] = defaultdict(float)
+
+    for g in load_graded():
+        if g.status == "pending":
+            continue
+        kind = (g.kind or "value").lower()
+        bucket = pred_pnl if kind == "prediction" else value_pnl
+        bucket[g.date] += g.pnl
+        combined_pnl[g.date] += g.pnl
+
+    return value_pnl, pred_pnl, combined_pnl
+
+
 def get_bankroll_curve(initial_bankroll: float = 1000.0) -> list[BankrollPoint]:
     """Aggregate completed bets into a one-point-per-day equity curve.
 
-    Multiple bets on the same calendar day previously each produced their
-    own ``BankrollPoint`` with the same ``date`` value, so Recharts
-    rendered them stacked at the same X-coordinate and the visible
-    entry for that day looked stuck on the *first* per-bet bankroll
-    (often the opening 1000.00) instead of the day's end-of-day result.
+    The curve now carries **three** running bankrolls per point:
 
-    We now sum P&L per day and emit exactly one point per date carrying
-    the closing bankroll. The very first point anchors the chart at the
-    initial bankroll on the day before the first settled bet.
+    * ``value`` — combined (legacy, unchanged for existing clients).
+    * ``value_bets`` — running bankroll using only value-bet P&L.
+    * ``predictions`` — running bankroll using only 1x2 most-likely
+      prediction P&L.
+
+    All three series share the same anchor and date axis so they can be
+    overlaid as separate lines in the UI.
     """
     from datetime import date as _date
     from datetime import timedelta
 
-    tracker = _load_tracker()
-    completed = tracker.completed_bets()
-    completed.sort(key=lambda r: r.date)
+    value_pnl, pred_pnl, combined_pnl = _daily_pnl_by_kind()
 
-    if not completed:
-        return [BankrollPoint(date=_date.today().isoformat(),
-                              value=round(initial_bankroll, 2))]
+    all_dates = set(value_pnl) | set(pred_pnl) | set(combined_pnl)
+    if not all_dates:
+        today_iso = _date.today().isoformat()
+        return [
+            BankrollPoint(
+                date=today_iso,
+                value=round(initial_bankroll, 2),
+                value_bets=round(initial_bankroll, 2),
+                predictions=round(initial_bankroll, 2),
+            )
+        ]
 
-    daily_pnl: dict[str, float] = defaultdict(float)
-    for rec in completed:
-        stake = rec.bet_stake or 0.0
-        if rec.bet_status == "won" and rec.bet_odds:
-            daily_pnl[rec.date] += stake * (rec.bet_odds - 1)
-        elif rec.bet_status == "lost":
-            daily_pnl[rec.date] -= stake
-
-    sorted_dates = sorted(daily_pnl.keys())
+    sorted_dates = sorted(all_dates)
     try:
         anchor = (
             _date.fromisoformat(sorted_dates[0]) - timedelta(days=1)
@@ -1003,14 +1044,56 @@ def get_bankroll_curve(initial_bankroll: float = 1000.0) -> list[BankrollPoint]:
     except ValueError:
         anchor = sorted_dates[0]
 
-    bankroll = initial_bankroll
+    combined = initial_bankroll
+    value_roll = initial_bankroll
+    pred_roll = initial_bankroll
+
     curve: list[BankrollPoint] = [
-        BankrollPoint(date=anchor, value=round(bankroll, 2))
+        BankrollPoint(
+            date=anchor,
+            value=round(combined, 2),
+            value_bets=round(value_roll, 2),
+            predictions=round(pred_roll, 2),
+        )
     ]
     for d in sorted_dates:
-        bankroll += daily_pnl[d]
-        curve.append(BankrollPoint(date=d, value=round(bankroll, 2)))
+        combined += combined_pnl.get(d, 0.0)
+        value_roll += value_pnl.get(d, 0.0)
+        pred_roll += pred_pnl.get(d, 0.0)
+        curve.append(
+            BankrollPoint(
+                date=d,
+                value=round(combined, 2),
+                value_bets=round(value_roll, 2),
+                predictions=round(pred_roll, 2),
+            )
+        )
     return curve
+
+
+def _strategy_stats_from_graded(
+    rows: list,  # list[GradedBet]
+    series: list[float],
+) -> StrategyStats | None:
+    """Build :class:`StrategyStats` from graded rows + running bankroll series.
+
+    Returns ``None`` if ``rows`` is empty so the caller can emit ``null``
+    instead of a zeroed tile.
+    """
+    if not rows:
+        return None
+    wins = sum(1 for r in rows if r.status == "won")
+    total_stake = sum(float(r.stake or 0.0) for r in rows)
+    total_profit = sum(float(r.pnl or 0.0) for r in rows)
+    n_bets = len(rows)
+    return StrategyStats(
+        n_bets=n_bets,
+        hit_rate=round(wins / n_bets, 4) if n_bets else 0.0,
+        roi=round(total_profit / total_stake, 4) if total_stake > 0 else 0.0,
+        total_profit=round(total_profit, 2),
+        total_stake=round(total_stake, 2),
+        max_drawdown_pct=_max_drawdown_from_series(series),
+    )
 
 
 def get_performance_summary() -> PerformanceSummary:
@@ -1050,6 +1133,29 @@ def get_performance_summary() -> PerformanceSummary:
     bankroll_curve = get_bankroll_curve()
     max_dd = _max_drawdown_pct(bankroll_curve)
 
+    # Per-strategy breakdown sourced directly from graded_bets.jsonl where
+    # the ``kind`` discriminator is preserved.
+    from football_betting.evaluation.grader import load_graded
+
+    value_rows: list = []
+    pred_rows: list = []
+    for g in load_graded():
+        if g.status == "pending":
+            continue
+        kind = (g.kind or "value").lower()
+        if kind == "prediction":
+            pred_rows.append(g)
+        else:
+            value_rows.append(g)
+
+    value_series = [p.value_bets if p.value_bets is not None else p.value
+                    for p in bankroll_curve]
+    pred_series = [p.predictions if p.predictions is not None else p.value
+                   for p in bankroll_curve]
+
+    vb_stats = _strategy_stats_from_graded(value_rows, value_series)
+    pr_stats = _strategy_stats_from_graded(pred_rows, pred_series)
+
     return PerformanceSummary(
         n_predictions=len(tracker.records),
         n_bets=int(stats.get("n_bets", 0)),
@@ -1061,6 +1167,8 @@ def get_performance_summary() -> PerformanceSummary:
         rps_mean=None,
         max_drawdown_pct=max_dd,
         per_league=sorted(per_league, key=lambda p: -p.n_bets),
+        value_bets=vb_stats,
+        predictions=pr_stats,
     )
 
 

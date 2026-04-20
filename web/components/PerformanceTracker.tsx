@@ -8,9 +8,61 @@ import { KpiTile } from '@/components/KpiTile';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import type { StrategyStats } from '@/lib/types';
 
 function pct(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`;
+}
+
+function tone(v: number): 'positive' | 'negative' | 'default' {
+  return v > 0 ? 'positive' : v < 0 ? 'negative' : 'default';
+}
+
+function StrategyKpiGroup({
+  title,
+  stats,
+  labels,
+  emptyHint,
+}: {
+  title: string;
+  stats: StrategyStats | null | undefined;
+  labels: {
+    bets: string;
+    hitRate: string;
+    roi: string;
+    drawdown: string;
+  };
+  emptyHint: string;
+}) {
+  const hasData = stats && stats.n_bets > 0;
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="text-2xs uppercase tracking-[0.12em] text-muted">
+        {title}
+      </h3>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KpiTile
+          label={labels.bets}
+          value={hasData ? stats!.n_bets : '—'}
+          hint={hasData ? undefined : emptyHint}
+        />
+        <KpiTile
+          label={labels.hitRate}
+          value={hasData ? pct(stats!.hit_rate) : '—'}
+        />
+        <KpiTile
+          label={labels.roi}
+          value={hasData ? pct(stats!.roi, 2) : '—'}
+          tone={hasData ? tone(stats!.roi) : 'default'}
+        />
+        <KpiTile
+          label={labels.drawdown}
+          value={hasData ? `${stats!.max_drawdown_pct.toFixed(1)}%` : '—'}
+          tone={hasData ? 'negative' : 'default'}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function PerformanceTracker() {
@@ -31,15 +83,12 @@ export function PerformanceTracker() {
   const s = summaryQuery.data;
   const bankroll = bankrollQuery.data ?? [];
 
-  const tone = (v: number): 'positive' | 'negative' | 'default' =>
-    v > 0 ? 'positive' : v < 0 ? 'negative' : 'default';
-
   return (
     <Section title={t('transparency.title')}>
       {isLoading ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => (
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
               <div
                 key={i}
                 className="h-24 animate-pulse rounded-[14px] bg-surface-2"
@@ -54,30 +103,28 @@ export function PerformanceTracker() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <KpiTile
-              label={t('kpi.bets')}
-              value={s.n_bets}
-              hint={t('kpi.bets.hint', { n: s.n_predictions })}
-            />
-            <KpiTile
-              label={t('kpi.hitRate')}
-              value={s.n_bets > 0 ? pct(s.hit_rate) : '—'}
-              hint={
-                s.n_bets === 0 ? t('kpi.hitRate.noBets') : t('kpi.hitRate.hint')
-              }
-            />
-            <KpiTile
-              label={t('kpi.roi')}
-              value={s.n_bets > 0 ? pct(s.roi, 2) : '—'}
-              tone={tone(s.roi)}
-            />
-            <KpiTile
-              label={t('kpi.maxDrawdown')}
-              value={`${s.max_drawdown_pct.toFixed(1)}%`}
-              tone="negative"
-            />
-          </div>
+          <StrategyKpiGroup
+            title={t('transparency.group.valueBets')}
+            stats={s.value_bets}
+            labels={{
+              bets: t('kpi.bets'),
+              hitRate: t('kpi.hitRate'),
+              roi: t('kpi.roi'),
+              drawdown: t('kpi.maxDrawdown'),
+            }}
+            emptyHint={t('kpi.hitRate.noBets')}
+          />
+          <StrategyKpiGroup
+            title={t('transparency.group.predictions')}
+            stats={s.predictions}
+            labels={{
+              bets: t('kpi.bets'),
+              hitRate: t('kpi.hitRate'),
+              roi: t('kpi.roi'),
+              drawdown: t('kpi.maxDrawdown'),
+            }}
+            emptyHint={t('kpi.hitRate.noBets')}
+          />
 
           <BankrollChart data={bankroll} />
 

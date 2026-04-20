@@ -72,6 +72,8 @@ export const es: Dictionary = {
   'transparency.disclaimer':
     'Simulación hipotética de un modelo estadístico basado en datos históricos de partidos. No es una invitación a apostar. Sin garantía de resultados futuros. Apostar implica riesgos financieros.',
   'transparency.viewFullDetails': 'Ver todos los detalles',
+  'transparency.group.valueBets': 'Value Bets',
+  'transparency.group.predictions': 'Predicciones 1x2',
   'recentBets.title': 'Apuestas recientes',
   'recentBets.captionFallback': 'Evaluación de value bets pasadas',
   'recentBets.captionTemplate':
@@ -106,6 +108,9 @@ export const es: Dictionary = {
   'valueBet.stake': 'Stake',
   'bankroll.empty':
     'Aún no hay datos de bankroll — registra apuestas para empezar el seguimiento.',
+  'bankroll.series.valueBets': 'Value Bets',
+  'bankroll.series.predictions': 'Predicciones 1x2',
+  'bankroll.series.combined': 'Combinado',
   'ratings.col.team': 'Equipo',
   'ratings.col.home': 'Local',
   'ratings.col.away': 'Visitante',

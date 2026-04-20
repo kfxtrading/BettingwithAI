@@ -2,6 +2,7 @@
 
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -22,8 +23,20 @@ export function BankrollChart({ data }: { data: BankrollPoint[] }) {
     );
   }
 
+  const hasValueSeries = data.some(
+    (p) => p.value_bets !== undefined && p.value_bets !== null,
+  );
+  const hasPredictionSeries = data.some(
+    (p) => p.predictions !== undefined && p.predictions !== null,
+  );
+  const showSplit = hasValueSeries || hasPredictionSeries;
+
+  const nameValueBets = t('bankroll.series.valueBets');
+  const namePredictions = t('bankroll.series.predictions');
+  const nameCombined = t('bankroll.series.combined');
+
   return (
-    <div className="surface-card h-72 px-2 py-4">
+    <div className="surface-card h-80 px-2 py-4">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 48, bottom: 8, left: 8 }}>
           <CartesianGrid
@@ -56,14 +69,63 @@ export function BankrollChart({ data }: { data: BankrollPoint[] }) {
             }}
             labelStyle={{ color: 'rgb(var(--muted))' }}
           />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke="rgb(var(--accent))"
-            strokeWidth={1.75}
-            dot={false}
-            activeDot={{ r: 4, fill: 'rgb(var(--accent))' }}
-          />
+          {showSplit ? (
+            <Legend
+              wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+              iconType="plainline"
+            />
+          ) : null}
+
+          {showSplit ? (
+            <>
+              {hasValueSeries ? (
+                <Line
+                  type="monotone"
+                  dataKey="value_bets"
+                  name={nameValueBets}
+                  stroke="rgb(var(--accent))"
+                  strokeWidth={1.75}
+                  dot={false}
+                  activeDot={{ r: 4, fill: 'rgb(var(--accent))' }}
+                  connectNulls
+                />
+              ) : null}
+              {hasPredictionSeries ? (
+                <Line
+                  type="monotone"
+                  dataKey="predictions"
+                  name={namePredictions}
+                  stroke="rgb(var(--muted))"
+                  strokeWidth={1.75}
+                  dot={false}
+                  activeDot={{ r: 4, fill: 'rgb(var(--muted))' }}
+                  connectNulls
+                />
+              ) : null}
+              <Line
+                type="monotone"
+                dataKey="value"
+                name={nameCombined}
+                stroke="rgb(var(--muted))"
+                strokeOpacity={0.55}
+                strokeWidth={1.25}
+                strokeDasharray="4 4"
+                dot={false}
+                activeDot={false}
+                connectNulls
+              />
+            </>
+          ) : (
+            <Line
+              type="monotone"
+              dataKey="value"
+              name={nameCombined}
+              stroke="rgb(var(--accent))"
+              strokeWidth={1.75}
+              dot={false}
+              activeDot={{ r: 4, fill: 'rgb(var(--accent))' }}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

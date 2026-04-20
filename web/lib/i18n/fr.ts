@@ -72,6 +72,8 @@ export const fr: Dictionary = {
   'transparency.disclaimer':
     "Simulation hypothétique d'un modèle statistique basé sur des données historiques. Pas une incitation au jeu. Aucune garantie de résultats futurs. Le jeu comporte des risques financiers.",
   'transparency.viewFullDetails': 'Voir tous les détails',
+  'transparency.group.valueBets': 'Value Bets',
+  'transparency.group.predictions': 'Pronostics 1x2',
   'recentBets.title': 'Paris récents',
   'recentBets.captionFallback': 'Évaluation des value bets passés',
   'recentBets.captionTemplate':
@@ -106,6 +108,9 @@ export const fr: Dictionary = {
   'valueBet.stake': 'Mise',
   'bankroll.empty':
     'Aucune donnée de bankroll — enregistre des paris pour commencer le suivi.',
+  'bankroll.series.valueBets': 'Value Bets',
+  'bankroll.series.predictions': 'Pronostics 1x2',
+  'bankroll.series.combined': 'Combiné',
   'ratings.col.team': 'Équipe',
   'ratings.col.home': 'Domicile',
   'ratings.col.away': 'Extérieur',

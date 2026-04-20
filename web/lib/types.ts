@@ -98,6 +98,15 @@ export interface PerformancePerLeague {
   roi: number;
 }
 
+export interface StrategyStats {
+  n_bets: number;
+  hit_rate: number;
+  roi: number;
+  total_profit: number;
+  total_stake: number;
+  max_drawdown_pct: number;
+}
+
 export interface PerformanceSummary {
   n_predictions: number;
   n_bets: number;
@@ -109,11 +118,15 @@ export interface PerformanceSummary {
   rps_mean: number | null;
   max_drawdown_pct: number;
   per_league: PerformancePerLeague[];
+  value_bets?: StrategyStats | null;
+  predictions?: StrategyStats | null;
 }
 
 export interface BankrollPoint {
   date: string;
   value: number;
+  value_bets?: number | null;
+  predictions?: number | null;
 }
 
 export interface EquityIndexPoint {

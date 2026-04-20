@@ -55,6 +55,8 @@ export type DictionaryKey =
   | 'transparency.updating'
   | 'transparency.disclaimer'
   | 'transparency.viewFullDetails'
+  | 'transparency.group.valueBets'
+  | 'transparency.group.predictions'
   | 'recentBets.title'
   | 'recentBets.captionFallback'
   | 'recentBets.captionTemplate'
@@ -86,6 +88,9 @@ export type DictionaryKey =
   | 'valueBet.edge'
   | 'valueBet.stake'
   | 'bankroll.empty'
+  | 'bankroll.series.valueBets'
+  | 'bankroll.series.predictions'
+  | 'bankroll.series.combined'
   | 'ratings.col.team'
   | 'ratings.col.home'
   | 'ratings.col.away'
@@ -276,6 +281,8 @@ export const en: Dictionary = {
   'transparency.disclaimer':
     'Hypothetical simulation of a statistical model based on historical match data. Not a solicitation to gamble. No guarantee of future results. Gambling involves financial risk.',
   'transparency.viewFullDetails': 'View full details',
+  'transparency.group.valueBets': 'Value Bets',
+  'transparency.group.predictions': '1x2 Predictions',
   'recentBets.title': 'Recent Bets',
   'recentBets.captionFallback': 'Evaluation of past value bets',
   'recentBets.captionTemplate':
@@ -309,6 +316,9 @@ export const en: Dictionary = {
   'valueBet.edge': 'Edge',
   'valueBet.stake': 'Stake',
   'bankroll.empty': 'No bankroll data yet — log some bets to start tracking.',
+  'bankroll.series.valueBets': 'Value Bets',
+  'bankroll.series.predictions': '1x2 Predictions',
+  'bankroll.series.combined': 'Combined',
   'ratings.col.team': 'Team',
   'ratings.col.home': 'Home',
   'ratings.col.away': 'Away',

@@ -6,7 +6,11 @@ import { KpiTile } from '@/components/KpiTile';
 import { Section } from '@/components/Section';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import type { BankrollPoint, PerformanceSummary } from '@/lib/types';
+import type {
+  BankrollPoint,
+  PerformanceSummary,
+  StrategyStats,
+} from '@/lib/types';
 
 type PerformanceClientProps = {
   initialSummary?: PerformanceSummary | null;
@@ -15,6 +19,49 @@ type PerformanceClientProps = {
 
 function pct(value: number, digits = 1): string {
   return `${(value * 100).toFixed(digits)}%`;
+}
+
+function tone(value: number): 'positive' | 'negative' | 'default' {
+  return value > 0 ? 'positive' : value < 0 ? 'negative' : 'default';
+}
+
+function StrategyGroup({
+  title,
+  stats,
+  t,
+}: {
+  title: string;
+  stats: StrategyStats | null;
+  t: ReturnType<typeof useLocale>['t'];
+}) {
+  const hasData = !!stats && stats.n_bets > 0;
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="text-2xs uppercase tracking-[0.12em] text-muted">
+        {title}
+      </h3>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KpiTile
+          label={t('kpi.bets')}
+          value={hasData ? stats!.n_bets : '—'}
+        />
+        <KpiTile
+          label={t('kpi.hitRate')}
+          value={hasData ? pct(stats!.hit_rate) : '—'}
+        />
+        <KpiTile
+          label={t('kpi.roi')}
+          value={hasData ? pct(stats!.roi, 2) : '—'}
+          tone={hasData ? tone(stats!.roi) : 'default'}
+        />
+        <KpiTile
+          label={t('kpi.maxDrawdown')}
+          value={hasData ? `${stats!.max_drawdown_pct.toFixed(1)}%` : '—'}
+          tone={hasData ? 'negative' : 'default'}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function PerformanceClient({
@@ -34,8 +81,6 @@ export function PerformanceClient({
   });
 
   const s = summaryQuery.data;
-  const tone = (value: number): 'positive' | 'negative' | 'default' =>
-    value > 0 ? 'positive' : value < 0 ? 'negative' : 'default';
 
   return (
     <>
@@ -49,22 +94,16 @@ export function PerformanceClient({
       </header>
 
       <Section title={t('performance.section.coreMetrics')}>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <KpiTile
-            label={t('kpi.bets')}
-            value={s?.n_bets ?? '—'}
-            hint={s ? t('kpi.bets.hint', { n: s.n_predictions }) : undefined}
+        <div className="flex flex-col gap-6">
+          <StrategyGroup
+            title={t('transparency.group.valueBets')}
+            stats={s?.value_bets ?? null}
+            t={t}
           />
-          <KpiTile label={t('kpi.hitRate')} value={s ? pct(s.hit_rate) : '—'} />
-          <KpiTile
-            label={t('kpi.roi')}
-            value={s ? pct(s.roi, 2) : '—'}
-            tone={s ? tone(s.roi) : 'default'}
-          />
-          <KpiTile
-            label={t('kpi.maxDrawdown')}
-            value={s ? `${s.max_drawdown_pct.toFixed(1)}%` : '—'}
-            tone="negative"
+          <StrategyGroup
+            title={t('transparency.group.predictions')}
+            stats={s?.predictions ?? null}
+            t={t}
           />
         </div>
       </Section>

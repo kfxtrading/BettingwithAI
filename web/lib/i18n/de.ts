@@ -68,6 +68,8 @@ export const de: Dictionary = {
   'transparency.disclaimer':
     'Hypothetische Simulation eines statistischen Modells auf Basis historischer Spieldaten. Keine Aufforderung zum Glücksspiel. Keine Garantie für zukünftige Ergebnisse. Glücksspiel beinhaltet finanzielle Risiken.',
   'transparency.viewFullDetails': 'Alle Details anzeigen',
+  'transparency.group.valueBets': 'Value Bets',
+  'transparency.group.predictions': 'Prognosen 1x2',
   'recentBets.title': 'Letzte Wetten',
   'recentBets.captionFallback': 'Auswertung vergangener Value Bets',
   'recentBets.captionTemplate':
@@ -102,6 +104,9 @@ export const de: Dictionary = {
   'valueBet.stake': 'Einsatz',
   'bankroll.empty':
     'Noch keine Bankroll-Daten — erfasse Wetten, um den Verlauf zu starten.',
+  'bankroll.series.valueBets': 'Value Bets',
+  'bankroll.series.predictions': 'Prognosen 1x2',
+  'bankroll.series.combined': 'Kombiniert',
   'ratings.col.team': 'Team',
   'ratings.col.home': 'Heim',
   'ratings.col.away': 'Auswärts',

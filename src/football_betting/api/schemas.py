@@ -113,6 +113,17 @@ class PerformancePerLeague(BaseModel):
     roi: float
 
 
+class StrategyStats(BaseModel):
+    """Aggregate performance metrics scoped to a single betting strategy."""
+
+    n_bets: int
+    hit_rate: float
+    roi: float
+    total_profit: float
+    total_stake: float
+    max_drawdown_pct: float
+
+
 class PerformanceSummary(BaseModel):
     n_predictions: int
     n_bets: int
@@ -124,11 +135,15 @@ class PerformanceSummary(BaseModel):
     rps_mean: float | None = None
     max_drawdown_pct: float
     per_league: list[PerformancePerLeague] = Field(default_factory=list)
+    value_bets: StrategyStats | None = None
+    predictions: StrategyStats | None = None
 
 
 class BankrollPoint(BaseModel):
     date: str
     value: float
+    value_bets: float | None = None
+    predictions: float | None = None
 
 
 class EquityIndexPoint(BaseModel):
