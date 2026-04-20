@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
 import type { Locale } from '@/lib/i18n';
+import { LandingProvider } from './LandingContext';
 
 export function Providers({
   children,
@@ -29,7 +30,9 @@ export function Providers({
 
   return (
     <QueryClientProvider client={client}>
-      <LocaleProvider initialLocale={initialLocale}>{children}</LocaleProvider>
+      <LocaleProvider initialLocale={initialLocale}>
+        <LandingProvider>{children}</LandingProvider>
+      </LocaleProvider>
       <Toaster
         position="top-right"
         toastOptions={{

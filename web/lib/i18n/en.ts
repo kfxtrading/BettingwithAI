@@ -97,6 +97,15 @@ export type DictionaryKey =
   | 'nav.language'
   | 'nav.about'
   | 'nav.methodology'
+  | 'breadcrumb.home'
+  | 'rail.section.explore'
+  | 'rail.section.spaces'
+  | 'rail.section.today'
+  | 'rail.spaces.all'
+  | 'rail.today.empty'
+  | 'rail.today.snapshot'
+  | 'rail.quick.learn'
+  | 'rail.quick.trackRecord'
   | 'footer.text'
   | 'footer.col.product'
   | 'footer.col.about'
@@ -311,6 +320,15 @@ export const en: Dictionary = {
   'nav.language': 'Language',
   'nav.about': 'About',
   'nav.methodology': 'Methodology',
+  'breadcrumb.home': 'Home',
+  'rail.section.explore': 'Explore',
+  'rail.section.spaces': 'Leagues',
+  'rail.section.today': 'Today',
+  'rail.spaces.all': 'All leagues',
+  'rail.today.empty': 'No upcoming kickoffs.',
+  'rail.today.snapshot': 'Snapshot · updated {age} ago',
+  'rail.quick.learn': 'Learn',
+  'rail.quick.trackRecord': 'Track record',
   'footer.text':
     'Betting with AI · CatBoost + Poisson + MLP ensemble · Model v0.3',
   'footer.col.product': 'Product',

@@ -12,6 +12,7 @@ import { SITE_NAME, SITE_URL, absoluteUrl, buildLanguageAlternates } from '@/lib
 import { defaultLocale, locales, ogLocaleMap } from '@/lib/i18n';
 import { getServerLocale } from '@/lib/i18n/server';
 import { Footer } from '@/components/Footer';
+import { LeftRail } from '@/components/rail/LeftRail';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -130,11 +131,16 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-bg text-text antialiased">
         <Providers initialLocale={locale}>
-          <Nav />
-          <main className="mx-auto w-full max-w-page px-6 pb-24 pt-10 md:px-12">
-            {children}
-          </main>
-          <Footer />
+          <div className="lg:grid lg:grid-cols-[248px_minmax(0,1fr)] xl:grid-cols-[272px_minmax(0,1fr)]">
+            <LeftRail />
+            <div className="flex min-h-screen min-w-0 flex-col">
+              <Nav />
+              <main className="mx-auto w-full max-w-page px-6 pb-24 pt-10 md:px-12">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </div>
           <CookieConsent />
           <SupportChat />
         </Providers>

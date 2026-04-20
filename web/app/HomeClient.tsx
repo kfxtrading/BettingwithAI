@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useLanding } from './LandingContext';
 import { LeagueSwitcher } from '@/components/LeagueSwitcher';
 import { PerformanceTracker } from '@/components/PerformanceTracker';
 import { PredictionCard } from '@/components/PredictionCard';
@@ -61,7 +62,7 @@ export function HomeClient({
   initialToday,
   initialLeagues,
 }: HomeClientProps = {}) {
-  const [league, setLeague] = useState<string | null>(null);
+  const { league, setLeague } = useLanding();
   const [now, setNow] = useState<Date | null>(null);
   const { t, locale } = useLocale();
 
