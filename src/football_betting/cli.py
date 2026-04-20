@@ -809,6 +809,65 @@ def weather_stadiums(league: str, seasons: tuple[str, ...], out: str, force: boo
 
 # ───────────────────────── serve (web UI) ─────────────────────────
 
+@main.command("sofascore-find")
+@click.argument("league")
+@click.argument("home")
+@click.argument("away")
+@click.argument("day")
+def sofascore_find(league: str, home: str, away: str, day: str) -> None:
+    """Diagnose Sofascore event-id lookup for one fixture.
+
+    Example: fb sofascore-find SA Lecce Fiorentina 2026-04-20
+    """
+    from datetime import date as _date
+    from football_betting.scraping.sofascore import (
+        SofascoreClient,
+        _name_matches,
+        _normalise_team_name,
+    )
+
+    target = _date.fromisoformat(day)
+    client = SofascoreClient()
+    cfg = LEAGUES.get(league.upper())
+    if cfg is None or cfg.sofascore_tournament_id is None:
+        raise click.ClickException(
+            f"League {league} has no sofascore_tournament_id configured."
+        )
+    tid = cfg.sofascore_tournament_id
+    h_norm = _normalise_team_name(home)
+    a_norm = _normalise_team_name(away)
+    console.log(
+        f"[cyan]Looking up tournament_id={tid} | "
+        f"home='{home}'->'{h_norm}' | away='{away}'->'{a_norm}'[/cyan]"
+    )
+    table = Table(show_header=True, header_style="bold magenta")
+    for col in ("date", "event_id", "home", "away", "h_norm", "a_norm", "match"):
+        table.add_column(col)
+    for delta in (0, -1, 1):
+        target_d = target.fromordinal(target.toordinal() + delta)
+        events = client.get_scheduled_events_for_date(target_d)
+        for ev in events:
+            t_obj = ev.get("tournament", {}) or {}
+            ut_obj = t_obj.get("uniqueTournament", {}) or {}
+            ev_tid = int(ut_obj.get("id") or t_obj.get("id") or 0)
+            if ev_tid != tid:
+                continue
+            ev_home = str((ev.get("homeTeam") or {}).get("name", ""))
+            ev_away = str((ev.get("awayTeam") or {}).get("name", ""))
+            hn = _normalise_team_name(ev_home)
+            an = _normalise_team_name(ev_away)
+            ok = "yes" if (
+                _name_matches(hn, h_norm) and _name_matches(an, a_norm)
+            ) else ""
+            table.add_row(
+                target_d.isoformat(), str(ev.get("id", "")),
+                ev_home, ev_away, hn, an, ok,
+            )
+    console.print(table)
+    resolved = client.find_event_id(league.upper(), home, away, target)
+    console.log(f"[green]Resolved event_id: {resolved}[/green]")
+
+
 @main.command()
 @click.option("--host", default="127.0.0.1")
 @click.option("--port", default=8000, type=int)

@@ -427,19 +427,39 @@ class SofascoreClient:
         return None
 
 
+_TRAILING_CLUB_TOKENS = (
+    "fc", "cf", "afc", "ac", "sc", "bc", "ssc", "usl",
+    "ssd", "calcio", "club", "cp", "sad", "fk",
+)
+_LEADING_CLUB_TOKENS = (
+    "fc", "cf", "acf", "afc", "ac", "sc", "ssc", "us", "as", "ud", "ue",
+    "ca", "cd", "rc", "rcd", "sd", "ssd", "vfl", "vfb", "tsg", "bsc",
+    "bv", "bvb", "fsv", "msv", "kv", "kfc", "kvc", "rb", "club",
+    "hellas", "ogc",
+)
+
+
 def _normalise_team_name(name: str) -> str:
-    """Lower-case, ASCII-fold, strip common suffixes for fuzzy matching."""
+    """Lower-case, ASCII-fold, strip common club prefixes/suffixes."""
     import unicodedata
 
     s = unicodedata.normalize("NFKD", name)
     s = "".join(c for c in s if not unicodedata.combining(c))
     s = s.lower()
-    for token in (" fc", " cf", " afc", " ac", " sc", " bc", " ssc", " usl"):
-        if s.endswith(token):
-            s = s[: -len(token)]
     s = s.replace("&", "and")
     s = "".join(c if c.isalnum() else " " for c in s)
-    return " ".join(s.split())
+    parts = s.split()
+    # Strip a leading numeric token like "1." (1. FC Köln, 1899 Hoffenheim).
+    while parts and parts[0].isdigit():
+        parts.pop(0)
+    # Repeatedly strip leading club-form tokens ("us lecce" → "lecce",
+    # "acf fiorentina" → "fiorentina", "1 fc koln" → "koln").
+    while len(parts) > 1 and parts[0] in _LEADING_CLUB_TOKENS:
+        parts.pop(0)
+    # And trailing ones ("brighton hove albion fc" → "brighton hove albion").
+    while len(parts) > 1 and parts[-1] in _TRAILING_CLUB_TOKENS:
+        parts.pop()
+    return " ".join(parts)
 
 
 def _name_matches(a: str, b: str) -> bool:
