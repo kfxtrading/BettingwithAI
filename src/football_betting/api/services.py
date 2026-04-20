@@ -47,7 +47,7 @@ from football_betting.api.schemas import (
 logger = logging.getLogger("football_betting.api")
 from football_betting.api.snapshots import load_today
 from football_betting.betting.value import find_value_bets, rank_value_bets
-from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR, SOFASCORE_CFG
+from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, MatchOdds, Outcome, Prediction
 from football_betting.data.odds_snapshots import (
@@ -260,16 +260,16 @@ def build_predictions_for_fixtures(
     value_bets = []
     data_sources: list[DataSourceInfo] = []
 
-    # Optional: shared Sofascore client for upcoming-event-id lookup. Only
-    # instantiated when scraping is enabled so we never hit the network in
-    # the default offline path.
+    # Shared Sofascore client for upcoming-event-id lookup. Always
+    # instantiated — the lookup itself uses the public ``/scheduled-events``
+    # endpoint (mirror of the Sofascore widget) and bypasses the global
+    # SCRAPING_ENABLED gate.
     sofa_lookup_client: SofascoreClient | None = None
-    if SOFASCORE_CFG.enabled:
-        try:
-            sofa_lookup_client = SofascoreClient()
-        except Exception as exc:  # pragma: no cover - defensive
-            logger.warning("[predict] Sofascore client init failed: %s", exc)
-            sofa_lookup_client = None
+    try:
+        sofa_lookup_client = SofascoreClient()
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("[predict] Sofascore client init failed: %s", exc)
+        sofa_lookup_client = None
 
     for league_key, league_fixtures in by_league.items():
         if league_key not in LEAGUES:
@@ -1109,6 +1109,25 @@ def get_match_wrapper(slug: str) -> MatchWrapperOut | None:
 
     wrapper = build_wrapper(pred, league_name=league_name)
     wrapper = attach_archive(wrapper)
+
+    # Lazy fill of sofascore_event_id for snapshots that were generated
+    # before the lookup was wired in (or without network access). Cached
+    # via the SQLite layer, so repeat hits cost nothing.
+    if wrapper.sofascore_event_id is None and not wrapper.is_archived:
+        try:
+            from datetime import datetime as _dt
+            fx_date = _dt.fromisoformat(pred.date).date()
+            client = SofascoreClient()
+            ev_id = client.find_event_id(
+                pred.league.upper(), pred.home_team, pred.away_team, fx_date,
+            )
+            if ev_id is not None:
+                wrapper.sofascore_event_id = ev_id
+        except Exception as exc:  # pragma: no cover - never break the page
+            logger.debug(
+                "[api] Sofascore lazy lookup failed for %s: %s", slug, exc,
+            )
+
     return MatchWrapperOut(
         slug=wrapper.slug,
         league=wrapper.league,

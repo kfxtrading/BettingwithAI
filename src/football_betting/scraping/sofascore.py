@@ -134,9 +134,15 @@ class SofascoreClient:
         params: dict | None = None,
         cache_ttl: int | None = None,
         use_cache: bool = True,
+        force: bool = False,
     ) -> dict[str, Any] | None:
-        """Fetch with cache + rate limit + retries. Returns parsed JSON or None."""
-        if not self.cfg.enabled:
+        """Fetch with cache + rate limit + retries. Returns parsed JSON or None.
+
+        ``force=True`` bypasses the global ``SCRAPING_ENABLED`` gate. It is
+        intended for the public ``/scheduled-events`` endpoint, which mirrors
+        what the official Sofascore widget would request anyway.
+        """
+        if not self.cfg.enabled and not force:
             raise RuntimeError(
                 "Sofascore scraping disabled. Set env var SCRAPING_ENABLED=1 to enable."
             )
@@ -152,8 +158,10 @@ class SofascoreClient:
                 except json.JSONDecodeError:
                     self.cache.delete(url, params)
 
-        # Rate limit
-        self._limiter.acquire()
+        # Rate limit (skip the heavy 25s budget for force-mode lookups —
+        # those are public-widget reads, not deep stat scraping).
+        if not force:
+            self._limiter.acquire()
 
         # Retry loop
         last_exc: Exception | None = None
@@ -361,13 +369,19 @@ class SofascoreClient:
 
     # ───────────────────────── Event-ID lookup ─────────────────────────
 
-    def get_scheduled_events_for_date(self, day: date) -> list[dict]:
+    def get_scheduled_events_for_date(
+        self, day: date, *, force: bool = True
+    ) -> list[dict]:
         """All football events scheduled on ``day`` (UTC).
 
         Cached via the SQLite layer; one HTTP call per unique date.
+        ``force`` defaults to True because this endpoint mirrors the public
+        Sofascore website and is safe to query even when the global
+        ``SCRAPING_ENABLED`` flag is off.
         """
         data = self._fetch_json(
-            f"/sport/football/scheduled-events/{day.isoformat()}"
+            f"/sport/football/scheduled-events/{day.isoformat()}",
+            force=force,
         )
         return data.get("events", []) if data else []
 
