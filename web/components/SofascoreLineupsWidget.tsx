@@ -22,7 +22,7 @@ export function SofascoreLineupsWidget({
       frameBorder={0}
       sandbox="allow-scripts allow-same-origin allow-popups"
       referrerPolicy="no-referrer-when-downgrade"
-      className="mx-auto block h-[786px] w-full max-w-[480px] rounded-md border border-white/10 bg-bg"
+      className="mx-auto block h-[786px] w-full max-w-[800px] rounded-md border border-white/10 bg-bg"
     />
   );
 }
