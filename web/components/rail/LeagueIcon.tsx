@@ -17,7 +17,7 @@ function Base({
       viewBox="0 0 20 20"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -113,6 +113,8 @@ const ICON_MAP: Record<string, (p: IconProps) => JSX.Element> = {
   SA: SerieAIcon,
   LL: LaLigaIcon,
   ELC: ChampionshipIcon,
+  CH: ChampionshipIcon,
+  EFL: ChampionshipIcon,
 };
 
 export function LeagueIcon({
