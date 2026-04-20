@@ -22,7 +22,7 @@ import os
 from datetime import date, datetime, timedelta, timezone
 
 from football_betting.api.services import build_predictions_for_fixtures
-from football_betting.api.snapshots import snapshot_exists, write_today
+from football_betting.api.snapshots import snapshot_is_stale, write_today
 from football_betting.config import DATA_DIR, ODDS_API_CFG
 from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
 
@@ -172,10 +172,12 @@ async def _live_settle_loop() -> None:
             logger.exception("[live-settle] loop iteration failed")
 
 
-async def start(run_initial_if_missing: bool = True) -> None:
+async def start(run_initial_if_stale: bool = True) -> None:
     """Install as a FastAPI startup hook."""
-    if run_initial_if_missing and not snapshot_exists():
-        logger.info("[scheduler] No snapshot on disk — refreshing now (background).")
+    if run_initial_if_stale and snapshot_is_stale(_refresh_hour_utc()):
+        logger.info(
+            "[scheduler] Snapshot missing or stale — refreshing now (background)."
+        )
         asyncio.create_task(refresh_snapshot_once())
     asyncio.create_task(_daily_loop())
     asyncio.create_task(_live_settle_loop())
