@@ -7,7 +7,7 @@ const CONSENT_STORAGE_KEY = 'bwai.cookie-consent.v1';
 const CONSENT_VERSION = '1.0';
 const PER_WIDGET_OVERRIDE_KEY = 'bwai.sofascore.lineups.optin.v1';
 
-const WIDGET_BASE_URL = 'https://widget.sofascore.com/';
+const WIDGET_BASE_URL = 'https://widgets.sofascore.com/embed/lineups';
 
 type StoredConsent = {
   accepted: boolean;
@@ -79,7 +79,7 @@ export function SofascoreLineupsWidget({
     return (
       <div
         aria-hidden="true"
-        className="surface-card flex h-[760px] w-full items-center justify-center px-4 py-3"
+        className="surface-card mx-auto flex h-[786px] w-full max-w-[480px] items-center justify-center px-4 py-3"
       />
     );
   }
@@ -107,15 +107,18 @@ export function SofascoreLineupsWidget({
     );
   }
 
-  const src = `${WIDGET_BASE_URL}?id=${eventId}&widgetTitle=lineups&type=lineups`;
+  const src = `${WIDGET_BASE_URL}?id=${eventId}&widgetTheme=dark`;
   return (
     <iframe
+      id={`sofa-lineups-embed-${eventId}`}
       src={src}
       title={`Sofascore lineups: ${homeTeam} vs ${awayTeam}`}
       loading="lazy"
+      scrolling="no"
+      frameBorder={0}
       sandbox="allow-scripts allow-same-origin allow-popups"
       referrerPolicy="no-referrer-when-downgrade"
-      className="h-[760px] w-full rounded-md border border-white/10 bg-bg"
+      className="mx-auto block h-[786px] w-full max-w-[480px] rounded-md border border-white/10 bg-bg"
     />
   );
 }
