@@ -56,12 +56,12 @@ export function RailSpaces() {
             <li key={l.key}>
               <SpaceRow
                 label={l.name}
-                short={l.code}
+                short={l.key}
                 active={active}
                 onClick={() => setLeague(l.key)}
-                accent={accentFor(l.code)}
+                accent={accentFor(l.key)}
               >
-                <LeagueIcon code={l.code} size={20} />
+                <LeagueIcon code={l.key} size={20} />
               </SpaceRow>
             </li>
           );
