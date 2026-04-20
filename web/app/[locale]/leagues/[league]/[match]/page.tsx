@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/JsonLd';
+import { SofascoreLineupsWidget } from '@/components/SofascoreLineupsWidget';
 import {
   absoluteUrl,
   buildMetadata,
@@ -33,6 +34,7 @@ type MatchWrapper = {
   actual_result?: 'H' | 'D' | 'A' | null;
   actual_score?: string | null;
   pick_correct?: boolean | null;
+  sofascore_event_id?: number | null;
 };
 
 async function fetchMatchWrapper(slug: string): Promise<MatchWrapper | null> {
@@ -76,7 +78,7 @@ export async function generateMetadata({
 
 export default async function MatchPredictionPage({ params }: PageProps) {
   const wrapper = await fetchMatchWrapper(params.match);
-  const { locale } = getServerDictionary(params.locale);
+  const { locale, dict } = getServerDictionary(params.locale);
   const leagues = await fetchLeaguesServer();
   const leagueKey = params.league.toUpperCase();
   const league = leagues.find((l) => l.key === leagueKey);
@@ -198,6 +200,22 @@ export default async function MatchPredictionPage({ params }: PageProps) {
             <p key={i}>{p}</p>
           ))}
         </section>
+
+        {wrapper.sofascore_event_id ? (
+          <section className="mt-8">
+            <h2 className="mb-3 text-sm font-medium uppercase tracking-[0.08em] text-muted">
+              {dict['match.lineups.title']}
+            </h2>
+            <SofascoreLineupsWidget
+              eventId={wrapper.sofascore_event_id}
+              homeTeam={wrapper.home_team}
+              awayTeam={wrapper.away_team}
+            />
+            <p className="mt-2 text-2xs uppercase tracking-[0.08em] text-muted">
+              {dict['match.lineups.attribution']}
+            </p>
+          </section>
+        ) : null}
 
         {wrapper.is_archived && wrapper.actual_result && (
           <section className="mt-8 rounded-md border border-white/10 bg-white/5 p-4">

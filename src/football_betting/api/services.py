@@ -47,7 +47,7 @@ from football_betting.api.schemas import (
 logger = logging.getLogger("football_betting.api")
 from football_betting.api.snapshots import load_today
 from football_betting.betting.value import find_value_bets, rank_value_bets
-from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR
+from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR, SOFASCORE_CFG
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, MatchOdds, Outcome, Prediction
 from football_betting.data.odds_snapshots import (
@@ -260,6 +260,17 @@ def build_predictions_for_fixtures(
     value_bets = []
     data_sources: list[DataSourceInfo] = []
 
+    # Optional: shared Sofascore client for upcoming-event-id lookup. Only
+    # instantiated when scraping is enabled so we never hit the network in
+    # the default offline path.
+    sofa_lookup_client: SofascoreClient | None = None
+    if SOFASCORE_CFG.enabled:
+        try:
+            sofa_lookup_client = SofascoreClient()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("[predict] Sofascore client init failed: %s", exc)
+            sofa_lookup_client = None
+
     for league_key, league_fixtures in by_league.items():
         if league_key not in LEAGUES:
             logger.warning("[predict] Skipping unknown league %s", league_key)
@@ -344,7 +355,32 @@ def build_predictions_for_fixtures(
                     fd["home_team"], fd["away_team"], league_key, exc,
                 )
                 continue
-            predictions.append(_to_prediction_out(pred, league_name))
+            pred_out = _to_prediction_out(pred, league_name)
+            if sofa_lookup_client is not None:
+                try:
+                    fx_date = (
+                        fixture.date
+                        if hasattr(fixture.date, "isoformat")
+                        else datetime.fromisoformat(str(fixture.date)).date()
+                    )
+                    event_id = sofa_lookup_client.find_event_id(
+                        league_key,
+                        fixture.home_team,
+                        fixture.away_team,
+                        fx_date,
+                    )
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.debug(
+                        "[predict] Sofascore event-id lookup failed for "
+                        "%s vs %s: %s",
+                        fixture.home_team, fixture.away_team, exc,
+                    )
+                    event_id = None
+                if event_id is not None:
+                    pred_out = pred_out.model_copy(
+                        update={"sofascore_event_id": event_id}
+                    )
+            predictions.append(pred_out)
 
             if odds is not None:
                 bets = find_value_bets(pred, bankroll)
@@ -1089,6 +1125,7 @@ def get_match_wrapper(slug: str) -> MatchWrapperOut | None:
         actual_result=wrapper.actual_result,  # type: ignore[arg-type]
         actual_score=wrapper.actual_score,
         pick_correct=wrapper.pick_correct,
+        sofascore_event_id=wrapper.sofascore_event_id,
     )
 
 

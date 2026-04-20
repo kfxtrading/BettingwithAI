@@ -358,3 +358,98 @@ class SofascoreClient:
         if not path.exists():
             return []
         return json.loads(path.read_text())
+
+    # ───────────────────────── Event-ID lookup ─────────────────────────
+
+    def get_scheduled_events_for_date(self, day: date) -> list[dict]:
+        """All football events scheduled on ``day`` (UTC).
+
+        Cached via the SQLite layer; one HTTP call per unique date.
+        """
+        data = self._fetch_json(
+            f"/sport/football/scheduled-events/{day.isoformat()}"
+        )
+        return data.get("events", []) if data else []
+
+    def find_event_id(
+        self,
+        league_key: str,
+        home_team: str,
+        away_team: str,
+        day: date,
+    ) -> int | None:
+        """Best-effort lookup of the Sofascore ``event_id`` for a fixture.
+
+        Searches scheduled events for ``day`` (and ±1 day to absorb timezone
+        skew), filters by ``sofascore_tournament_id`` of ``league_key`` and
+        does fuzzy team-name matching. Returns ``None`` on no/multiple hits.
+        """
+        cfg = LEAGUES.get(league_key)
+        if cfg is None or cfg.sofascore_tournament_id is None:
+            return None
+        tid = cfg.sofascore_tournament_id
+
+        candidates: list[dict] = []
+        for delta in (0, -1, 1):
+            try:
+                target = day.fromordinal(day.toordinal() + delta)
+            except (OverflowError, ValueError):
+                continue
+            for ev in self.get_scheduled_events_for_date(target):
+                t_obj = ev.get("tournament", {}) or {}
+                ut_obj = t_obj.get("uniqueTournament", {}) or {}
+                ev_tid = int(ut_obj.get("id") or t_obj.get("id") or 0)
+                if ev_tid != tid:
+                    continue
+                candidates.append(ev)
+
+        if not candidates:
+            return None
+
+        h_norm = _normalise_team_name(home_team)
+        a_norm = _normalise_team_name(away_team)
+        hits: list[int] = []
+        for ev in candidates:
+            home = _normalise_team_name(
+                str((ev.get("homeTeam") or {}).get("name", ""))
+            )
+            away = _normalise_team_name(
+                str((ev.get("awayTeam") or {}).get("name", ""))
+            )
+            if _name_matches(home, h_norm) and _name_matches(away, a_norm):
+                try:
+                    hits.append(int(ev["id"]))
+                except (KeyError, ValueError, TypeError):
+                    continue
+        # Only return when match is unambiguous.
+        if len(hits) == 1:
+            return hits[0]
+        return None
+
+
+def _normalise_team_name(name: str) -> str:
+    """Lower-case, ASCII-fold, strip common suffixes for fuzzy matching."""
+    import unicodedata
+
+    s = unicodedata.normalize("NFKD", name)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = s.lower()
+    for token in (" fc", " cf", " afc", " ac", " sc", " bc", " ssc", " usl"):
+        if s.endswith(token):
+            s = s[: -len(token)]
+    s = s.replace("&", "and")
+    s = "".join(c if c.isalnum() else " " for c in s)
+    return " ".join(s.split())
+
+
+def _name_matches(a: str, b: str) -> bool:
+    """Loose string equivalence: equality, prefix or substring (>=4 chars)."""
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    if a.startswith(b) or b.startswith(a):
+        return True
+    if len(a) >= 4 and len(b) >= 4 and (a in b or b in a):
+        return True
+    return False

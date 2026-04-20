@@ -41,6 +41,7 @@ class PredictionOut(BaseModel):
     is_live: bool = False
     pick_correct: bool | None = None
     ft_score: str | None = None
+    sofascore_event_id: int | None = None
 
 
 class ValueBetOut(BaseModel):
@@ -303,6 +304,7 @@ class MatchWrapperOut(BaseModel):
     actual_result: Outcome | None = None
     actual_score: str | None = None
     pick_correct: bool | None = None
+    sofascore_event_id: int | None = None
 
 
 class LeagueFixtureOut(BaseModel):

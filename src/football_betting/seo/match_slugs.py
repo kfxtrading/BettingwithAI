@@ -96,6 +96,7 @@ class MatchWrapper:
     actual_result: str | None = None  # 'H' | 'D' | 'A'
     actual_score: str | None = None
     pick_correct: bool | None = None
+    sofascore_event_id: int | None = None
 
 
 def _kickoff_iso(p: PredictionOut) -> str:
@@ -170,6 +171,7 @@ def build_wrapper(p: PredictionOut, league_name: str | None = None) -> MatchWrap
         prob_away=round(p.prob_away, 4),
         pick=pick,
         prose="\n\n".join(paragraphs),
+        sofascore_event_id=getattr(p, "sofascore_event_id", None),
     )
 
 
