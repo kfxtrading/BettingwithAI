@@ -9,7 +9,7 @@ import json
 import logging
 import re
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from football_betting.api.cache import cache
@@ -49,9 +49,11 @@ from football_betting.api.snapshots import load_today, write_today
 from football_betting.betting.value import find_value_bets, rank_value_bets
 from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR
 from football_betting.data.loader import load_league
-from football_betting.data.models import Fixture, MatchOdds, Outcome, Prediction
+from football_betting.data.models import Fixture, MatchOdds, Prediction
 from football_betting.data.odds_snapshots import (
     append_snapshot as append_odds_snapshot,
+)
+from football_betting.data.odds_snapshots import (
     load_into_tracker as load_odds_snapshots,
 )
 from football_betting.features.builder import FeatureBuilder
@@ -62,7 +64,6 @@ from football_betting.predict.poisson import PoissonModel
 from football_betting.rating.pi_ratings import PiRatings
 from football_betting.scraping.sofascore import SofascoreClient
 from football_betting.tracking.tracker import ResultsTracker
-
 
 __all__ = [
     "build_predictions_for_fixtures",
@@ -516,7 +517,7 @@ def build_predictions_for_fixtures(
     )
 
     return TodayPayload(
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         predictions=predictions,
         value_bets=value_bets,
         data_sources=data_sources,
@@ -644,12 +645,12 @@ def get_today_payload(league: str | None = None) -> TodayPayload:
         fixtures_file = _latest_fixtures_file()
         if fixtures_file is None:
             logger.info("[api] /predictions/today — no snapshot, no fixtures file; returning empty.")
-            return TodayPayload(generated_at=datetime.now(timezone.utc))
+            return TodayPayload(generated_at=datetime.now(UTC))
         try:
             data = json.loads(fixtures_file.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             logger.warning("[api] /predictions/today — malformed fixtures file %s", fixtures_file)
-            return TodayPayload(generated_at=datetime.now(timezone.utc))
+            return TodayPayload(generated_at=datetime.now(UTC))
         logger.info("[api] /predictions/today — no snapshot; computing on-demand from %s", fixtures_file.name)
         snapshot = build_predictions_for_fixtures(data)
 
@@ -732,7 +733,7 @@ def get_history(days: int | None = 14) -> HistoryPayload:
     hit_rate = round(total_won / settled, 4) if settled > 0 else None
 
     return HistoryPayload(
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         n_days=len(day_rows),
         total_bets=total_bets,
         total_won=total_won,
@@ -1223,16 +1224,24 @@ def get_match_wrapper(slug: str) -> MatchWrapperOut | None:
     # Lazy fill of sofascore_event_id for snapshots that were generated
     # before the lookup was wired in (or without network access).
     if wrapper.sofascore_event_id is None and not wrapper.is_archived:
-        client = _new_sofascore_lookup_client("api")
-        ev_id = _resolve_sofascore_event_id(
-            client,
-            league_key=pred.league.upper(),
-            home_team=pred.home_team,
-            away_team=pred.away_team,
-            match_date=pred.date,
-            context="api",
-            log_miss=True,
-        )
+        from football_betting.scraping.sofascore_overrides import get_override
+
+        ev_id = get_override(slug)
+        if ev_id is not None:
+            logger.info(
+                "[api] Sofascore override hit for %s -> event_id=%s", slug, ev_id
+            )
+        else:
+            client = _new_sofascore_lookup_client("api")
+            ev_id = _resolve_sofascore_event_id(
+                client,
+                league_key=pred.league.upper(),
+                home_team=pred.home_team,
+                away_team=pred.away_team,
+                match_date=pred.date,
+                context="api",
+                log_miss=True,
+            )
         if ev_id is not None:
             wrapper.sofascore_event_id = ev_id
             _persist_sofascore_event_id(snapshot, slug=slug, event_id=ev_id)
@@ -1280,8 +1289,8 @@ def get_league_fixtures(league_key: str, limit: int = 5) -> LeagueFixturesOut:
     next_rows: list[LeagueFixtureOut] = []
     snapshot = load_today()
     if snapshot is not None:
-        from datetime import datetime as _dt, timezone as _tz
-        today_iso = _dt.now(_tz.utc).date().isoformat()
+        from datetime import datetime as _dt
+        today_iso = _dt.now(UTC).date().isoformat()
         upcoming = [
             p for p in snapshot.predictions
             if p.league.upper() == league_key and p.date >= today_iso

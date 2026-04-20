@@ -214,9 +214,9 @@ def test_get_match_wrapper_persists_lazy_sofascore_lookup(
 ) -> None:
     from datetime import datetime
 
+    import football_betting.seo.match_slugs as match_slugs_mod
     from football_betting.api import services
     from football_betting.api.schemas import PredictionOut, TodayPayload
-    import football_betting.seo.match_slugs as match_slugs_mod
 
     slug = "lecce-vs-fiorentina-2026-04-20"
     snapshot = TodayPayload(
@@ -254,9 +254,57 @@ def test_get_match_wrapper_persists_lazy_sofascore_lookup(
         lambda _context: FakeSofascoreClient(),
     )
     monkeypatch.setattr(match_slugs_mod, "attach_archive", lambda wrapper: wrapper)
+    # Force fallback path: pretend no override exists for this slug.
+    import football_betting.scraping.sofascore_overrides as sofa_overrides
+    monkeypatch.setattr(sofa_overrides, "get_override", lambda _slug: None)
 
     wrapper = services.get_match_wrapper(slug)
 
     assert wrapper is not None
     assert wrapper.sofascore_event_id == 13980099
     assert persisted["payload"].predictions[0].sofascore_event_id == 13980099
+
+
+def test_get_match_wrapper_uses_static_override_without_network(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Override file short-circuits the Sofascore client entirely."""
+    from datetime import datetime
+
+    import football_betting.scraping.sofascore_overrides as sofa_overrides
+    import football_betting.seo.match_slugs as match_slugs_mod
+    from football_betting.api import services
+    from football_betting.api.schemas import PredictionOut, TodayPayload
+
+    slug = "lecce-vs-fiorentina-2026-04-20"
+    snapshot = TodayPayload(
+        generated_at=datetime.utcnow(),
+        predictions=[
+            PredictionOut(
+                date="2026-04-20",
+                league="SA",
+                league_name="Serie A",
+                home_team="Lecce",
+                away_team="Fiorentina",
+                prob_home=0.24,
+                prob_draw=0.26,
+                prob_away=0.50,
+                model_name="Ensemble",
+                most_likely="A",
+            )
+        ],
+    )
+
+    def fail_client(_context: str) -> None:
+        raise AssertionError("Sofascore client must not be instantiated when override is present")
+
+    monkeypatch.setattr(services, "load_today", lambda: snapshot)
+    monkeypatch.setattr(services, "write_today", lambda _payload: "today.json")
+    monkeypatch.setattr(services, "_new_sofascore_lookup_client", fail_client)
+    monkeypatch.setattr(sofa_overrides, "get_override", lambda s: 13980099 if s == slug else None)
+    monkeypatch.setattr(match_slugs_mod, "attach_archive", lambda wrapper: wrapper)
+
+    wrapper = services.get_match_wrapper(slug)
+
+    assert wrapper is not None
+    assert wrapper.sofascore_event_id == 13980099

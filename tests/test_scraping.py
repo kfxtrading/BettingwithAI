@@ -231,3 +231,36 @@ class TestSofascoreMatch:
         )
         # 1712770200 → 2024-04-10
         assert match.date.year == 2024
+
+
+class TestSofascoreOverrides:
+    def test_roundtrip(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from football_betting.scraping import sofascore_overrides
+
+        path = tmp_path / "overrides.json"
+        monkeypatch.setattr(sofascore_overrides, "OVERRIDES_PATH", path)
+
+        assert sofascore_overrides.get_override("foo-vs-bar-2026-01-01") is None
+        sofascore_overrides.set_override("foo-vs-bar-2026-01-01", 42)
+        assert sofascore_overrides.get_override("foo-vs-bar-2026-01-01") == 42
+        sofascore_overrides.set_override("baz-vs-qux-2026-01-02", 7)
+        assert sofascore_overrides.load_all() == {
+            "foo-vs-bar-2026-01-01": 42,
+            "baz-vs-qux-2026-01-02": 7,
+        }
+
+    def test_missing_file_returns_empty(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from football_betting.scraping import sofascore_overrides
+
+        monkeypatch.setattr(sofascore_overrides, "OVERRIDES_PATH", tmp_path / "nope.json")
+        assert sofascore_overrides.load_all() == {}
+        assert sofascore_overrides.get_override("any-slug") is None
+
+    def test_corrupt_file_returns_empty(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from football_betting.scraping import sofascore_overrides
+
+        path = tmp_path / "bad.json"
+        path.write_text("not json", encoding="utf-8")
+        monkeypatch.setattr(sofascore_overrides, "OVERRIDES_PATH", path)
+        assert sofascore_overrides.load_all() == {}
+

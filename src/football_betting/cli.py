@@ -22,7 +22,6 @@ Commands:
 from __future__ import annotations
 
 import json
-import time
 from pathlib import Path
 
 import click
@@ -32,12 +31,14 @@ from rich.progress import Progress
 from rich.table import Table
 
 from football_betting.betting.value import find_value_bets, rank_value_bets
-from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR, SOFASCORE_DIR
+from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR
 from football_betting.data.downloader import download_all
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, MatchOdds
 from football_betting.data.odds_snapshots import (
     append_snapshot as append_odds_snapshot,
+)
+from football_betting.data.odds_snapshots import (
     load_into_tracker as load_odds_snapshots,
 )
 from football_betting.features.builder import FeatureBuilder
@@ -503,7 +504,7 @@ def tune_ensemble(league: str, val_season: str) -> None:
         actuals.append(m.result)
 
     result = ensemble.tune_weights(fixtures, actuals)
-    console.print(f"[bold]Best weights:[/bold]")
+    console.print("[bold]Best weights:[/bold]")
     console.print(f"  CatBoost: {result['best_w_catboost']:.3f}")
     console.print(f"  Poisson:  {result['best_w_poisson']:.3f}")
     if mlp is not None:
@@ -657,8 +658,8 @@ def update_performance(tracking_start: str | None) -> None:
 )
 def settle_live_cmd(days_from: int) -> None:
     """Poll The Odds API /scores and settle pending bets."""
-    from football_betting.evaluation.pipeline import settle_live
     from football_betting.evaluation.live_results import pending_league_codes
+    from football_betting.evaluation.pipeline import settle_live
 
     pending = pending_league_codes()
     if not pending:
@@ -716,6 +717,87 @@ def snapshot(fixtures: str | None, bankroll: float) -> None:
             console.log(f"[green]IndexNow notified ({len(urls)} URLs)[/green]")
     except Exception as exc:  # pragma: no cover - never block snapshotting
         console.log(f"[yellow]IndexNow skipped: {exc}[/yellow]")
+
+
+# ───────────────────── resolve-sofascore-ids ─────────────────────
+
+
+@main.command("resolve-sofascore-ids")
+@click.option(
+    "--snapshot", "snapshot_path",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to today.json (defaults to data/snapshots/today.json).",
+)
+@click.option(
+    "--force", is_flag=True,
+    help="Re-resolve slugs that already have an override entry.",
+)
+def resolve_sofascore_ids(snapshot_path: str | None, force: bool) -> None:
+    """Resolve missing sofascore_event_id for today's snapshot and persist.
+
+    Operators run this locally (or in a trusted CI runner) where Sofascore
+    is reachable. Results are written to the bundled overrides file so
+    production hosts that cannot reach Sofascore serve event IDs directly.
+    """
+    import os
+
+    from football_betting.api.snapshots import SNAPSHOT_PATH
+    from football_betting.scraping.sofascore import SofascoreClient
+    from football_betting.scraping.sofascore_overrides import (
+        OVERRIDES_PATH,
+        load_all,
+        set_override,
+    )
+    from football_betting.seo.match_slugs import build_slug
+
+    os.environ.setdefault("SCRAPING_ENABLED", "1")
+
+    path = Path(snapshot_path) if snapshot_path else SNAPSHOT_PATH
+    if not path.exists():
+        console.print(f"[red]Snapshot not found: {path}[/red]")
+        raise click.Abort()
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    preds = data.get("predictions", [])
+    if not preds:
+        console.log("[yellow]Snapshot contains no predictions.[/yellow]")
+        return
+
+    existing = load_all()
+    client = SofascoreClient()
+    resolved = 0
+    skipped = 0
+    missed = 0
+
+    for pred in preds:
+        slug = build_slug(pred["home_team"], pred["away_team"], pred["date"])
+        if not force and slug in existing:
+            skipped += 1
+            continue
+        try:
+            ev_id = client.find_event_id(
+                pred["league"].upper(),
+                pred["home_team"],
+                pred["away_team"],
+                pred["date"],
+            )
+        except Exception as exc:
+            console.log(f"[red]{slug}: lookup error ({exc})[/red]")
+            missed += 1
+            continue
+        if ev_id is None:
+            console.log(f"[yellow]{slug}: no Sofascore match found[/yellow]")
+            missed += 1
+            continue
+        set_override(slug, ev_id)
+        console.log(f"[green]{slug} -> {ev_id}[/green]")
+        resolved += 1
+
+    console.log(
+        f"[cyan]Overrides written to {OVERRIDES_PATH}[/cyan] "
+        f"(new={resolved}, skipped={skipped}, missed={missed})"
+    )
 
 
 # ───────────────────────── weather-stadiums (v0.4) ─────────────────────────
@@ -820,6 +902,7 @@ def sofascore_find(league: str, home: str, away: str, day: str) -> None:
     Example: fb sofascore-find SA Lecce Fiorentina 2026-04-20
     """
     from datetime import date as _date
+
     from football_betting.scraping.sofascore import (
         SofascoreClient,
         _name_matches,
