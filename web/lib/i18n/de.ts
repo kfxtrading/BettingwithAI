@@ -210,6 +210,7 @@ export const de: Dictionary = {
   'support.input.placeholder': 'Frage stellen…',
   'support.input.send': 'Senden',
   'support.suggestions.heading': 'Häufige Fragen',
+  'support.reset': 'Zurück zu den Fragen',
   'support.fallback':
     'Leider konnte keine passende Antwort gefunden werden. Formuliere deine Frage neu oder nutze die Kontaktdaten im Footer.',
   'support.faq.valueBet.q': 'Was ist ein Value Bet?',

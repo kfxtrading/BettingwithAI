@@ -216,6 +216,7 @@ export const fr: Dictionary = {
   'support.input.placeholder': 'Pose une question…',
   'support.input.send': 'Envoyer',
   'support.suggestions.heading': 'Questions fréquentes',
+  'support.reset': 'Retour aux questions',
   'support.fallback':
     "Désolé, je n'ai pas trouvé de réponse exacte. Reformule ta question ou utilise les coordonnées dans le pied de page.",
   'support.faq.valueBet.q': "Qu'est-ce qu'un value bet ?",

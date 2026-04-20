@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { MessageCircle, Send, X } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Send, X } from 'lucide-react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   FAQ_ENTRIES,
@@ -103,10 +103,27 @@ export function SupportChat() {
             transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
             className="pointer-events-auto flex h-[480px] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[14px] border border-border bg-surface shadow-soft"
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <span className="text-sm font-medium text-text">
-                {t('support.panel.title')}
-              </span>
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2">
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMessages([]);
+                      setInput('');
+                      inputRef.current?.focus();
+                    }}
+                    aria-label={t('support.reset')}
+                    className="focus-ring press inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2 py-1 text-2xs font-medium text-muted hover:border-accent hover:text-text"
+                  >
+                    <ArrowLeft size={12} aria-hidden="true" />
+                    {t('support.reset')}
+                  </button>
+                )}
+                <span className="truncate text-sm font-medium text-text">
+                  {t('support.panel.title')}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -114,7 +131,7 @@ export function SupportChat() {
                   toggleRef.current?.focus();
                 }}
                 aria-label={t('support.panel.close')}
-                className="focus-ring press rounded-full p-1 text-muted hover:text-text"
+                className="focus-ring press flex-none rounded-full p-1 text-muted hover:text-text"
               >
                 <X size={16} />
               </button>

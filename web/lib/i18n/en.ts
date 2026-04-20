@@ -177,6 +177,7 @@ export type DictionaryKey =
   | 'support.input.placeholder'
   | 'support.input.send'
   | 'support.suggestions.heading'
+  | 'support.reset'
   | 'support.fallback'
   | 'support.faq.valueBet.q'
   | 'support.faq.valueBet.a'
@@ -407,6 +408,7 @@ export const en: Dictionary = {
   'support.input.placeholder': 'Ask a question…',
   'support.input.send': 'Send',
   'support.suggestions.heading': 'Common questions',
+  'support.reset': 'Back to questions',
   'support.fallback':
     "Sorry, I couldn't find an exact answer. Try rephrasing, or reach out via the contact details in the footer.",
   'support.faq.valueBet.q': 'What is a value bet?',

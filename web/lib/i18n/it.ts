@@ -215,6 +215,7 @@ export const it: Dictionary = {
   'support.input.placeholder': 'Fai una domanda…',
   'support.input.send': 'Invia',
   'support.suggestions.heading': 'Domande frequenti',
+  'support.reset': 'Torna alle domande',
   'support.fallback':
     'Spiacenti, non ho trovato una risposta precisa. Riformula la domanda oppure usa i contatti nel footer.',
   'support.faq.valueBet.q': 'Che cos\u2019è una value bet?',
