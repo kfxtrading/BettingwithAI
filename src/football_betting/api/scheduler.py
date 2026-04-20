@@ -87,6 +87,15 @@ def _refresh_blocking() -> None:
         len(snapshot.predictions), len(snapshot.value_bets),
     )
 
+    # Invalidate Next.js ISR cache so users see the new snapshot immediately
+    # instead of waiting up to 10 min for the fetch revalidate window.
+    try:
+        from football_betting.api.revalidate import revalidate_snapshot_paths
+
+        revalidate_snapshot_paths()
+    except Exception:  # noqa: BLE001 — web may be down; refresh still succeeded
+        logger.exception("[scheduler] Web revalidation call failed.")
+
     # Persist a dated copy for historical grading and regrade everything.
     try:
         from football_betting.evaluation.pipeline import (
