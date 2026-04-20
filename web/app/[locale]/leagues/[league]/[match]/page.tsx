@@ -90,7 +90,7 @@ export default async function MatchPredictionPage({ params }: PageProps) {
   if (!wrapper) {
     // Render a minimal placeholder (already noindex via metadata).
     return (
-      <article className="prose-editorial mx-auto max-w-3xl">
+      <article className="prose-editorial">
         <h1 className="text-2xl font-medium text-text">Match preview</h1>
         <p className="text-muted">
           A detailed preview for this match has not been published yet. Please
@@ -158,7 +158,7 @@ export default async function MatchPredictionPage({ params }: PageProps) {
   return (
     <>
       <JsonLd data={[breadcrumbLd, articleLd]} />
-      <article className="prose-editorial mx-auto max-w-3xl">
+      <article className="prose-editorial">
         <header className="mb-6 border-b border-white/10 pb-6">
           <p className="text-2xs uppercase tracking-[0.08em] text-muted">
             {leagueName}
