@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { formatKickoff } from '@/lib/datetime';
 import type { Prediction } from '@/lib/types';
 import { ProbabilityBar } from './ProbabilityBar';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -16,6 +18,19 @@ function formatDate(iso: string, locale: string): string {
 export function PredictionCard({ prediction }: { prediction: Prediction }) {
   const { t, locale } = useLocale();
   const { home_team, away_team, league_name, kickoff_time, odds } = prediction;
+  const [viewerTimeZone, setViewerTimeZone] = useState<string | null>(null);
+
+  useEffect(() => {
+    setViewerTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || null);
+  }, []);
+
+  const kickoffLabel = viewerTimeZone
+    ? formatKickoff(prediction.kickoff_utc, {
+        locale,
+        timeZone: viewerTimeZone,
+        fallback: kickoff_time ?? '',
+      })
+    : (kickoff_time ?? '');
 
   const outcomeLabel: Record<Prediction['most_likely'], string> = {
     H: t('predictionCard.outcome.home'),
@@ -48,9 +63,9 @@ export function PredictionCard({ prediction }: { prediction: Prediction }) {
             </span>
           )}
         </div>
-        <span className="font-mono text-muted">
+        <span className="font-mono text-muted" suppressHydrationWarning>
           {formatDate(prediction.date, locale)}
-          {kickoff_time ? ` · ${kickoff_time}` : ''}
+          {kickoffLabel ? ` · ${kickoffLabel}` : ''}
         </span>
       </header>
 
