@@ -1,9 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { api, queryKeys } from '@/lib/api';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useLanding } from '@/app/LandingContext';
+import { AllLeaguesIcon, LeagueIcon } from './LeagueIcon';
 
 // Accent colour per league, in the same warm/muted family as --accent.
 const LEAGUE_ACCENTS: Record<string, string> = {
@@ -37,22 +39,24 @@ export function RailSpaces() {
       <div className="flex flex-wrap gap-1.5 px-2">
         <SpaceButton
           label={t('rail.spaces.all')}
-          short="·"
           active={league === null}
           onClick={() => setLeague(null)}
           accent="139 139 146"
-        />
+        >
+          <AllLeaguesIcon size={18} />
+        </SpaceButton>
         {leagues.map((l) => {
           const active = league === l.key;
           return (
             <SpaceButton
               key={l.key}
               label={l.name}
-              short={l.code}
               active={active}
               onClick={() => setLeague(l.key)}
               accent={accentFor(l.code)}
-            />
+            >
+              <LeagueIcon code={l.code} size={18} />
+            </SpaceButton>
           );
         })}
       </div>
@@ -62,16 +66,16 @@ export function RailSpaces() {
 
 function SpaceButton({
   label,
-  short,
   active,
   onClick,
   accent,
+  children,
 }: {
   label: string;
-  short: string;
   active: boolean;
   onClick: () => void;
   accent: string;
+  children: ReactNode;
 }) {
   return (
     <button
@@ -80,7 +84,7 @@ function SpaceButton({
       aria-pressed={active}
       title={label}
       onClick={onClick}
-      className={`focus-ring press relative flex h-9 w-9 items-center justify-center rounded-xl text-2xs font-semibold uppercase tracking-wide transition-colors ease-ease ${
+      className={`focus-ring press relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors ease-ease ${
         active
           ? 'text-white shadow-soft'
           : 'bg-surface-2 text-muted hover:text-text'
@@ -91,10 +95,12 @@ function SpaceButton({
               background: `rgb(${accent})`,
               boxShadow: `0 4px 12px -6px rgb(${accent} / 0.55)`,
             } as React.CSSProperties)
-          : undefined
+          : ({
+              color: `rgb(${accent})`,
+            } as React.CSSProperties)
       }
     >
-      {short}
+      {children}
     </button>
   );
 }
