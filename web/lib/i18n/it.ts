@@ -209,4 +209,42 @@ export const it: Dictionary = {
   'cookie.btn.save': 'Salva selezione',
   'cookie.btn.acceptAll': 'Accetta tutto',
   'cookie.aria.dialog': 'Consenso ai cookie',
+  'support.toggle.label': 'Aiuto / Supporto',
+  'support.panel.title': 'Chat di supporto',
+  'support.panel.close': 'Chiudi la chat di supporto',
+  'support.input.placeholder': 'Fai una domanda…',
+  'support.input.send': 'Invia',
+  'support.suggestions.heading': 'Domande frequenti',
+  'support.fallback':
+    'Spiacenti, non ho trovato una risposta precisa. Riformula la domanda oppure usa i contatti nel footer.',
+  'support.faq.valueBet.q': 'Che cos\u2019è una value bet?',
+  'support.faq.valueBet.a':
+    'Una value bet è una scommessa in cui il nostro modello stima una probabilità reale di vittoria superiore a quella implicita nelle quote del bookmaker. Il divario (edge) rende la scommessa +EV nel lungo periodo.',
+  'support.faq.accuracy.q': 'Quanto sono accurate le previsioni?',
+  'support.faq.accuracy.a':
+    'Utilizziamo un ensemble CatBoost + Poisson Dixon-Coles + MLP, calibrato con regressione isotonica. L\u2019RPS tipico per campionato è compreso tra 0,18 e 0,21. Vedi la pagina Track Record per un log verificato.',
+  'support.faq.dataSource.q': 'Da dove provengono i dati?',
+  'support.faq.dataSource.a':
+    'Risultati e quote di chiusura provengono dai feed CSV di Football-Data.co.uk per i 5 maggiori campionati. I dati opzionali di formazioni e xG sono presi da Sofascore (solo previo consenso).',
+  'support.faq.snapshotUpdate.q': 'Con quale frequenza vengono aggiornate le previsioni?',
+  'support.faq.snapshotUpdate.a':
+    'Uno snapshot nuovo viene generato ogni mattina. Nelle giornate live, la lista delle value bet si aggiorna ogni 45–60 secondi al variare delle quote.',
+  'support.faq.kelly.q': 'Come viene calcolata la puntata consigliata?',
+  'support.faq.kelly.a':
+    'Applichiamo un criterio di Kelly frazionato (¼ Kelly) con un tetto del 5 % del bankroll per scommessa: f* = (p · o − 1) / (o − 1), dove p è la probabilità calibrata e o la quota decimale. Riduce la varianza rispetto al Kelly pieno.',
+  'support.faq.piRating.q': 'Che cos\u2019è un Pi-Rating?',
+  'support.faq.piRating.a':
+    'I Pi-Ratings (Constantinou & Fenton, 2013) dividono ogni squadra in forza casalinga e in trasferta, aggiornate dopo ogni partita in base alla differenza tra la differenza reti prevista e quella effettiva. Alimentano direttamente il nostro modello Poisson.',
+  'support.faq.responsible.q': 'Si tratta di consulenza finanziaria o di scommesse?',
+  'support.faq.responsible.a':
+    'No. Betting with AI è solo informativo e non costituisce un invito a scommettere. Non accettiamo puntate. Gioca responsabilmente — consulta la pagina Gioco Responsabile per linee di aiuto e auto-esclusione.',
+  'support.faq.language.q': 'Come cambio la lingua?',
+  'support.faq.language.a':
+    'Usa il selettore di lingua nella barra di navigazione in alto. Attualmente supportiamo inglese, tedesco, spagnolo, francese e italiano.',
+  'support.faq.cookies.q': 'Come modifico le preferenze sui cookie?',
+  'support.faq.cookies.a':
+    'Apri il footer e clicca su «Cookies» — da lì puoi riaprire la finestra di consenso in qualsiasi momento e modificare i cookie analitici o di marketing.',
+  'support.faq.contact.q': 'Come posso contattare il team?',
+  'support.faq.contact.a':
+    'I contatti sono nell\u2019Impressum (footer). Per problemi tecnici apri una issue sul repository pubblico del codice sorgente collegato nel footer.',
 };

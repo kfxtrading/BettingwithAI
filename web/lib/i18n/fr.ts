@@ -210,4 +210,42 @@ export const fr: Dictionary = {
   'cookie.btn.save': 'Enregistrer la sélection',
   'cookie.btn.acceptAll': 'Tout accepter',
   'cookie.aria.dialog': 'Consentement aux cookies',
+  'support.toggle.label': 'Aide / Support',
+  'support.panel.title': 'Chat de support',
+  'support.panel.close': 'Fermer le chat de support',
+  'support.input.placeholder': 'Pose une question…',
+  'support.input.send': 'Envoyer',
+  'support.suggestions.heading': 'Questions fréquentes',
+  'support.fallback':
+    "Désolé, je n'ai pas trouvé de réponse exacte. Reformule ta question ou utilise les coordonnées dans le pied de page.",
+  'support.faq.valueBet.q': "Qu'est-ce qu'un value bet ?",
+  'support.faq.valueBet.a':
+    "Un value bet est un pari où notre modèle estime une probabilité de victoire réelle supérieure à celle impliquée par les cotes du bookmaker. L'écart (edge) rend le pari +EV sur le long terme.",
+  'support.faq.accuracy.q': 'Quelle est la précision des prédictions ?',
+  'support.faq.accuracy.a':
+    "Nous utilisons un ensemble CatBoost + Poisson Dixon-Coles + MLP, calibré par régression isotonique. Le RPS typique par championnat se situe entre 0,18 et 0,21. Consulte la page Track Record pour un journal vérifié.",
+  'support.faq.dataSource.q': "D'où proviennent les données ?",
+  'support.faq.dataSource.a':
+    'Les résultats et cotes de clôture proviennent des flux CSV de Football-Data.co.uk pour les 5 grands championnats. Les données optionnelles de compositions et xG proviennent de Sofascore (uniquement avec consentement).',
+  'support.faq.snapshotUpdate.q': 'À quelle fréquence les prédictions sont-elles mises à jour ?',
+  'support.faq.snapshotUpdate.a':
+    "Un nouveau snapshot est généré chaque matin. Les jours de match en direct, la liste des value bets se rafraîchit toutes les 45–60 secondes au gré des cotes.",
+  'support.faq.kelly.q': "Comment la mise recommandée est-elle calculée ?",
+  'support.faq.kelly.a':
+    "Nous appliquons un critère de Kelly fractionné (¼ Kelly) plafonné à 5 % du bankroll par pari : f* = (p · o − 1) / (o − 1), avec p la probabilité calibrée et o la cote décimale. Cela réduit la variance par rapport au Kelly complet.",
+  'support.faq.piRating.q': "Qu'est-ce qu'un Pi-Rating ?",
+  'support.faq.piRating.a':
+    "Les Pi-Ratings (Constantinou & Fenton, 2013) attribuent à chaque équipe une force à domicile et à l'extérieur, mises à jour après chaque match via l'écart entre la différence de buts prévue et observée. Ils alimentent directement notre modèle Poisson.",
+  'support.faq.responsible.q': "Est-ce un conseil financier ou de paris ?",
+  'support.faq.responsible.a':
+    "Non. Betting with AI est à but purement informatif et ne constitue pas une incitation à parier. Nous n'acceptons aucun enjeu. Joue de manière responsable — consulte la page Jeu Responsable pour les lignes d'aide et l'auto-exclusion.",
+  'support.faq.language.q': 'Comment changer la langue ?',
+  'support.faq.language.a':
+    "Utilise le sélecteur de langue dans la barre de navigation supérieure. Nous prenons actuellement en charge l'anglais, l'allemand, l'espagnol, le français et l'italien.",
+  'support.faq.cookies.q': 'Comment modifier mes préférences de cookies ?',
+  'support.faq.cookies.a':
+    "Ouvre le pied de page et clique sur « Cookies » — tu peux rouvrir la boîte de dialogue de consentement à tout moment et ajuster les cookies d'analyse ou de marketing.",
+  'support.faq.contact.q': "Comment contacter l'équipe ?",
+  'support.faq.contact.a':
+    "Les coordonnées figurent dans l'Impressum (pied de page). Pour des problèmes techniques, ouvre une issue sur le dépôt public de code source lié dans le pied de page.",
 };

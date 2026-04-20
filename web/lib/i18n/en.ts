@@ -170,7 +170,34 @@ export type DictionaryKey =
   | 'cookie.btn.reject'
   | 'cookie.btn.save'
   | 'cookie.btn.acceptAll'
-  | 'cookie.aria.dialog';
+  | 'cookie.aria.dialog'
+  | 'support.toggle.label'
+  | 'support.panel.title'
+  | 'support.panel.close'
+  | 'support.input.placeholder'
+  | 'support.input.send'
+  | 'support.suggestions.heading'
+  | 'support.fallback'
+  | 'support.faq.valueBet.q'
+  | 'support.faq.valueBet.a'
+  | 'support.faq.accuracy.q'
+  | 'support.faq.accuracy.a'
+  | 'support.faq.dataSource.q'
+  | 'support.faq.dataSource.a'
+  | 'support.faq.snapshotUpdate.q'
+  | 'support.faq.snapshotUpdate.a'
+  | 'support.faq.kelly.q'
+  | 'support.faq.kelly.a'
+  | 'support.faq.piRating.q'
+  | 'support.faq.piRating.a'
+  | 'support.faq.responsible.q'
+  | 'support.faq.responsible.a'
+  | 'support.faq.language.q'
+  | 'support.faq.language.a'
+  | 'support.faq.cookies.q'
+  | 'support.faq.cookies.a'
+  | 'support.faq.contact.q'
+  | 'support.faq.contact.a';
 
 export const en: Dictionary = {
   'site.title': 'Betting with AI',
@@ -374,4 +401,42 @@ export const en: Dictionary = {
   'cookie.btn.save': 'Save selection',
   'cookie.btn.acceptAll': 'Accept all',
   'cookie.aria.dialog': 'Cookie consent',
+  'support.toggle.label': 'Help / Support',
+  'support.panel.title': 'Support chat',
+  'support.panel.close': 'Close support chat',
+  'support.input.placeholder': 'Ask a question…',
+  'support.input.send': 'Send',
+  'support.suggestions.heading': 'Common questions',
+  'support.fallback':
+    "Sorry, I couldn't find an exact answer. Try rephrasing, or reach out via the contact details in the footer.",
+  'support.faq.valueBet.q': 'What is a value bet?',
+  'support.faq.valueBet.a':
+    'A value bet is a wager where our model estimates the true win probability to be higher than implied by the bookmaker odds. The resulting edge is what makes the bet +EV in the long run.',
+  'support.faq.accuracy.q': 'How accurate are the predictions?',
+  'support.faq.accuracy.a':
+    'We use an ensemble of CatBoost + Dixon-Coles Poisson + an MLP, calibrated with isotonic regression. Typical RPS lies between 0.18 and 0.21 per league. See the Track Record page for a verified log.',
+  'support.faq.dataSource.q': 'Where does the data come from?',
+  'support.faq.dataSource.a':
+    'Match results and closing odds come from Football-Data.co.uk CSV feeds for the Top 5 leagues. Optional lineup and xG data is pulled from Sofascore (opt-in only).',
+  'support.faq.snapshotUpdate.q': 'How often are predictions updated?',
+  'support.faq.snapshotUpdate.a':
+    'A fresh snapshot is generated every morning. During live matchdays the value-bet list refreshes every 45–60 seconds as odds move.',
+  'support.faq.kelly.q': 'How is the recommended stake calculated?',
+  'support.faq.kelly.a':
+    'We apply a fractional Kelly criterion (¼ Kelly) capped at 5% of bankroll per bet: f* = (p · o − 1) / (o − 1), where p is our calibrated probability and o the decimal odds. This reduces variance vs full Kelly.',
+  'support.faq.piRating.q': 'What is a Pi-Rating?',
+  'support.faq.piRating.a':
+    'Pi-Ratings (Constantinou & Fenton, 2013) split each team into a home and away strength and update after every match by the residual between predicted and actual goal difference. They feed directly into our Poisson model.',
+  'support.faq.responsible.q': 'Is this financial or betting advice?',
+  'support.faq.responsible.a':
+    "No. Betting with AI is informational only and not a solicitation to gamble. We never accept stakes. Please gamble responsibly — see the Responsible Gambling page for helplines and self-exclusion tools.",
+  'support.faq.language.q': 'How do I change the language?',
+  'support.faq.language.a':
+    'Use the language switcher in the top navigation bar. We currently support English, German, Spanish, French and Italian.',
+  'support.faq.cookies.q': 'How do I change my cookie preferences?',
+  'support.faq.cookies.a':
+    "Open the footer and click 'Cookies' — you can re-open the consent dialog there and adjust analytics or marketing cookies at any time.",
+  'support.faq.contact.q': 'How can I contact the team?',
+  'support.faq.contact.a':
+    'Contact details are in the Impressum (footer). For technical issues, please open an issue on the public source-code repository linked in the footer.',
 };

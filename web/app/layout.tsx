@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { Nav } from '@/components/Nav';
 import { CookieConsent } from '@/components/CookieConsent';
+import { SupportChat } from '@/components/SupportChat';
 import { JsonLd } from '@/components/JsonLd';
 import { Providers } from './providers';
 import { SITE_NAME, SITE_URL, absoluteUrl, buildLanguageAlternates } from '@/lib/seo';
@@ -135,6 +136,7 @@ export default function RootLayout({
           </main>
           <Footer />
           <CookieConsent />
+          <SupportChat />
         </Providers>
         <Analytics />
       </body>
