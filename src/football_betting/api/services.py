@@ -1123,9 +1123,18 @@ def get_match_wrapper(slug: str) -> MatchWrapperOut | None:
             )
             if ev_id is not None:
                 wrapper.sofascore_event_id = ev_id
+                logger.info(
+                    "[api] Sofascore lazy lookup hit for %s -> event_id=%s",
+                    slug, ev_id,
+                )
+            else:
+                logger.warning(
+                    "[api] Sofascore lazy lookup miss for %s (%s vs %s on %s)",
+                    slug, pred.home_team, pred.away_team, pred.date,
+                )
         except Exception as exc:  # pragma: no cover - never break the page
-            logger.debug(
-                "[api] Sofascore lazy lookup failed for %s: %s", slug, exc,
+            logger.warning(
+                "[api] Sofascore lazy lookup error for %s: %s", slug, exc,
             )
 
     return MatchWrapperOut(
@@ -1171,7 +1180,12 @@ def get_league_fixtures(league_key: str, limit: int = 5) -> LeagueFixturesOut:
     next_rows: list[LeagueFixtureOut] = []
     snapshot = load_today()
     if snapshot is not None:
-        upcoming = [p for p in snapshot.predictions if p.league.upper() == league_key]
+        from datetime import datetime as _dt, timezone as _tz
+        today_iso = _dt.now(_tz.utc).date().isoformat()
+        upcoming = [
+            p for p in snapshot.predictions
+            if p.league.upper() == league_key and p.date >= today_iso
+        ]
         upcoming.sort(key=lambda p: (p.date, p.kickoff_time or ""))
         for p in upcoming[:limit]:
             next_rows.append(
