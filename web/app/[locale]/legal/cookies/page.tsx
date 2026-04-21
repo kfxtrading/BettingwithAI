@@ -16,6 +16,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     path: '/legal/cookies',
     locale,
     ogType: 'article',
+    noIndex: true,
   });
 }
 

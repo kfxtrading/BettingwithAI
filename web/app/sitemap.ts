@@ -55,7 +55,8 @@ const STATIC_ROUTES: StaticEntry[] = [
   { path: '/responsible-gambling', changeFrequency: 'yearly', priority: 0.4 },
   { path: '/legal/terms', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/privacy', changeFrequency: 'yearly', priority: 0.3 },
-  { path: '/legal/cookies', changeFrequency: 'yearly', priority: 0.3 },
+  // /legal/cookies is intentionally excluded: the page is served with
+  // `noindex, follow` so it should not appear in the sitemap either.
 ];
 
 const DE_ONLY_ROUTES: StaticEntry[] = [

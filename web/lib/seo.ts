@@ -66,6 +66,8 @@ type BuildMetadataInput = {
   locale?: Locale;
   keywords?: string[];
   ogType?: 'website' | 'article';
+  /** When true, emit `noindex, follow` robots directives. */
+  noIndex?: boolean;
 };
 
 export function buildMetadata({
@@ -75,6 +77,7 @@ export function buildMetadata({
   locale = defaultLocale,
   keywords,
   ogType = 'website',
+  noIndex = false,
 }: BuildMetadataInput): Metadata {
   const canonicalPath = localizedPath(locale, path);
   const url = absoluteUrl(canonicalPath);
@@ -82,6 +85,13 @@ export function buildMetadata({
     title,
     description,
     keywords,
+    robots: noIndex
+      ? {
+          index: false,
+          follow: true,
+          googleBot: { index: false, follow: true },
+        }
+      : undefined,
     alternates: {
       canonical: url,
       languages: buildLanguageAlternates(path),
