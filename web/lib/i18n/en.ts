@@ -212,7 +212,255 @@ export type DictionaryKey =
   | 'support.faq.cookies.q'
   | 'support.faq.cookies.a'
   | 'support.faq.contact.q'
-  | 'support.faq.contact.a';
+  | 'support.faq.contact.a'
+  | 'support.faq.basics.oneX2.q'
+  | 'support.faq.basics.oneX2.a'
+  | 'support.faq.basics.odds.q'
+  | 'support.faq.basics.odds.a'
+  | 'support.faq.basics.winnings.q'
+  | 'support.faq.basics.winnings.a'
+  | 'support.faq.basics.single.q'
+  | 'support.faq.basics.single.a'
+  | 'support.faq.basics.accumulator.q'
+  | 'support.faq.basics.accumulator.a'
+  | 'support.faq.basics.system.q'
+  | 'support.faq.basics.system.a'
+  | 'support.faq.basics.valueBetBasic.q'
+  | 'support.faq.basics.valueBetBasic.a'
+  | 'support.faq.basics.probability.q'
+  | 'support.faq.basics.probability.a'
+  | 'support.faq.basics.bookie.q'
+  | 'support.faq.basics.bookie.a'
+  | 'support.faq.basics.bookieMoney.q'
+  | 'support.faq.basics.bookieMoney.a'
+  | 'support.faq.basics.overround.q'
+  | 'support.faq.basics.overround.a'
+  | 'support.faq.basics.live.q'
+  | 'support.faq.basics.live.a'
+  | 'support.faq.basics.cashout.q'
+  | 'support.faq.basics.cashout.a'
+  | 'support.faq.basics.handicap.q'
+  | 'support.faq.basics.handicap.a'
+  | 'support.faq.basics.asianHandicap.q'
+  | 'support.faq.basics.asianHandicap.a'
+  | 'support.faq.basics.ou25.q'
+  | 'support.faq.basics.ou25.a'
+  | 'support.faq.basics.btts.q'
+  | 'support.faq.basics.btts.a'
+  | 'support.faq.basics.dnb.q'
+  | 'support.faq.basics.dnb.a'
+  | 'support.faq.basics.doubleChance.q'
+  | 'support.faq.basics.doubleChance.a'
+  | 'support.faq.basics.specials.q'
+  | 'support.faq.basics.specials.a'
+  | 'support.faq.analysis.howTo.q'
+  | 'support.faq.analysis.howTo.a'
+  | 'support.faq.analysis.stats.q'
+  | 'support.faq.analysis.stats.a'
+  | 'support.faq.analysis.form.q'
+  | 'support.faq.analysis.form.a'
+  | 'support.faq.analysis.homeAway.q'
+  | 'support.faq.analysis.homeAway.a'
+  | 'support.faq.analysis.injuries.q'
+  | 'support.faq.analysis.injuries.a'
+  | 'support.faq.analysis.lineups.q'
+  | 'support.faq.analysis.lineups.a'
+  | 'support.faq.analysis.xg.q'
+  | 'support.faq.analysis.xg.a'
+  | 'support.faq.analysis.h2h.q'
+  | 'support.faq.analysis.h2h.a'
+  | 'support.faq.analysis.motivation.q'
+  | 'support.faq.analysis.motivation.a'
+  | 'support.faq.analysis.weather.q'
+  | 'support.faq.analysis.weather.a'
+  | 'support.faq.analysis.defOff.q'
+  | 'support.faq.analysis.defOff.a'
+  | 'support.faq.analysis.goalStats.q'
+  | 'support.faq.analysis.goalStats.a'
+  | 'support.faq.analysis.bestLeague.q'
+  | 'support.faq.analysis.bestLeague.a'
+  | 'support.faq.analysis.coach.q'
+  | 'support.faq.analysis.coach.a'
+  | 'support.faq.analysis.tempo.q'
+  | 'support.faq.analysis.tempo.a'
+  | 'support.faq.analysis.ouGames.q'
+  | 'support.faq.analysis.ouGames.a'
+  | 'support.faq.analysis.bttsGames.q'
+  | 'support.faq.analysis.bttsGames.a'
+  | 'support.faq.analysis.draws.q'
+  | 'support.faq.analysis.draws.a'
+  | 'support.faq.analysis.underdogs.q'
+  | 'support.faq.analysis.underdogs.a'
+  | 'support.faq.analysis.trapGames.q'
+  | 'support.faq.analysis.trapGames.a'
+  | 'support.faq.strategy.best.q'
+  | 'support.faq.strategy.best.a'
+  | 'support.faq.strategy.valueBet.q'
+  | 'support.faq.strategy.valueBet.a'
+  | 'support.faq.strategy.arbitrage.q'
+  | 'support.faq.strategy.arbitrage.a'
+  | 'support.faq.strategy.martingale.q'
+  | 'support.faq.strategy.martingale.a'
+  | 'support.faq.strategy.flat.q'
+  | 'support.faq.strategy.flat.a'
+  | 'support.faq.strategy.bankroll.q'
+  | 'support.faq.strategy.bankroll.a'
+  | 'support.faq.strategy.stake.q'
+  | 'support.faq.strategy.stake.a'
+  | 'support.faq.strategy.losingStreak.q'
+  | 'support.faq.strategy.losingStreak.a'
+  | 'support.faq.strategy.combos.q'
+  | 'support.faq.strategy.combos.a'
+  | 'support.faq.strategy.profitable.q'
+  | 'support.faq.strategy.profitable.a'
+  | 'support.faq.strategy.test.q'
+  | 'support.faq.strategy.test.a'
+  | 'support.faq.strategy.roi.q'
+  | 'support.faq.strategy.roi.a'
+  | 'support.faq.strategy.strikeRate.q'
+  | 'support.faq.strategy.strikeRate.a'
+  | 'support.faq.strategy.discipline.q'
+  | 'support.faq.strategy.discipline.a'
+  | 'support.faq.strategy.goodOdds.q'
+  | 'support.faq.strategy.goodOdds.a'
+  | 'support.faq.strategy.noBet.q'
+  | 'support.faq.strategy.noBet.a'
+  | 'support.faq.strategy.timing.q'
+  | 'support.faq.strategy.timing.a'
+  | 'support.faq.strategy.prematchLive.q'
+  | 'support.faq.strategy.prematchLive.a'
+  | 'support.faq.strategy.oddsMovement.q'
+  | 'support.faq.strategy.oddsMovement.a'
+  | 'support.faq.strategy.ownSystem.q'
+  | 'support.faq.strategy.ownSystem.a'
+  | 'support.faq.mistakes.loseMoney.q'
+  | 'support.faq.mistakes.loseMoney.a'
+  | 'support.faq.mistakes.chasing.q'
+  | 'support.faq.mistakes.chasing.a'
+  | 'support.faq.mistakes.emotions.q'
+  | 'support.faq.mistakes.emotions.a'
+  | 'support.faq.mistakes.accumulators.q'
+  | 'support.faq.mistakes.accumulators.a'
+  | 'support.faq.mistakes.overbetting.q'
+  | 'support.faq.mistakes.overbetting.a'
+  | 'support.faq.mistakes.tipsters.q'
+  | 'support.faq.mistakes.tipsters.a'
+  | 'support.faq.mistakes.noBankroll.q'
+  | 'support.faq.mistakes.noBankroll.a'
+  | 'support.faq.mistakes.sureBets.q'
+  | 'support.faq.mistakes.sureBets.a'
+  | 'support.faq.mistakes.favTeam.q'
+  | 'support.faq.mistakes.favTeam.a'
+  | 'support.faq.mistakes.beginner.q'
+  | 'support.faq.mistakes.beginner.a'
+  | 'support.faq.ai.how.q'
+  | 'support.faq.ai.how.a'
+  | 'support.faq.ai.data.q'
+  | 'support.faq.ai.data.a'
+  | 'support.faq.ai.reliability.q'
+  | 'support.faq.ai.reliability.a'
+  | 'support.faq.ai.model.q'
+  | 'support.faq.ai.model.a'
+  | 'support.faq.ai.ml.q'
+  | 'support.faq.ai.ml.a'
+  | 'support.faq.ai.features.q'
+  | 'support.faq.ai.features.a'
+  | 'support.faq.ai.history.q'
+  | 'support.faq.ai.history.a'
+  | 'support.faq.ai.oddsModel.q'
+  | 'support.faq.ai.oddsModel.a'
+  | 'support.faq.ai.valueBet.q'
+  | 'support.faq.ai.valueBet.a'
+  | 'support.faq.ai.overfitting.q'
+  | 'support.faq.ai.overfitting.a'
+  | 'support.faq.ai.algorithms.q'
+  | 'support.faq.ai.algorithms.a'
+  | 'support.faq.ai.liveData.q'
+  | 'support.faq.ai.liveData.a'
+  | 'support.faq.ai.realtime.q'
+  | 'support.faq.ai.realtime.a'
+  | 'support.faq.ai.measure.q'
+  | 'support.faq.ai.measure.a'
+  | 'support.faq.ai.improve.q'
+  | 'support.faq.ai.improve.a'
+  | 'support.faq.ai.combine.q'
+  | 'support.faq.ai.combine.a'
+  | 'support.faq.ai.ensemble.q'
+  | 'support.faq.ai.ensemble.a'
+  | 'support.faq.ai.apis.q'
+  | 'support.faq.ai.apis.a'
+  | 'support.faq.ai.dashboard.q'
+  | 'support.faq.ai.dashboard.a'
+  | 'support.faq.ai.automate.q'
+  | 'support.faq.ai.automate.a'
+  | 'support.faq.market.create.q'
+  | 'support.faq.market.create.a'
+  | 'support.faq.market.change.q'
+  | 'support.faq.market.change.a'
+  | 'support.faq.market.clv.q'
+  | 'support.faq.market.clv.a'
+  | 'support.faq.market.valueOdds.q'
+  | 'support.faq.market.valueOdds.a'
+  | 'support.faq.market.bestBooks.q'
+  | 'support.faq.market.bestBooks.a'
+  | 'support.faq.market.diffBooks.q'
+  | 'support.faq.market.diffBooks.a'
+  | 'support.faq.market.compare.q'
+  | 'support.faq.market.compare.a'
+  | 'support.faq.market.sharpPublic.q'
+  | 'support.faq.market.sharpPublic.a'
+  | 'support.faq.market.movement.q'
+  | 'support.faq.market.movement.a'
+  | 'support.faq.market.liquidity.q'
+  | 'support.faq.market.liquidity.a'
+  | 'support.faq.profit.earn.q'
+  | 'support.faq.profit.earn.a'
+  | 'support.faq.profit.longterm.q'
+  | 'support.faq.profit.longterm.a'
+  | 'support.faq.profit.roi.q'
+  | 'support.faq.profit.roi.a'
+  | 'support.faq.profit.timeToProfit.q'
+  | 'support.faq.profit.timeToProfit.a'
+  | 'support.faq.profit.capital.q'
+  | 'support.faq.profit.capital.a'
+  | 'support.faq.profit.skillVsLuck.q'
+  | 'support.faq.profit.skillVsLuck.a'
+  | 'support.faq.profit.prosVsAmateurs.q'
+  | 'support.faq.profit.prosVsAmateurs.a'
+  | 'support.faq.profit.prosWork.q'
+  | 'support.faq.profit.prosWork.a'
+  | 'support.faq.profit.patience.q'
+  | 'support.faq.profit.patience.a'
+  | 'support.faq.profit.fail90.q'
+  | 'support.faq.profit.fail90.a'
+  | 'support.faq.platform.daily.q'
+  | 'support.faq.platform.daily.a'
+  | 'support.faq.platform.autoload.q'
+  | 'support.faq.platform.autoload.a'
+  | 'support.faq.platform.updateFreq.q'
+  | 'support.faq.platform.updateFreq.a'
+  | 'support.faq.platform.confidence.q'
+  | 'support.faq.platform.confidence.a'
+  | 'support.faq.platform.visualize.q'
+  | 'support.faq.platform.visualize.a'
+  | 'support.faq.platform.bestBets.q'
+  | 'support.faq.platform.bestBets.a'
+  | 'support.faq.platform.history.q'
+  | 'support.faq.platform.history.a'
+  | 'support.faq.platform.tracking.q'
+  | 'support.faq.platform.tracking.a'
+  | 'support.faq.platform.ranking.q'
+  | 'support.faq.platform.ranking.a'
+  | 'support.faq.platform.lastBets.q'
+  | 'support.faq.platform.lastBets.a'
+  | 'support.faq.platform.wrongMatch.q'
+  | 'support.faq.platform.wrongMatch.a'
+  | 'support.faq.platform.valueVsPrediction.q'
+  | 'support.faq.platform.valueVsPrediction.a'
+  | 'support.faq.platform.alerts.q'
+  | 'support.faq.platform.alerts.a'
+  | 'support.faq.platform.trust.q'
+  | 'support.faq.platform.trust.a';
 
 export const en: Dictionary = {
   'site.title': 'Betting with AI',
@@ -469,4 +717,252 @@ export const en: Dictionary = {
   'support.faq.contact.q': 'How can I contact the team?',
   'support.faq.contact.a':
     'Contact details are in the Impressum (footer). For technical issues, please open an issue on the public source-code repository linked in the footer.',
+  'support.faq.basics.oneX2.q': "What does 1X2 mean in football betting?",
+  'support.faq.basics.oneX2.a': "1X2 is the classic three-way market: 1 = home win, X = draw, 2 = away win.",
+  'support.faq.basics.odds.q': "What are odds and how do they work?",
+  'support.faq.basics.odds.a': "Decimal odds express the total payout factor: stake × odds = gross return. The reciprocal 1/odds is the market-implied probability.",
+  'support.faq.basics.winnings.q': "How do I calculate the winnings on a bet?",
+  'support.faq.basics.winnings.a': "Net profit = stake × (odds − 1). Example: €10 at 2.50 → €15 net profit, €25 total payout.",
+  'support.faq.basics.single.q': "What is a single bet?",
+  'support.faq.basics.single.a': "A single bet places a stake on exactly one event. It wins only if that one selection is correct.",
+  'support.faq.basics.accumulator.q': "What is an accumulator (combo bet)?",
+  'support.faq.basics.accumulator.a': "An accumulator combines multiple picks; odds multiply. It only wins if every selection wins.",
+  'support.faq.basics.system.q': "What is a system bet?",
+  'support.faq.basics.system.a': "A system bet covers all sub-combinations out of N picks (e.g. 2-from-3). Some selections may lose and the bet still pays out partially.",
+  'support.faq.basics.valueBetBasic.q': "What does \"value bet\" mean?",
+  'support.faq.basics.valueBetBasic.a': "A value bet exists when the true probability of an outcome exceeds the probability implied by the odds (p × odds > 1). It is +EV in the long run.",
+  'support.faq.basics.probability.q': "What is the probability implied by odds?",
+  'support.faq.basics.probability.a': "The implied probability of a decimal odd is 1/odds. Example: 2.00 → 50%, 4.00 → 25%. The three 1X2 probabilities sum above 100% because of the margin.",
+  'support.faq.basics.bookie.q': "What is a bookmaker (bookie)?",
+  'support.faq.basics.bookie.a': "A bookmaker is the operator that sets odds, accepts stakes and pays out winnings.",
+  'support.faq.basics.bookieMoney.q': "How do bookmakers make money?",
+  'support.faq.basics.bookieMoney.a': "Via the overround: implied probabilities of a market sum above 100%, and that excess is the bookie's statistical profit.",
+  'support.faq.basics.overround.q': "What is the overround (margin)?",
+  'support.faq.basics.overround.a': "Overround = Σ(1/odds) − 1. A value of e.g. 5% represents the bookmaker margin baked into the market.",
+  'support.faq.basics.live.q': "What is a live (in-play) bet?",
+  'support.faq.basics.live.a': "Live bets are placed during the match. Odds update minute by minute based on in-game events such as goals or red cards.",
+  'support.faq.basics.cashout.q': "What is cash-out?",
+  'support.faq.basics.cashout.a': "Cash-out lets you settle an open bet early at a price the bookmaker currently offers. The operator usually takes an extra margin for it.",
+  'support.faq.basics.handicap.q': "What is a handicap bet?",
+  'support.faq.basics.handicap.a': "In a handicap bet one team starts with a virtual goal advantage or disadvantage (e.g. −1) that adjusts the result for settlement.",
+  'support.faq.basics.asianHandicap.q': "What is an Asian handicap?",
+  'support.faq.basics.asianHandicap.a': "The Asian handicap removes the draw and uses quarter or half lines (e.g. −0.25, −0.75), sometimes refunding half the stake.",
+  'support.faq.basics.ou25.q': "What is Over/Under 2.5 goals?",
+  'support.faq.basics.ou25.a': "Over 2.5 wins with 3 or more total goals, Under 2.5 with 2 or fewer. Exactly 2 goals counts as Under.",
+  'support.faq.basics.btts.q': "What does BTTS (Both Teams To Score) mean?",
+  'support.faq.basics.btts.a': "BTTS \"Yes\" wins if both teams score at least one goal, regardless of the final result.",
+  'support.faq.basics.dnb.q': "What is Draw No Bet?",
+  'support.faq.basics.dnb.a': "Draw No Bet backs a home or away win; if the match ends in a draw, your stake is refunded.",
+  'support.faq.basics.doubleChance.q': "What is Double Chance?",
+  'support.faq.basics.doubleChance.a': "Double Chance covers two of the three 1X2 outcomes (1X, X2, 12). Higher hit rate, much lower odds.",
+  'support.faq.basics.specials.q': "What are special bets (e.g. goalscorer)?",
+  'support.faq.basics.specials.a': "Specials target events beyond the final result: goalscorer, cards, corners, half-time score, player goal count.",
+  'support.faq.analysis.howTo.q': "How do I analyse a football match correctly?",
+  'support.faq.analysis.howTo.a': "Combine form, home/away strength, xG trends, injuries, H2H and motivation. Cross-check these cues against our calibrated model probabilities.",
+  'support.faq.analysis.stats.q': "Which statistics matter most?",
+  'support.faq.analysis.stats.a': "xG and xGA, shots on target, possession in the opposition half, PPDA and expected points (xPts) carry the most predictive signal.",
+  'support.faq.analysis.form.q': "How important is current team form?",
+  'support.faq.analysis.form.a': "Form provides a short-term signal but can mislead as it ignores opposition quality. Strength-adjusted xG is far more informative than raw points runs.",
+  'support.faq.analysis.homeAway.q': "How important is home vs away?",
+  'support.faq.analysis.homeAway.a': "Home advantage is roughly +0.3 goals across European leagues. Pi-Ratings split home/away strength explicitly and capture this effect cleanly.",
+  'support.faq.analysis.injuries.q': "How do injuries affect the forecast?",
+  'support.faq.analysis.injuries.a': "Key absences (keeper, top striker, defensive spine) can shift win probability by 5–10 pp. We re-check lineups ~1h before kickoff.",
+  'support.faq.analysis.lineups.q': "How important are lineups?",
+  'support.faq.analysis.lineups.a': "Official lineups (usually T−60 min) are one of the strongest short-horizon features. Our pipeline ingests them optionally via Sofascore.",
+  'support.faq.analysis.xg.q': "What role does xG (Expected Goals) play?",
+  'support.faq.analysis.xg.a': "xG measures chance quality instead of noisy finishing. Over 10–15 matches xG is a far better forecast driver than raw goal tallies.",
+  'support.faq.analysis.h2h.q': "How do I analyse head-to-head data?",
+  'support.faq.analysis.h2h.a': "H2H has low predictive power when squads and coaches rotate. Only use matches with the same managers/core squad and weight them lightly.",
+  'support.faq.analysis.motivation.q': "How much does motivation (e.g. relegation battle) matter?",
+  'support.faq.analysis.motivation.a': "League position shapes risk appetite and rotation. A motivation feature (relegation/title/Europe pressure) measurably improves end-of-season RPS.",
+  'support.faq.analysis.weather.q': "How does weather influence a match?",
+  'support.faq.analysis.weather.a': "Strong wind and heavy rain reduce goal probability (Under bias). In top leagues the effect is small (~0.1–0.2 goals) but notable at extremes.",
+  'support.faq.analysis.defOff.q': "How do I spot defensive vs offensive teams?",
+  'support.faq.analysis.defOff.a': "Compare xG differential, shots per game and PPDA. High pressing + high possession = attacking; low PPDA and deep block = defensive.",
+  'support.faq.analysis.goalStats.q': "How do I analyse goal statistics?",
+  'support.faq.analysis.goalStats.a': "Split goals for and goals against per 90 minutes, home/away separately, and normalise for opposition. Combine with xG/xGA to separate luck from skill.",
+  'support.faq.analysis.bestLeague.q': "Which league is most predictable?",
+  'support.faq.analysis.bestLeague.a': "Top-5 leagues with rich data and stable squads forecast best. In our backtests the Premier League and La Liga post the lowest RPS.",
+  'support.faq.analysis.coach.q': "How important are managerial changes?",
+  'support.faq.analysis.coach.a': "A managerial change creates a measurable bounce-back effect over 3–6 matches. Our model down-weights historical form within this window.",
+  'support.faq.analysis.tempo.q': "How do I analyse tempo and tactics?",
+  'support.faq.analysis.tempo.a': "High pressing + vertical play creates more xG events per minute. Use PPDA, passes per defensive action and defensive-line height as proxies.",
+  'support.faq.analysis.ouGames.q': "How do I spot Over/Under matches?",
+  'support.faq.analysis.ouGames.a': "Sum both teams' offensive xG with their defensive xGA to estimate total expected goals. > 2.8 suggests Over, < 2.2 suggests Under.",
+  'support.faq.analysis.bttsGames.q': "How do I identify BTTS matches?",
+  'support.faq.analysis.bttsGames.a': "Both sides should have > 70% BTTS rate in the last 8 matches, both post xG > 1.0 and neither have a top defence.",
+  'support.faq.analysis.draws.q': "Which factors drive draws?",
+  'support.faq.analysis.draws.a': "Draws become likelier with similar team strengths, low total expected goals and defensive setups (deep block).",
+  'support.faq.analysis.underdogs.q': "How do I analyse underdogs?",
+  'support.faq.analysis.underdogs.a': "High market margin tends to push underdog odds too high. Check xG differential, home advantage and motivation — value often sits on the 1X or X2 side.",
+  'support.faq.analysis.trapGames.q': "How do I recognise \"trap games\"?",
+  'support.faq.analysis.trapGames.a': "Watch for rotation before cup/European fixtures, overrated favourites after winning streaks and derbies with emotional upside risk.",
+  'support.faq.strategy.best.q': "What is the best football betting strategy?",
+  'support.faq.strategy.best.a': "No strategy is universally \"best\". Winning approaches combine data-driven value betting, strict bankroll management and a documented rule for every bet.",
+  'support.faq.strategy.valueBet.q': "What is value betting exactly?",
+  'support.faq.strategy.valueBet.a': "Value betting only places bets where model probability × odds > 1. The edge (model − market) is the expected profit per unit staked.",
+  'support.faq.strategy.arbitrage.q': "What is arbitrage betting?",
+  'support.faq.strategy.arbitrage.a': "Arbitrage exploits odds gaps across bookmakers so every outcome is covered for a small guaranteed profit. It works but gets limited by operators quickly.",
+  'support.faq.strategy.martingale.q': "What is Martingale (and why dangerous)?",
+  'support.faq.strategy.martingale.a': "Martingale doubles stake after every loss. A short losing streak wipes out the bankroll or hits table limits — negative EV in the long run.",
+  'support.faq.strategy.flat.q': "What is flat betting?",
+  'support.faq.strategy.flat.a': "Flat betting uses the same stake (e.g. 1–2% of bankroll) on every bet — robust, low variance, ideal to measure your true edge.",
+  'support.faq.strategy.bankroll.q': "How does bankroll management work?",
+  'support.faq.strategy.bankroll.a': "Ring-fence a dedicated betting budget and stake 1–2% per bet (or fractional Kelly with a cap). Goal: survive drawdowns without abandoning the strategy.",
+  'support.faq.strategy.stake.q': "How much should I stake per bet?",
+  'support.faq.strategy.stake.a': "Rule of thumb: 1% flat, or f* = ¼ × Kelly capped at 5%. If confidence in the edge is low, drop to 0.5%.",
+  'support.faq.strategy.losingStreak.q': "How do I avoid losing streaks?",
+  'support.faq.strategy.losingStreak.a': "Losing streaks are unavoidable; what matters is shrinking stake size (Kelly does this naturally) and not rewriting the strategy out of frustration.",
+  'support.faq.strategy.combos.q': "Should I play accumulators?",
+  'support.faq.strategy.combos.a': "Accumulators multiply the bookmaker margin too. From a +EV standpoint they only pay off if every leg has strong standalone value — rare in practice.",
+  'support.faq.strategy.profitable.q': "How do I find long-term profitable strategies?",
+  'support.faq.strategy.profitable.a': "Systematic: explicit rule, backtest over ≥ 1,000 bets, positive CLV, positive ROI net of margin, strict risk control.",
+  'support.faq.strategy.test.q': "How do I test a strategy?",
+  'support.faq.strategy.test.a': "Walk-forward backtest on historical closing odds: define a training window, evaluate rolling out-of-sample and track RPS, Brier, ROI and CLV.",
+  'support.faq.strategy.roi.q': "What is ROI in betting?",
+  'support.faq.strategy.roi.a': "ROI = (net profit / total stake) × 100%. 2–5% is realistic long-term; anything > 10% sustained over many bets is exceptionally rare and suspect.",
+  'support.faq.strategy.strikeRate.q': "What is strike rate?",
+  'support.faq.strategy.strikeRate.a': "Strike rate = wins / bets placed. Meaningless on its own — only informative combined with average odds and ROI.",
+  'support.faq.strategy.discipline.q': "How important is discipline?",
+  'support.faq.strategy.discipline.a': "Discipline is the single biggest driver. Stick to the rules, skip impulse bets, never chase losses with bigger stakes.",
+  'support.faq.strategy.goodOdds.q': "How do I spot good vs bad odds?",
+  'support.faq.strategy.goodOdds.a': "Good odds exceed the model's fair price (1/probability) and sit near the closing line. Use an odds comparator and your own fair value.",
+  'support.faq.strategy.noBet.q': "When should I not bet?",
+  'support.faq.strategy.noBet.a': "No edge, fuzzy data, emotional ties to the team or fatigue — in all those cases \"no bet\" is the most profitable call.",
+  'support.faq.strategy.timing.q': "How important is timing?",
+  'support.faq.strategy.timing.a': "Early odds often carry more value; late odds are sharper (CLV benchmark). Sharps bet early to lock in positive CLV.",
+  'support.faq.strategy.prematchLive.q': "Pre-match vs live — which is better?",
+  'support.faq.strategy.prematchLive.a': "Pre-match: lower margin and more analysis time. Live: more market inefficiencies around quick events but higher margin and stronger emotions.",
+  'support.faq.strategy.oddsMovement.q': "How do I use odds movement?",
+  'support.faq.strategy.oddsMovement.a': "A clean drop toward an outcome signals sharp money. Take value bets early before the line moves, then use CLV as a quality check.",
+  'support.faq.strategy.ownSystem.q': "How do I build my own betting system?",
+  'support.faq.strategy.ownSystem.a': "Define features → train a model (logistic or CatBoost) → calibrate → walk-forward backtest → track live ROI & CLV → iterate.",
+  'support.faq.mistakes.loseMoney.q': "Why do most bettors lose money?",
+  'support.faq.mistakes.loseMoney.a': "Bookmaker margin, no model, emotional picks and no bankroll plan. Without a measurable edge betting is mathematically a loss.",
+  'support.faq.mistakes.chasing.q': "What does \"chasing losses\" mean?",
+  'support.faq.mistakes.chasing.a': "Chasing = raising stakes after losses to \"win it back\". Mathematically produces exponentially bigger losses — never do it.",
+  'support.faq.mistakes.emotions.q': "Why are emotions dangerous in betting?",
+  'support.faq.mistakes.emotions.a': "Tilt causes over-staking, chasing and rule-breaking. A fixed plan plus a break after 3 losses is the best defence.",
+  'support.faq.mistakes.accumulators.q': "Why are accumulators risky?",
+  'support.faq.mistakes.accumulators.a': "5 picks at 55% each give a combined probability below 6%. Multiplied margin also eats up the expected profit.",
+  'support.faq.mistakes.overbetting.q': "Why is overbetting bad?",
+  'support.faq.mistakes.overbetting.a': "Overbetting exceeds Kelly-optimal stake and raises ruin risk exponentially — even a +EV edge can wipe the bankroll.",
+  'support.faq.mistakes.tipsters.q': "Why not blindly follow tipsters?",
+  'support.faq.mistakes.tipsters.a': "Public tipsters rarely have verified track records and earn from subscriptions, not edge. Own analysis or calibrated models beat them.",
+  'support.faq.mistakes.noBankroll.q': "Why is a lack of bankroll management fatal?",
+  'support.faq.mistakes.noBankroll.a': "Without a plan you stake on feel — a normal losing run of 10 can wipe out the entire bankroll.",
+  'support.faq.mistakes.sureBets.q': "Why are \"sure tips\" dangerous?",
+  'support.faq.mistakes.sureBets.a': "No bet is ever safe — even 1.05 odds lose sometimes. \"Sure tips\" are usually marketing and push users to over-stake.",
+  'support.faq.mistakes.favTeam.q': "Why shouldn't you bet on your favourite club?",
+  'support.faq.mistakes.favTeam.a': "Confirmation bias systematically overrates your own club's strength. Result: negative EV and emotional in-game decisions.",
+  'support.faq.mistakes.beginner.q': "How do I avoid beginner mistakes?",
+  'support.faq.mistakes.beginner.a': "Start small, flat stakes, keep a bet journal, avoid accumulators for fun, bet only markets you understand and watch +CLV.",
+  'support.faq.ai.how.q': "How do AI football predictions work?",
+  'support.faq.ai.how.a': "AI learns statistical patterns from historical match data and estimates probabilities for markets like 1X2, goals or BTTS.",
+  'support.faq.ai.data.q': "What data is used for predictions?",
+  'support.faq.ai.data.a': "Results, closing odds, Pi-Ratings, form, xG, lineups and optional Sofascore live data.",
+  'support.faq.ai.reliability.q': "How reliable are AI predictions?",
+  'support.faq.ai.reliability.a': "Good models beat the market by a few percentage points. They provide probabilities, not certainties — never expect 100% accuracy.",
+  'support.faq.ai.model.q': "What is a prediction model?",
+  'support.faq.ai.model.a': "A mathematical model that maps input features to an output probability, typically trained on historical matches.",
+  'support.faq.ai.ml.q': "How is machine learning used in betting?",
+  'support.faq.ai.ml.a': "ML learns non-linear patterns from features (form, xG, ratings) and predicts outcome probabilities — the basis for value-bet detection.",
+  'support.faq.ai.features.q': "What are features in a model?",
+  'support.faq.ai.features.a': "Features are numeric input variables like Pi-Rating delta, xG average, form score or market odds — the model's measurable signals.",
+  'support.faq.ai.history.q': "How important is historical data?",
+  'support.faq.ai.history.a': "Very important — at least 3–5 seasons per league so the model can learn stable patterns. Too little data leads to overfitting.",
+  'support.faq.ai.oddsModel.q': "How does an odds model work?",
+  'support.faq.ai.oddsModel.a': "An odds model derives implied probabilities from bookmaker odds (after margin removal) and compares them with its own prediction.",
+  'support.faq.ai.valueBet.q': "How does AI detect value bets?",
+  'support.faq.ai.valueBet.a': "The AI compares its calibrated probability p with market odds o. If p × o > 1 and the edge threshold is exceeded, the bet is flagged.",
+  'support.faq.ai.overfitting.q': "How do you avoid overfitting?",
+  'support.faq.ai.overfitting.a': "Walk-forward validation, regularisation (L2, early stopping), cross-validation and separate validation + holdout seasons.",
+  'support.faq.ai.algorithms.q': "Which algorithms are suitable (e.g. Random Forest)?",
+  'support.faq.ai.algorithms.a': "Gradient boosting (CatBoost, XGBoost), logistic regression as baseline, random forest and neural networks for non-linear patterns.",
+  'support.faq.ai.liveData.q': "How do you integrate live data?",
+  'support.faq.ai.liveData.a': "Via WebSocket or polling feeds (e.g. Sofascore, OpenLigaDB) current events like goals or cards are streamed into the model.",
+  'support.faq.ai.realtime.q': "How important are real-time updates?",
+  'support.faq.ai.realtime.a': "Critical for live betting and CLV tracking: a few seconds of delay can already shift the odds noticeably.",
+  'support.faq.ai.measure.q': "How do you measure model accuracy?",
+  'support.faq.ai.measure.a': "With Ranked Probability Score (RPS), Brier score, log-loss and calibration metrics like ECE — not just hit rate.",
+  'support.faq.ai.improve.q': "How can you improve models?",
+  'support.faq.ai.improve.a': "More/better features, hyperparameter tuning, calibration (Platt/isotonic), ensembling and regular retraining on fresh data.",
+  'support.faq.ai.combine.q': "How do you combine multiple models?",
+  'support.faq.ai.combine.a': "Via weighted probability averaging or a stacking meta-learner. Dirichlet tuning optimises the weights on a validation season.",
+  'support.faq.ai.ensemble.q': "What is ensemble learning in betting?",
+  'support.faq.ai.ensemble.a': "Multiple models (e.g. CatBoost + Poisson + MLP) are combined to cancel individual errors and produce more stable probabilities.",
+  'support.faq.ai.apis.q': "How do you use APIs for data feeds?",
+  'support.faq.ai.apis.a': "REST/WebSocket calls with rate-limit handling and caching (e.g. SQLite TTL) — authentication via API key header.",
+  'support.faq.ai.dashboard.q': "How do you build a prediction dashboard?",
+  'support.faq.ai.dashboard.a': "Backend exposes JSON snapshots, frontend (e.g. Next.js) renders probabilities, value bets and historical performance in cards/tables.",
+  'support.faq.ai.automate.q': "How do you automate predictions?",
+  'support.faq.ai.automate.a': "Cron jobs or GitHub Actions pull data each morning, train/score models and publish the snapshot to the API.",
+  'support.faq.market.create.q': "How are odds created?",
+  'support.faq.market.create.a': "Traders estimate probabilities, add the margin (overround) and adjust the odds based on incoming stake volume.",
+  'support.faq.market.change.q': "Why do odds change?",
+  'support.faq.market.change.a': "Odds react to team news, stake volume, sharp money and live events. Each new signal shifts the fair line.",
+  'support.faq.market.clv.q': "What does Closing Line Value (CLV) mean?",
+  'support.faq.market.clv.a': "CLV measures how much better your taken odds were versus the closing line. Positive CLV is the most reliable long-term profit indicator.",
+  'support.faq.market.valueOdds.q': "How do I spot value in odds?",
+  'support.faq.market.valueOdds.a': "Compute your own calibrated probability p and compare with market odds o: p × o > 1 → value. Strip margin first for fair prices.",
+  'support.faq.market.bestBooks.q': "Which bookmakers offer the best odds?",
+  'support.faq.market.bestBooks.a': "Sharp books like Pinnacle, Betfair (Exchange) or SBObet usually offer the lowest margins. Retail bookmakers tend to be pricier.",
+  'support.faq.market.diffBooks.q': "Why do odds differ between operators?",
+  'support.faq.market.diffBooks.a': "Different traders, margin strategies, target customers and risk profiles lead to slightly different fair-value estimates.",
+  'support.faq.market.compare.q': "How do you use odds comparison tools?",
+  'support.faq.market.compare.a': "Always take the best available price — even 2–3% extra odds boost ROI significantly. Oddsportal or Betexplorer are typical tools.",
+  'support.faq.market.sharpPublic.q': "What is sharp vs public money?",
+  'support.faq.market.sharpPublic.a': "Sharp money comes from profitable pros and moves the line durably. Public money backs favourites and popular teams, often without moving the price.",
+  'support.faq.market.movement.q': "How do I spot market movements?",
+  'support.faq.market.movement.a': "Track open-to-close odds movement and its speed. Sharp-driven moves are usually abrupt and against public sentiment.",
+  'support.faq.market.liquidity.q': "How important is market liquidity?",
+  'support.faq.market.liquidity.a': "Very important: liquid markets (Top-5 leagues) have tighter margins and more reliable closing lines. Niche leagues are volatile with less value.",
+  'support.faq.profit.earn.q': "Can you make money from sports betting?",
+  'support.faq.profit.earn.a': "Yes, but rarely and with great difficulty. Without a measurable edge, bankroll management and discipline only the bookmaker wins long-term.",
+  'support.faq.profit.longterm.q': "What are the long-term winning chances?",
+  'support.faq.profit.longterm.a': "Reliable estimates suggest only 2–5% of bettors are long-term profitable. A realistic ROI sits between 2% and 8%.",
+  'support.faq.profit.roi.q': "What is a realistic ROI?",
+  'support.faq.profit.roi.a': "A 2–5% ROI over thousands of bets is considered very good; 10%+ is extremely rare and usually short-term variance.",
+  'support.faq.profit.timeToProfit.q': "How long does it take to become profitable?",
+  'support.faq.profit.timeToProfit.a': "Typically several seasons and 1,000+ bets for the edge to stabilise and variance to wash out.",
+  'support.faq.profit.capital.q': "How much capital do you need?",
+  'support.faq.profit.capital.a': "Recommended: at least 100× the standard stake so normal losing runs don't wipe the bankroll. Only use money you can afford to lose.",
+  'support.faq.profit.skillVsLuck.q': "Is sports betting gambling or skill?",
+  'support.faq.profit.skillVsLuck.a': "Short-term it's variance, long-term it's a skill game — similar to poker. A measurable edge decides multi-year profitability.",
+  'support.faq.profit.prosVsAmateurs.q': "How do pros differ from amateurs?",
+  'support.faq.profit.prosVsAmateurs.a': "Pros have systems, models, bankroll rules and measure every edge. Amateurs bet emotionally, on favourites or accumulators.",
+  'support.faq.profit.prosWork.q': "How do professional bettors work?",
+  'support.faq.profit.prosWork.a': "Hours per day maintaining data, training models, scanning markets, placing bets and tracking CLV — it's a full-time job.",
+  'support.faq.profit.patience.q': "How important is patience?",
+  'support.faq.profit.patience.a': "Essential: even at 5% ROI variance produces multi-week drawdowns. Only the disciplined realise the edge long-term.",
+  'support.faq.profit.fail90.q': "Why do 90% of bettors fail?",
+  'support.faq.profit.fail90.a': "No system, no bankroll plan, emotional decisions, chasing, overbetting and misunderstanding of margin and variance.",
+  'support.faq.platform.daily.q': "How do the daily predictions work?",
+  'support.faq.platform.daily.a': "Each morning a snapshot is generated: load fixtures, build features, score the ensemble model, filter value bets and publish via API/frontend.",
+  'support.faq.platform.autoload.q': "How are matches auto-loaded (API)?",
+  'support.faq.platform.autoload.a': "Via Football-Data CSV feeds plus optional Sofascore API — cached and deduped by fixture ID to avoid duplicates.",
+  'support.faq.platform.updateFreq.q': "How often should predictions be refreshed?",
+  'support.faq.platform.updateFreq.a': "Daily pre-match by default, every 45–60 seconds on matchdays whenever odds or lineups change.",
+  'support.faq.platform.confidence.q': "How do you display confidence scores?",
+  'support.faq.platform.confidence.a': "As a probability (e.g. 62%) plus optional traffic-light categories (low/medium/high) derived from model entropy.",
+  'support.faq.platform.visualize.q': "How do you visualise probabilities?",
+  'support.faq.platform.visualize.a': "Stacked home/draw/away bars, percentage labels or radar charts. Keep the colours consistent (e.g. accent-blue for home).",
+  'support.faq.platform.bestBets.q': "How do you filter 'best bets of the day'?",
+  'support.faq.platform.bestBets.a': "Combine positive edge, a minimum confidence threshold and a minimum odds level, then sort by Kelly fraction descending.",
+  'support.faq.platform.history.q': "How do you show historical performance?",
+  'support.faq.platform.history.a': "On a track-record page showing ROI, strike rate, CLV, Brier/RPS and a rolling P&L chart of the last 200+ bets.",
+  'support.faq.platform.tracking.q': "How do you integrate user tracking?",
+  'support.faq.platform.tracking.a': "Consent-based with a lightweight analytics tool (e.g. Plausible), anonymised and only after explicit cookie consent.",
+  'support.faq.platform.ranking.q': "How do you build a ranking system for tips?",
+  'support.faq.platform.ranking.a': "Sort by a composite score of edge × confidence × liquidity, with a minimum number of past bets per tipster/model.",
+  'support.faq.platform.lastBets.q': "How do you correctly implement 'last bets' logic?",
+  'support.faq.platform.lastBets.a': "Sort by placement timestamp (not kickoff), filter on settled fixtures and 1:1-join each bet with its final result by fixture ID.",
+  'support.faq.platform.wrongMatch.q': "How do you prevent wrong-match bugs?",
+  'support.faq.platform.wrongMatch.a': "Use a single fixture ID as primary key across layers, validate home/away order against the snapshot source and test with snapshot fixtures.",
+  'support.faq.platform.valueVsPrediction.q': "How do you differentiate value bets vs predictions?",
+  'support.faq.platform.valueVsPrediction.a': "Predictions = outcome probabilities. Value bets = subset with positive edge versus the market. Not every prediction is bet-worthy.",
+  'support.faq.platform.alerts.q': "How do you build user alerts?",
+  'support.faq.platform.alerts.a': "Push or email triggers on edge above threshold, odds movement or new high-confidence picks — always opt-in with a frequency cap.",
+  'support.faq.platform.trust.q': "How do you build trust in the platform?",
+  'support.faq.platform.trust.a': "A public, immutable track-record log, transparent methodology, clear calibration metrics and responsible-gambling messaging.",
 };
