@@ -126,7 +126,7 @@ export const it: Dictionary = {
   'rail.section.today': 'Oggi',
   'rail.spaces.all': 'Tutti i campionati',
   'rail.today.empty': 'Nessun fischio d’inizio in arrivo.',
-  'rail.today.snapshot': 'Snapshot · aggiornato {age} fa',
+  'rail.today.snapshot': 'Previsioni · aggiornate {age} fa',
   'rail.quick.learn': 'Impara',
   'rail.quick.trackRecord': 'Track record',
   'footer.text':
