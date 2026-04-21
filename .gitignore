@@ -57,3 +57,10 @@ web/.turbo/
 web/next-env.d.ts.bak
 web/tsconfig.tsbuildinfo
 data/graded_bets.jsonl
+
+# Local agent / smoke-test artifacts
+.zen/node_modules/
+.zen/package-lock.json
+.zen/package.json
+.zen/smoke-test.js
+.zen/smoke/
