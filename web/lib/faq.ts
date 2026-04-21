@@ -848,10 +848,19 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   },
 ];
 
+import {
+  buildVocab,
+  normalizeQuery,
+  normalizeText,
+  type NormalizedQuery,
+} from './faqNormalize';
+
 export interface SearchableEntry {
   id: string;
   question: string;
+  questionNorm: string;
   tags: string[];
+  tagsNorm: string[];
 }
 
 export interface FaqMatch {
@@ -859,38 +868,127 @@ export interface FaqMatch {
   score: number;
 }
 
-export function buildFuse(
-  t: (key: DictionaryKey) => string,
-): Fuse<SearchableEntry> {
-  const searchable: SearchableEntry[] = FAQ_ENTRIES.map((e) => ({
-    id: e.id,
-    question: t(e.questionKey),
-    tags: e.tags,
-  }));
-  return new Fuse(searchable, {
+export interface FaqIndex {
+  fuse: Fuse<SearchableEntry>;
+  vocab: Set<string>;
+  vocabList: string[];
+  /** Map from normalized-tag token → list of entry IDs that carry it. */
+  tagIndex: Map<string, string[]>;
+}
+
+export function buildFuse(t: (key: DictionaryKey) => string): FaqIndex {
+  const searchable: SearchableEntry[] = FAQ_ENTRIES.map((e) => {
+    const question = t(e.questionKey);
+    return {
+      id: e.id,
+      question,
+      questionNorm: normalizeText(question),
+      tags: e.tags,
+      tagsNorm: e.tags.map((tag) => normalizeText(tag)).filter(Boolean),
+    };
+  });
+
+  // Vocabulary: tag tokens + question tokens from the current locale.
+  const vocabSources: string[] = [];
+  for (const s of searchable) {
+    vocabSources.push(s.questionNorm, ...s.tagsNorm);
+  }
+  const { vocab, vocabList } = buildVocab(vocabSources);
+
+  // Reverse index for fast keyword-hit scoring.
+  const tagIndex = new Map<string, string[]>();
+  for (const s of searchable) {
+    const tokens = new Set<string>();
+    for (const tn of s.tagsNorm) {
+      for (const tok of tn.split(' ')) if (tok) tokens.add(tok);
+    }
+    for (const tok of s.questionNorm.split(' ')) {
+      if (tok.length >= 4) tokens.add(tok);
+    }
+    for (const tok of tokens) {
+      const bucket = tagIndex.get(tok);
+      if (bucket) bucket.push(s.id);
+      else tagIndex.set(tok, [s.id]);
+    }
+  }
+
+  const fuse = new Fuse(searchable, {
     keys: [
-      { name: 'question', weight: 0.7 },
-      { name: 'tags', weight: 0.3 },
+      { name: 'question', weight: 0.35 },
+      { name: 'questionNorm', weight: 0.35 },
+      { name: 'tags', weight: 0.15 },
+      { name: 'tagsNorm', weight: 0.15 },
     ],
     threshold: 0.45,
     includeScore: true,
     ignoreLocation: true,
     minMatchCharLength: 2,
   });
+
+  return { fuse, vocab, vocabList, tagIndex };
 }
 
-export function searchFaq(
-  query: string,
-  fuse: Fuse<SearchableEntry>,
-): FaqMatch[] {
+/**
+ * Search the FAQ index with robustness against case, punctuation,
+ * diacritics, concatenated words and small typos.
+ *
+ * Strategy:
+ *   1. Normalize the query (+ split concatenated words, + typo-correct tokens).
+ *   2. Run Fuse.js on BOTH the raw-normalized and the canonical form.
+ *   3. Add a direct token-intersection boost from `tagIndex` so short tag
+ *      queries like "btts" or "kelly" win deterministically.
+ *   4. Merge by entry id, keep the best (lowest) score per entry.
+ */
+export function searchFaq(query: string, index: FaqIndex): FaqMatch[] {
   const q = query.trim();
   if (!q) return [];
-  const results = fuse.search(q).slice(0, 4);
+
+  const nq: NormalizedQuery = normalizeQuery(q, index.vocab, index.vocabList);
   const byId = new Map(FAQ_ENTRIES.map((e) => [e.id, e]));
-  const matches: FaqMatch[] = [];
-  for (const r of results) {
-    const entry = byId.get(r.item.id);
-    if (entry) matches.push({ entry, score: r.score ?? 1 });
+  const bestScore = new Map<string, number>();
+
+  const record = (id: string, score: number) => {
+    const prev = bestScore.get(id);
+    if (prev === undefined || score < prev) bestScore.set(id, score);
+  };
+
+  // 1) Fuse on raw user input (catches idiomatic / sentence-style questions).
+  for (const r of index.fuse.search(q).slice(0, 8)) {
+    record(r.item.id, r.score ?? 1);
   }
-  return matches;
+
+  // 2) Fuse on the canonical form (handles case, punct, concat splits, typos).
+  if (nq.canonical && nq.canonical !== q.toLowerCase()) {
+    for (const r of index.fuse.search(nq.canonical).slice(0, 8)) {
+      // Slightly penalise so an exact raw hit still wins ties.
+      record(r.item.id, (r.score ?? 1) + 0.01);
+    }
+  }
+
+  // 3) Deterministic tag-token intersection — boost entries whose tags match
+  //    any canonical token exactly. Great for single-keyword inputs.
+  const hitCounts = new Map<string, number>();
+  for (const tok of nq.tokens) {
+    if (tok.length < 2) continue;
+    const ids = index.tagIndex.get(tok);
+    if (!ids) continue;
+    for (const id of ids) hitCounts.set(id, (hitCounts.get(id) ?? 0) + 1);
+  }
+  if (hitCounts.size > 0) {
+    const totalTokens = Math.max(1, nq.tokens.length);
+    for (const [id, hits] of hitCounts) {
+      // Coverage ratio → pseudo-score in [0, 0.5]; more hits → lower (better) score.
+      const coverage = Math.min(1, hits / totalTokens);
+      const score = 0.5 - 0.4 * coverage;
+      record(id, score);
+    }
+  }
+
+  const matches: FaqMatch[] = [];
+  for (const [id, score] of bestScore) {
+    const entry = byId.get(id);
+    if (entry) matches.push({ entry, score });
+  }
+  matches.sort((a, b) => a.score - b.score);
+  return matches.slice(0, 4);
 }
