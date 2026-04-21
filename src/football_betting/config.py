@@ -362,6 +362,24 @@ class SupportConfig:
     model_filename_template: str = "support_intent_{lang}.joblib"
     languages: tuple[str, ...] = ("en", "de", "es", "fr", "it")
 
+    # Embedding backend (intfloat/multilingual-e5-large-instruct)
+    embedding_model_name: str = "intfloat/multilingual-e5-large-instruct"
+    embedding_filename_template: str = "support_emb_{lang}.npz"
+    embedding_metrics_filename: str = "support_intent_embedding_metrics.json"
+    embedding_batch_size: int = 64
+    embedding_score_cutoff: float = 0.78
+
+    # Cross-encoder reranker (BAAI/bge-reranker-base)
+    reranker_model_name: str = "BAAI/bge-reranker-base"
+    reranker_retrieve_n: int = 20        # candidate rows from bi-encoder
+    reranker_batch_size: int = 32
+
+    # Class bundling (hierarchical coarse→fine classification)
+    cluster_count: int = 80              # ~268 / 3.4 intents per cluster
+    cluster_filename_template: str = "support_clusters_{lang}.npz"
+    cluster_top_c: int = 8               # keep top-C clusters at inference time
+    cluster_metrics_filename: str = "support_intent_cluster_metrics.json"
+
     # Split
     val_fraction: float = 0.15
     random_seed: int = 42
