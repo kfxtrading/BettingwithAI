@@ -383,7 +383,7 @@ const articles: Record<string, LearnArticle> = {
         heading: "Diagrammes de fiabilité",
         paragraphs: [
           "Regroupez toutes les probabilités prédites en 10 bins. Tracez la probabilité prédite moyenne par bin face au taux de réussite réel. Un modèle parfaitement calibré se situe sur la diagonale.",
-          "Nous publions le diagramme de fiabilité des prévisions en direct sous /track-record.",
+          "Nous publions le diagramme de fiabilité des prévisions en direct sous /performance.",
         ],
       },
     ],

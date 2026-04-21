@@ -9,10 +9,6 @@ type FooterLink = {
     | 'footer.link.today'
     | 'footer.link.leagues'
     | 'footer.link.performance'
-    | 'footer.link.about'
-    | 'footer.link.methodology'
-    | 'footer.link.changelog'
-    | 'footer.link.sourceCode'
     | 'footer.link.terms'
     | 'footer.link.privacy'
     | 'footer.link.cookies'
@@ -27,17 +23,6 @@ const PRODUCT_LINKS: FooterLink[] = [
   { href: '/', labelKey: 'footer.link.today' },
   { href: '/leagues', labelKey: 'footer.link.leagues' },
   { href: '/performance', labelKey: 'footer.link.performance' },
-];
-
-const SOURCE_CODE_URL =
-  process.env.NEXT_PUBLIC_SOURCE_URL ??
-  'https://github.com/marcelr/BettingwithAI';
-
-const ABOUT_LINKS: FooterLink[] = [
-  { href: '/about', labelKey: 'footer.link.about' },
-  { href: '/methodology', labelKey: 'footer.link.methodology' },
-  { href: '/track-record', labelKey: 'footer.link.changelog' },
-  { href: SOURCE_CODE_URL, labelKey: 'footer.link.sourceCode', external: true },
 ];
 
 const LEGAL_LINKS: FooterLink[] = [
@@ -98,18 +83,12 @@ export function Footer() {
   return (
     <footer className="mx-auto w-full max-w-page px-6 pb-12 pt-10 text-2xs text-muted md:px-12">
       <div className="hairline pt-8">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-3">
           <div>
             <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.08em] text-text">
               {t('footer.col.product')}
             </h2>
             <ul className="flex flex-col gap-2">{PRODUCT_LINKS.map(renderLink)}</ul>
-          </div>
-          <div>
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.08em] text-text">
-              {t('footer.col.about')}
-            </h2>
-            <ul className="flex flex-col gap-2">{ABOUT_LINKS.map(renderLink)}</ul>
           </div>
           <div>
             <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.08em] text-text">

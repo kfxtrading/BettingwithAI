@@ -59,7 +59,7 @@ export default function LearnHubPage({ params }: PageProps) {
       <section className="mx-auto max-w-3xl">
         <header className="mb-10 border-b border-white/10 pb-6">
           <p className="text-2xs uppercase tracking-[0.08em] text-muted">
-            {dict['nav.methodology']}
+            {dict['rail.quick.learn']}
           </p>
           <h1 className="mt-2 text-3xl font-medium tracking-tight text-text">
             {dict['learn.heading']}

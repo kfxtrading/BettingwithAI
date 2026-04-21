@@ -382,7 +382,7 @@ const articles: Record<string, LearnArticle> = {
         heading: 'Diagramas de fiabilidad',
         paragraphs: [
           'Agrupa todas las probabilidades predichas en, por ejemplo, 10 bins. Representa la probabilidad predicha por bin frente a la tasa real de acierto. Un modelo perfectamente calibrado cae sobre la diagonal.',
-          'Publicamos el diagrama de fiabilidad de las predicciones en vivo en /track-record.',
+          'Publicamos el diagrama de fiabilidad de las predicciones en vivo en /performance.',
         ],
       },
     ],

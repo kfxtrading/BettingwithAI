@@ -383,7 +383,7 @@ const articles: Record<string, LearnArticle> = {
         heading: "Diagrammi di reliability",
         paragraphs: [
           "Raggruppa tutte le probabilità previste in, ad esempio, 10 bin. Disegna la probabilità prevista per bin contro il tasso reale di successo. Un modello perfettamente calibrato cade sulla diagonale.",
-          "Pubbliciamo il diagramma di reliability delle previsioni live su /track-record.",
+          "Pubbliciamo il diagramma di reliability delle previsioni live su /performance.",
         ],
       },
     ],

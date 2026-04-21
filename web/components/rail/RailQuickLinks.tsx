@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import {
   BarChart3,
   BookOpen,
-  LayoutGrid,
   Sparkles,
   Trophy,
   type LucideIcon,
@@ -24,7 +23,6 @@ const items: Item[] = [
   { path: '/', labelKey: 'nav.today', Icon: Sparkles },
   { path: '/performance', labelKey: 'nav.performance', Icon: BarChart3 },
   { path: '/leagues', labelKey: 'nav.leagues', Icon: Trophy },
-  { path: '/track-record', labelKey: 'rail.quick.trackRecord', Icon: LayoutGrid },
   { path: '/learn', labelKey: 'rail.quick.learn', Icon: BookOpen },
 ];
 

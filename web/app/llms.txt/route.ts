@@ -38,11 +38,8 @@ export async function GET(): Promise<Response> {
   lines.push(bullet('Today\'s predictions and value bets', '/'));
   lines.push(bullet('League hub', '/leagues'));
   lines.push(bullet('Performance and accuracy tracker', '/performance'));
-  lines.push(bullet('Track record (Dataset, CSV download, calibration plot)', '/track-record'));
   lines.push('');
-  lines.push('## About & methodology');
-  lines.push(bullet('About — independent, non-affiliate AI football analytics', '/about'));
-  lines.push(bullet('Methodology — Pi-Ratings, CatBoost, Poisson, MLP ensemble, calibration', '/methodology'));
+  lines.push('## Responsible gambling');
   lines.push(bullet('Responsible gambling — helplines and self-exclusion tools', '/responsible-gambling'));
   lines.push('');
   lines.push('## Legal');

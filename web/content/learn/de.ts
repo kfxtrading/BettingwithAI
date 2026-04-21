@@ -383,7 +383,7 @@ const articles: Record<string, LearnArticle> = {
         heading: 'Reliability-Diagramme',
         paragraphs: [
           'Bilde alle prognostizierten Wahrscheinlichkeiten in z. B. 10 Bins ab. Plot der prognostizierten Wahrscheinlichkeit pro Bin gegen die tatsächliche Trefferrate. Ein perfekt kalibriertes Modell liegt auf der Diagonalen.',
-          'Wir veröffentlichen das Reliability-Diagramm der Live-Vorhersagen unter /track-record.',
+          'Wir veröffentlichen das Reliability-Diagramm der Live-Vorhersagen unter /performance.',
         ],
       },
     ],
