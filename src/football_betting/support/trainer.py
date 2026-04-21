@@ -59,12 +59,12 @@ def train_one_language(
         )
         if top1 < SUPPORT_CFG.min_top1_accuracy:
             console.print(
-                f"[red]⚠ top1 {top1:.3f} below hard floor "
+                f"[red][WARN] top1 {top1:.3f} below hard floor "
                 f"{SUPPORT_CFG.min_top1_accuracy}[/red]"
             )
         elif top1 < SUPPORT_CFG.target_top1_accuracy:
             console.print(
-                f"[yellow]⚠ top1 {top1:.3f} below target "
+                f"[yellow][WARN] top1 {top1:.3f} below target "
                 f"{SUPPORT_CFG.target_top1_accuracy}[/yellow]"
             )
     else:

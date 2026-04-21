@@ -381,7 +381,7 @@ class SupportConfig:
     # Logistic Regression
     lr_C: float = 4.0
     lr_max_iter: int = 2000
-    lr_solver: str = "liblinear"
+    lr_solver: str = "lbfgs"
     lr_class_weight: str = "balanced"
 
     # Inference

@@ -1,0 +1,125 @@
+{
+  "per_language": [
+    {
+      "lang": "en",
+      "n_train": 5434,
+      "n_val": 912,
+      "n_classes": 268,
+      "metrics": {
+        "n_val": 912,
+        "top1_accuracy": 0.33771929824561403,
+        "top3_accuracy": 0.5142543859649122,
+        "macro_f1": 0.34460447305596564,
+        "per_chapter_top1": {
+          "general": 0.3333333333333333,
+          "basics": 0.3103448275862069,
+          "analysis": 0.29411764705882354,
+          "strategy": 0.33088235294117646,
+          "mistakes": 0.36764705882352944,
+          "ai": 0.3706896551724138,
+          "market": 0.3333333333333333,
+          "profit": 0.3125,
+          "platform": 0.4268292682926829
+        }
+      },
+      "model_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_intent_en.joblib"
+    },
+    {
+      "lang": "de",
+      "n_train": 5730,
+      "n_val": 963,
+      "n_classes": 268,
+      "metrics": {
+        "n_val": 963,
+        "top1_accuracy": 0.3354101765316719,
+        "top3_accuracy": 0.505711318795431,
+        "macro_f1": 0.3409667848978648,
+        "per_chapter_top1": {
+          "general": 0.3434343434343434,
+          "basics": 0.3037974683544304,
+          "analysis": 0.3028169014084507,
+          "strategy": 0.33093525179856115,
+          "mistakes": 0.34285714285714286,
+          "ai": 0.4083333333333333,
+          "market": 0.3142857142857143,
+          "profit": 0.38235294117647056,
+          "platform": 0.31958762886597936
+        }
+      },
+      "model_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_intent_de.joblib"
+    },
+    {
+      "lang": "es",
+      "n_train": 4969,
+      "n_val": 823,
+      "n_classes": 268,
+      "metrics": {
+        "n_val": 823,
+        "top1_accuracy": 0.31470230862697446,
+        "top3_accuracy": 0.4945321992709599,
+        "macro_f1": 0.3282542358870278,
+        "per_chapter_top1": {
+          "general": 0.29347826086956524,
+          "basics": 0.23870967741935484,
+          "analysis": 0.325,
+          "strategy": 0.3274336283185841,
+          "mistakes": 0.4166666666666667,
+          "ai": 0.37142857142857144,
+          "market": 0.2909090909090909,
+          "profit": 0.3584905660377358,
+          "platform": 0.2857142857142857
+        }
+      },
+      "model_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_intent_es.joblib"
+    },
+    {
+      "lang": "fr",
+      "n_train": 5153,
+      "n_val": 849,
+      "n_classes": 268,
+      "metrics": {
+        "n_val": 849,
+        "top1_accuracy": 0.3003533568904594,
+        "top3_accuracy": 0.4617196702002356,
+        "macro_f1": 0.32660897269106226,
+        "per_chapter_top1": {
+          "general": 0.24731182795698925,
+          "basics": 0.18705035971223022,
+          "analysis": 0.3115942028985507,
+          "strategy": 0.3211009174311927,
+          "mistakes": 0.37681159420289856,
+          "ai": 0.38181818181818183,
+          "market": 0.3090909090909091,
+          "profit": 0.2923076923076923,
+          "platform": 0.3380281690140845
+        }
+      },
+      "model_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_intent_fr.joblib"
+    },
+    {
+      "lang": "it",
+      "n_train": 5137,
+      "n_val": 845,
+      "n_classes": 268,
+      "metrics": {
+        "n_val": 845,
+        "top1_accuracy": 0.2911242603550296,
+        "top3_accuracy": 0.4816568047337278,
+        "macro_f1": 0.30142337968830507,
+        "per_chapter_top1": {
+          "general": 0.32608695652173914,
+          "basics": 0.25165562913907286,
+          "analysis": 0.2923076923076923,
+          "strategy": 0.2807017543859649,
+          "mistakes": 0.3275862068965517,
+          "ai": 0.3211009174311927,
+          "market": 0.3157894736842105,
+          "profit": 0.3125,
+          "platform": 0.22857142857142856
+        }
+      },
+      "model_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_intent_it.joblib"
+    }
+  ],
+  "config_version": "0.3.1"
+}
