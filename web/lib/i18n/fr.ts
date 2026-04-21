@@ -5,7 +5,7 @@ export const fr: Dictionary = {
   'site.tagline':
     "Analyses de paris sportifs dopées à l'IA pour les cinq grands championnats de football.",
   'site.description':
-    "Prédictions football et value bets basés sur les données pour la Premier League, la Bundesliga, la Serie A, la Liga et l'EFL Championship. Ensemble CatBoost + Poisson + MLP avec suivi de performance transparent.",
+    "Prédictions football et value bets basés sur les données pour la Premier League, la Bundesliga, la Serie A, la Liga et l'EFL Championship. Propulsé par NOMEN — notre modèle hybride d'apprentissage automatique pour prédire les résultats, les buts et la valeur des paris, avec un suivi de performance transparent.",
   'home.heading':
     "Analyses de paris du jour pour les cinq grands championnats.",
   'home.subheading':

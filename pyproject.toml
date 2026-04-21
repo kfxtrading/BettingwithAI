@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "football_betting"
 version = "0.3.1"
-description = "NOMEN"
+description = "NOMEN — Hybrides Machine-Learning-Modell zur Vorhersage von Fußballspielausgängen, Toren und Wettwerten."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

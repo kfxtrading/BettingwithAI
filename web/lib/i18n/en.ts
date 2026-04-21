@@ -886,7 +886,7 @@ export const en: Dictionary = {
   'site.tagline':
     "Today's AI-driven betting analyses for the Top 5 football leagues.",
   'site.description':
-    'Data-driven football predictions and value bets for the Premier League, Bundesliga, Serie A, La Liga and EFL Championship. CatBoost + Poisson + MLP ensemble with transparent performance tracking.',
+    'Data-driven football predictions and value bets for the Premier League, Bundesliga, Serie A, La Liga and EFL Championship. Powered by NOMEN — our hybrid machine-learning model for predicting match outcomes, goals and betting value, with transparent performance tracking.',
   'home.heading': "Today's betting analyses for the Top 5 leagues.",
   'home.subheading':
     'Calibrated probabilities for Home, Draw, Away — plus value bets where the model disagrees with the market.',

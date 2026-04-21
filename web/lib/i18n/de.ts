@@ -5,7 +5,7 @@ export const de: Dictionary = {
   'site.tagline':
     'Tägliche KI-gestützte Wett-Analysen für die Top-5-Fußballligen.',
   'site.description':
-    'Datengetriebene Fußball-Prognosen und Value Bets für Premier League, Bundesliga, Serie A, La Liga und EFL Championship. CatBoost + Poisson + MLP Ensemble mit transparentem Performance-Tracking.',
+    'Datengetriebene Fußball-Prognosen und Value Bets für Premier League, Bundesliga, Serie A, La Liga und EFL Championship. Angetrieben von NOMEN – unserem hybriden Machine-Learning-Modell zur Vorhersage von Spielausgängen, Toren und Wettwerten, mit transparentem Performance-Tracking.',
   'home.heading': 'Heutige Wett-Analysen für die Top\u20115\u2011Ligen.',
   'home.subheading':
     'Kalibrierte Wahrscheinlichkeiten für Heim, Unentschieden, Auswärts — plus Value Bets, wo das Modell dem Markt widerspricht.',

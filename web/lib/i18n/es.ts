@@ -5,7 +5,7 @@ export const es: Dictionary = {
   'site.tagline':
     'Análisis de apuestas de fútbol impulsados por IA para las cinco grandes ligas.',
   'site.description':
-    'Pronósticos de fútbol y value bets basados en datos para la Premier League, Bundesliga, Serie A, LaLiga y EFL Championship. Ensamble CatBoost + Poisson + MLP con seguimiento de rendimiento transparente.',
+    'Pronósticos de fútbol y value bets basados en datos para la Premier League, Bundesliga, Serie A, LaLiga y EFL Championship. Impulsado por NOMEN — nuestro modelo híbrido de machine learning para predecir resultados, goles y valor de apuestas, con seguimiento de rendimiento transparente.',
   'home.heading': 'Análisis de apuestas de hoy para las cinco grandes ligas.',
   'home.subheading':
     'Probabilidades calibradas para Local, Empate y Visitante — más value bets cuando el modelo discrepa del mercado.',
