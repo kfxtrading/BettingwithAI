@@ -411,6 +411,73 @@ class SupportConfig:
     target_top3_accuracy: float = 0.97
     target_macro_f1: float = 0.85
 
+    # Hierarchical (Pachinko) classifier — chapter → intent
+    hierarchical_model_filename_template: str = "support_hier_{lang}.joblib"
+    hierarchical_metrics_filename: str = "support_intent_hier_metrics.json"
+    topic_top_c: int = 3                 # expand leaf heads for top-C chapters
+    topic_min_mass: float = 0.90         # stop expanding once cumulative P reaches this
+
+    # Out-Of-Domain handling
+    ood_label: str = "__ood__"
+    ood_chapter: str = "__ood__"
+    ood_topic_threshold: float = 0.5     # P(__ood__) ≥ → reject
+    ood_seed_filename_template: str = "ood_seed_{lang}.jsonl"
+
+    # Disambiguation gates (used by API in M4)
+    confidence_threshold: float = 0.70
+    delta_margin_threshold: float = 0.15
+
+    # Augmentation pipeline (M2) — data escalation to >= 80 utterances / intent
+    augmented_v2_filename: str = "dataset_augmented_v2.jsonl"
+    augment_stats_v2_filename: str = "augment_stats_v2.json"
+    augment_target_per_intent: int = 80
+    augment_random_seed: int = 1337
+
+    # Built-in noise augmenter (no external deps).
+    noise_aug_char_p: float = 0.06         # prob. that a char inside a "noised" word is perturbed
+    noise_aug_word_p: float = 0.15         # prob. that a word is selected for typo noise
+    noise_punct_drop_p: float = 0.5        # prob. of dropping all punctuation in a sentence
+    noise_lowercase_p: float = 0.6         # prob. of lowercasing the sentence
+    noise_max_variants_per_source: int = 6  # hard cap on noise variants spawned from one source utterance
+
+    # Backtranslation (optional; requires transformers + sentencepiece).
+    # Pivot language list per source: order matters (first is highest-quality).
+    backtranslation_pivots: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("de", ("nl", "fr", "it")),
+        ("en", ("fr", "nl", "de")),
+        ("fr", ("en", "it", "nl")),
+        ("es", ("it", "fr", "en")),
+        ("it", ("fr", "es", "en")),
+    )
+
+    # ─── Transformer fine-tune (M3) — ModernGBERT / XLM-R + SupCon hybrid loss ───
+    transformer_model_dirname_template: str = "support_transformer_{lang}"
+    transformer_metrics_filename: str = "support_intent_transformer_metrics.json"
+    transformer_default_backbone: str = "FacebookAI/xlm-roberta-base"
+    transformer_backbone_by_lang: tuple[tuple[str, str], ...] = (
+        ("de", "LSX-UniWue/ModernGBERT_134M"),
+        ("en", "FacebookAI/xlm-roberta-base"),
+        ("es", "FacebookAI/xlm-roberta-base"),
+        ("fr", "FacebookAI/xlm-roberta-base"),
+        ("it", "FacebookAI/xlm-roberta-base"),
+    )
+    transformer_max_seq_length: int = 128
+    transformer_batch_size: int = 16
+    transformer_eval_batch_size: int = 64
+    transformer_epochs: int = 4
+    transformer_learning_rate: float = 2e-5
+    transformer_warmup_ratio: float = 0.1
+    transformer_weight_decay: float = 0.01
+    transformer_early_stop_patience: int = 2
+    # Hybrid loss: total = ce_weight · CE + supcon_weight · SupCon
+    supcon_weight: float = 0.3
+    ce_weight: float = 1.0
+    supcon_temperature: float = 0.07
+    # ONNX export
+    onnx_filename_template: str = "support_transformer_{lang}.onnx"
+    onnx_opset: int = 17
+    onnx_int8_quantize: bool = True
+
 
 # ───────────────────────── Defaults ─────────────────────────
 

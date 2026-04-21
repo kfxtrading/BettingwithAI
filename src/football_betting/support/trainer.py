@@ -11,6 +11,7 @@ from football_betting.config import SUPPORT_CFG, SUPPORT_DATA_DIR, SUPPORT_MODEL
 from football_betting.support.cluster import IntentClusterer
 from football_betting.support.dataset import load_dataset, stratified_split
 from football_betting.support.embedding_model import EmbeddingIntentRetriever
+from football_betting.support.hierarchical import HierarchicalIntentClassifier
 from football_betting.support.intent_model import IntentClassifier
 from football_betting.support.reranker import CrossEncoderReranker
 
@@ -262,6 +263,113 @@ def train_embeddings_one_language(
     return result
 
 
+# ───────────────────────── Hierarchical (Pachinko) backend ─────────────────────────
+
+
+def train_hierarchical_one_language(
+    lang: str,
+    dataset_path: Path | None = None,
+    out_dir: Path | None = None,
+    *,
+    include_ood: bool = True,
+) -> dict[str, Any]:
+    """Train + evaluate + save the chapter→intent Pachinko classifier."""
+    ds_path = dataset_path or (SUPPORT_DATA_DIR / SUPPORT_CFG.dataset_filename)
+    out = out_dir or SUPPORT_MODELS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+
+    console.rule(
+        f"[bold green]Support intent (hierarchical) — {lang}[/bold green]"
+    )
+
+    rows = load_dataset(path=ds_path, lang=lang, include_ood=include_ood)
+    if not rows:
+        raise RuntimeError(f"No rows for language '{lang}' in {ds_path}")
+
+    split = stratified_split(rows)
+    console.log(
+        f"Loaded {len(rows)} rows · "
+        f"train={split.n_train} val={split.n_val} intents={split.n_classes} "
+        f"(ood_seeds_included={include_ood})"
+    )
+
+    y_chap_train = [m["chapter"] for m in split.meta_train]
+    y_chap_val = [m["chapter"] for m in split.meta_val]
+
+    clf = HierarchicalIntentClassifier(lang=lang)
+    fit_info = clf.fit(split.X_train, split.y_train, y_chap_train)
+    console.log(
+        f"Fit done · chapters={fit_info['n_chapters']} "
+        f"leaf_heads={fit_info['n_leaf_heads']} intents={fit_info['n_intents']}"
+    )
+
+    metrics = clf.evaluate(split.X_val, split.y_val, chapters=y_chap_val)
+    _log_metrics("hierarchical", metrics)
+    if metrics.get("ood_precision") is not None:
+        console.print(
+            f"  OOD precision={metrics['ood_precision']:.3f}  "
+            f"recall={metrics['ood_recall']:.3f}"
+        )
+
+    out_path = out / SUPPORT_CFG.hierarchical_model_filename_template.format(
+        lang=lang
+    )
+    clf.save(out_path)
+    console.log(f"[green]Saved: {out_path}[/green]")
+
+    return {
+        "lang": lang,
+        "backend": "hierarchical",
+        "n_train": split.n_train,
+        "n_val": split.n_val,
+        "n_classes": split.n_classes,
+        "metrics": metrics,
+        "model_path": str(out_path),
+        "fit_info": fit_info,
+    }
+
+
+def train_hierarchical_all(
+    langs: list[str] | None = None,
+    dataset_path: Path | None = None,
+    out_dir: Path | None = None,
+    *,
+    include_ood: bool = True,
+) -> dict[str, Any]:
+    """Train the hierarchical classifier for every requested locale."""
+    out = out_dir or SUPPORT_MODELS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+    langs_list = list(langs) if langs else list(SUPPORT_CFG.languages)
+
+    all_stats: list[dict[str, Any]] = []
+    for lg in langs_list:
+        try:
+            stats = train_hierarchical_one_language(
+                lg,
+                dataset_path=dataset_path,
+                out_dir=out,
+                include_ood=include_ood,
+            )
+            all_stats.append(stats)
+        except Exception as exc:  # noqa: BLE001
+            console.log(f"[red]Failed for {lg}: {exc}[/red]")
+
+    metrics_path = out / SUPPORT_CFG.hierarchical_metrics_filename
+    payload = {
+        "per_language": all_stats,
+        "backend": "hierarchical",
+        "include_ood": include_ood,
+        "config_version": "0.3.2",
+    }
+    metrics_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    console.log(f"[green]Wrote metrics: {metrics_path}[/green]")
+
+    return payload
+
+
 def train_embeddings_all(
     langs: list[str] | None = None,
     dataset_path: Path | None = None,
@@ -317,6 +425,120 @@ def train_embeddings_all(
         "use_rerank": use_rerank,
         "use_cluster": use_cluster,
         "config_version": "0.3.1",
+    }
+    metrics_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    console.log(f"[green]Wrote metrics: {metrics_path}[/green]")
+
+    return payload
+
+
+# ───────────────────────── Transformer backend (M3) ─────────────────────────
+
+
+def train_transformer_one_language(
+    lang: str,
+    dataset_path: Path | None = None,
+    out_dir: Path | None = None,
+    backbone: str | None = None,
+    *,
+    include_ood: bool = True,
+) -> dict[str, Any]:
+    """Fine-tune ModernGBERT / XLM-R with CE + SupCon for one language."""
+    from football_betting.support.transformer_model import (
+        TransformerIntentClassifier,
+        resolve_backbone,
+    )
+
+    ds_path = dataset_path or (SUPPORT_DATA_DIR / SUPPORT_CFG.augmented_v2_filename)
+    if not ds_path.exists():
+        ds_path = SUPPORT_DATA_DIR / SUPPORT_CFG.dataset_filename
+    out = out_dir or SUPPORT_MODELS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+
+    console.rule(f"[bold magenta]Support transformer - {lang}[/bold magenta]")
+
+    rows = load_dataset(path=ds_path, lang=lang, include_ood=include_ood)
+    if not rows:
+        raise RuntimeError(f"No rows for language '{lang}' in {ds_path}")
+
+    split = stratified_split(rows)
+    console.log(
+        f"Loaded {len(rows)} rows | train={split.n_train} val={split.n_val} "
+        f"intents={split.n_classes} (ood={include_ood})"
+    )
+
+    resolved = backbone or resolve_backbone(lang)
+    console.log(f"Backbone: {resolved}")
+
+    clf = TransformerIntentClassifier(lang=lang, backbone=resolved)
+    fit_info = clf.fit(
+        split.X_train,
+        split.y_train,
+        X_val=split.X_val,
+        y_val=split.y_val,
+        verbose=True,
+    )
+    console.log(
+        f"Fit done | n_samples={fit_info['n_samples']} "
+        f"n_classes={fit_info['n_classes']} "
+        f"best_val_f1={fit_info.get('best_val_macro_f1')}"
+    )
+
+    val_chapters = [m["chapter"] for m in split.meta_val]
+    metrics = clf.evaluate(split.X_val, split.y_val, chapters=val_chapters)
+    _log_metrics("transformer", metrics)
+
+    out_path = out / SUPPORT_CFG.transformer_model_dirname_template.format(lang=lang)
+    clf.save(out_path)
+    console.log(f"[green]Saved: {out_path}[/green]")
+
+    return {
+        "lang": lang,
+        "backend": "transformer",
+        "backbone": resolved,
+        "n_train": split.n_train,
+        "n_val": split.n_val,
+        "n_classes": split.n_classes,
+        "metrics": metrics,
+        "model_path": str(out_path),
+        "fit_info": fit_info,
+    }
+
+
+def train_transformer_all(
+    langs: list[str] | None = None,
+    dataset_path: Path | None = None,
+    out_dir: Path | None = None,
+    *,
+    include_ood: bool = True,
+) -> dict[str, Any]:
+    """Fine-tune the transformer backbone per locale and dump aggregated metrics."""
+    out = out_dir or SUPPORT_MODELS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+    langs_list = list(langs) if langs else list(SUPPORT_CFG.languages)
+
+    all_stats: list[dict[str, Any]] = []
+    for lg in langs_list:
+        try:
+            stats = train_transformer_one_language(
+                lg,
+                dataset_path=dataset_path,
+                out_dir=out,
+                include_ood=include_ood,
+            )
+            all_stats.append(stats)
+        except Exception as exc:  # noqa: BLE001
+            console.log(f"[red]Failed for {lg}: {exc}[/red]")
+
+    metrics_path = out / SUPPORT_CFG.transformer_metrics_filename
+    payload = {
+        "per_language": all_stats,
+        "backend": "transformer",
+        "include_ood": include_ood,
+        "config_version": "0.3.3",
     }
     metrics_path.write_text(
         json.dumps(payload, indent=2, ensure_ascii=False),

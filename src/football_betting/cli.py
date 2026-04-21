@@ -333,6 +333,285 @@ def train_support(lang: str, dataset_path: Path | None, out_dir: Path | None) ->
     train_all(langs=langs, dataset_path=dataset_path, out_dir=out_dir)
 
 
+# ─────────────────── train-support-hier (v0.3.2 — Pachinko) ───────────────────
+
+@main.command("train-support-hier")
+@click.option(
+    "--lang",
+    default="all",
+    help="Language code (en|de|es|fr|it) or 'all'.",
+)
+@click.option(
+    "--dataset",
+    "dataset_path",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Path to dataset_augmented.jsonl (default: data/support_faq/…)",
+)
+@click.option(
+    "--out-dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output directory (default: models/support).",
+)
+@click.option(
+    "--no-ood",
+    is_flag=True,
+    default=False,
+    help="Skip the curated OOD seed bank (train without __ood__ class).",
+)
+def train_support_hier(
+    lang: str,
+    dataset_path: Path | None,
+    out_dir: Path | None,
+    no_ood: bool,
+) -> None:
+    """Train hierarchical (chapter -> intent) FAQ classifier with OOD head."""
+    from football_betting.config import SUPPORT_CFG
+    from football_betting.support.trainer import train_hierarchical_all
+
+    if lang.lower() == "all":
+        langs: list[str] | None = None
+    else:
+        lg = lang.lower()
+        if lg not in SUPPORT_CFG.languages:
+            raise click.BadParameter(
+                f"lang must be one of {('all', *SUPPORT_CFG.languages)}"
+            )
+        langs = [lg]
+
+    train_hierarchical_all(
+        langs=langs,
+        dataset_path=dataset_path,
+        out_dir=out_dir,
+        include_ood=not no_ood,
+    )
+
+
+# ─────────────────── augment-support (v0.3.3 - Data x3.3) ───────────────────
+
+@main.command("augment-support")
+@click.option(
+    "--input",
+    "input_path",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Input JSONL (default: data/support_faq/dataset_augmented.jsonl).",
+)
+@click.option(
+    "--output",
+    "output_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output JSONL (default: data/support_faq/dataset_augmented_v2.jsonl).",
+)
+@click.option(
+    "--target",
+    "target_per_intent",
+    type=int,
+    default=None,
+    help="Target utterances per (intent, lang). Default: SUPPORT_CFG.augment_target_per_intent.",
+)
+@click.option(
+    "--seed",
+    "rng_seed",
+    type=int,
+    default=None,
+    help="Override the augmentation RNG seed (reproducibility knob).",
+)
+@click.option(
+    "--noise/--no-noise",
+    default=True,
+    help="Enable built-in QWERTY/QWERTZ noise augmenter (default: on).",
+)
+@click.option(
+    "--paraphrase/--no-paraphrase",
+    default=False,
+    help="Enable LLM paraphrase augmenter (needs [support-aug] + OPENAI_API_KEY).",
+)
+@click.option(
+    "--paraphrase-model",
+    default="gpt-4o-mini",
+    show_default=True,
+    help="OpenAI chat model for --paraphrase.",
+)
+@click.option(
+    "--backtranslate/--no-backtranslate",
+    default=False,
+    help="Enable MarianMT backtranslation augmenter (needs [support-aug]).",
+)
+@click.option(
+    "--bt-device",
+    default="cpu",
+    show_default=True,
+    help="Device for MarianMT pipelines ('cpu' / 'cuda').",
+)
+def augment_support(
+    input_path: Path | None,
+    output_path: Path | None,
+    target_per_intent: int | None,
+    rng_seed: int | None,
+    noise: bool,
+    paraphrase: bool,
+    paraphrase_model: str,
+    backtranslate: bool,
+    bt_device: str,
+) -> None:
+    """Fill support-FAQ buckets to >= 80 utterances/intent via layered augmenters.
+
+    Layer order when multiple are enabled:
+    1. LLM paraphrase (highest lexical diversity),
+    2. MarianMT backtranslation (structural diversity),
+    3. Built-in noise (typo / punctuation / casing — always last).
+    """
+    from football_betting.support.augment import (
+        BacktranslationAugmenter,
+        NoiseAugmenter,
+        ParaphraseAugmenter,
+        augment_dataset,
+        build_marian_backtranslator,
+        build_openai_paraphraser,
+    )
+
+    augmenters: list[object] = []
+    if paraphrase:
+        try:
+            generate_fn = build_openai_paraphraser(model=paraphrase_model)
+        except RuntimeError as exc:
+            raise click.ClickException(str(exc)) from exc
+        augmenters.append(ParaphraseAugmenter(generate_fn=generate_fn))
+    if backtranslate:
+        try:
+            translate_fn = build_marian_backtranslator(device=bt_device)
+        except RuntimeError as exc:
+            raise click.ClickException(str(exc)) from exc
+        augmenters.append(BacktranslationAugmenter(translate_fn=translate_fn))
+    if noise:
+        augmenters.append(NoiseAugmenter())
+
+    stats = augment_dataset(
+        input_path=input_path,
+        output_path=output_path,
+        target_per_intent=target_per_intent,
+        augmenters=augmenters or None,
+        rng_seed=rng_seed,
+    )
+    click.echo(
+        f"Augmented: {stats.n_input_rows} -> {stats.n_output_rows} rows "
+        f"(avg/intent-lang={stats.variants_per_intent_lang.get('avg', 0):.1f})"
+    )
+
+
+# ─────────────────── train-support-transformer (v0.3.4 - M3) ───────────────────
+
+@main.command("train-support-transformer")
+@click.option(
+    "--lang",
+    type=str,
+    default="all",
+    show_default=True,
+    help="Locale to fine-tune (one of en/de/es/fr/it) or 'all'.",
+)
+@click.option(
+    "--dataset",
+    "dataset_path",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Dataset JSONL (default: dataset_augmented_v2.jsonl with fallback to dataset_augmented.jsonl).",
+)
+@click.option(
+    "--out",
+    "out_dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output directory (default: models/support).",
+)
+@click.option(
+    "--backbone",
+    type=str,
+    default=None,
+    help="Override HF backbone (default: ModernGBERT-134M for de, XLM-R base otherwise).",
+)
+@click.option(
+    "--include-ood/--no-ood",
+    default=True,
+    show_default=True,
+    help="Inject curated OOD seed rows during training.",
+)
+def train_support_transformer(
+    lang: str,
+    dataset_path: Path | None,
+    out_dir: Path | None,
+    backbone: str | None,
+    include_ood: bool,
+) -> None:
+    """Fine-tune an encoder (ModernGBERT / XLM-R) with CE + SupCon loss."""
+    from football_betting.support.trainer import (
+        train_transformer_all,
+        train_transformer_one_language,
+    )
+
+    if lang == "all":
+        train_transformer_all(
+            dataset_path=dataset_path,
+            out_dir=out_dir,
+            include_ood=include_ood,
+        )
+    else:
+        train_transformer_one_language(
+            lang,
+            dataset_path=dataset_path,
+            out_dir=out_dir,
+            backbone=backbone,
+            include_ood=include_ood,
+        )
+
+
+# ─────────────────── export-support-onnx (v0.3.4 - M3) ───────────────────
+
+
+@main.command("export-support-onnx")
+@click.option(
+    "--lang",
+    type=str,
+    default="all",
+    show_default=True,
+    help="Locale to export or 'all'.",
+)
+@click.option(
+    "--model-dir",
+    "model_dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Models root (default: models/support).",
+)
+@click.option(
+    "--int8/--no-int8",
+    default=True,
+    show_default=True,
+    help="Post-export dynamic INT8 quantisation (needs onnxruntime.quantization).",
+)
+def export_support_onnx(lang: str, model_dir: Path | None, int8: bool) -> None:
+    """Export fine-tuned support transformer(s) to ONNX (optionally INT8)."""
+    from football_betting.config import SUPPORT_CFG, SUPPORT_MODELS_DIR
+    from football_betting.support.transformer_model import (
+        TransformerIntentClassifier,
+        export_to_onnx,
+    )
+
+    root = model_dir or SUPPORT_MODELS_DIR
+    langs = list(SUPPORT_CFG.languages) if lang == "all" else [lang]
+    for lg in langs:
+        src_dir = root / SUPPORT_CFG.transformer_model_dirname_template.format(lang=lg)
+        if not src_dir.exists():
+            click.echo(f"[skip] no model dir for {lg}: {src_dir}")
+            continue
+        out_file = root / SUPPORT_CFG.onnx_filename_template.format(lang=lg)
+        clf = TransformerIntentClassifier.load(src_dir)
+        final = export_to_onnx(clf, out_file, int8=int8)
+        click.echo(f"[{lg}] exported: {final}")
+
+
 # ───────────────────────── export-onnx (v0.3) ─────────────────────────
 
 @main.command("export-onnx")

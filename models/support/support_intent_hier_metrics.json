@@ -1,0 +1,41 @@
+{
+  "per_language": [
+    {
+      "lang": "en",
+      "backend": "hierarchical",
+      "n_train": 18250,
+      "n_val": 3220,
+      "n_classes": 269,
+      "metrics": {
+        "n_val": 3220,
+        "top1_accuracy": 0.4968944099378882,
+        "top3_accuracy": 0.5944099378881987,
+        "macro_f1": 0.48703324921759744,
+        "per_chapter_top1": {
+          "general": 0.6416666666666667,
+          "basics": 0.4875,
+          "analysis": 0.4625,
+          "strategy": 0.4625,
+          "mistakes": 0.475,
+          "ai": 0.48125,
+          "market": 0.5,
+          "profit": 0.5083333333333333,
+          "platform": 0.5327380952380952,
+          "__ood__": 0.5
+        },
+        "ood_precision": 0.2857142857142857,
+        "ood_recall": 0.5
+      },
+      "model_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_hier_en.joblib",
+      "fit_info": {
+        "n_samples": 18250,
+        "n_chapters": 10,
+        "n_leaf_heads": 9,
+        "n_intents": 268
+      }
+    }
+  ],
+  "backend": "hierarchical",
+  "include_ood": true,
+  "config_version": "0.3.2"
+}

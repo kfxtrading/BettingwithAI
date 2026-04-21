@@ -1,0 +1,43 @@
+{
+  "n_input_rows": 31715,
+  "n_output_rows": 107200,
+  "per_language": {
+    "en": 21440,
+    "de": 21440,
+    "es": 21440,
+    "fr": 21440,
+    "it": 21440
+  },
+  "per_source": {
+    "original": 1340,
+    "paraphrase": 30375,
+    "augment_v2:noise": 75485
+  },
+  "variants_per_intent_lang": {
+    "min": 80.0,
+    "max": 80.0,
+    "avg": 80.0
+  },
+  "per_intent_deficit_before_sample": {
+    "value-bet|en": 39,
+    "value-bet|de": 39,
+    "value-bet|es": 39,
+    "value-bet|fr": 39,
+    "value-bet|it": 39,
+    "accuracy|en": 45,
+    "accuracy|de": 39,
+    "accuracy|es": 45,
+    "accuracy|fr": 39,
+    "accuracy|it": 39,
+    "data-source|en": 47,
+    "data-source|de": 47,
+    "data-source|es": 47,
+    "data-source|fr": 47,
+    "data-source|it": 49,
+    "snapshot-update|en": 47,
+    "snapshot-update|de": 41,
+    "snapshot-update|es": 47,
+    "snapshot-update|fr": 47,
+    "snapshot-update|it": 47
+  }
+}

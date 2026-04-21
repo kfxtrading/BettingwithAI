@@ -42,8 +42,16 @@ def _default_dataset_path() -> Path:
 def load_dataset(
     path: Path | None = None,
     lang: str | None = None,
+    *,
+    include_ood: bool = False,
 ) -> list[dict[str, object]]:
-    """Load JSONL rows, optionally filtered by language."""
+    """Load JSONL rows, optionally filtered by language.
+
+    When ``include_ood=True`` the curated OOD seed bank for ``lang`` (or for
+    every language, if ``lang is None``) is appended to the returned rows.
+    The seeds share the standard schema so they flow through
+    :func:`stratified_split` like any other utterance.
+    """
     p = path or _default_dataset_path()
     if not p.exists():
         raise FileNotFoundError(f"Support FAQ dataset not found: {p}")
@@ -58,6 +66,17 @@ def load_dataset(
             if lang is not None and row.get("lang") != lang:
                 continue
             rows.append(row)
+
+    if include_ood:
+        from football_betting.support.ood import build_ood_rows
+
+        langs = [lang] if lang is not None else list(SUPPORT_CFG.languages)
+        for lg in langs:
+            try:
+                rows.extend(build_ood_rows(lg))
+            except KeyError:
+                # Unknown language — silently skip, nothing to seed.
+                pass
     return rows
 
 
