@@ -1,31 +1,31 @@
 {
-  "n_input_rows": 670,
-  "n_output_rows": 13253,
+  "n_input_rows": 1340,
+  "n_output_rows": 30815,
   "per_chapter": {
-    "general": 1258,
-    "basics": 2219,
-    "analysis": 2002,
-    "strategy": 1876,
-    "mistakes": 1000,
-    "ai": 1800,
-    "market": 974,
-    "profit": 898,
-    "platform": 1226
+    "general": 3276,
+    "basics": 5299,
+    "analysis": 4882,
+    "strategy": 4396,
+    "mistakes": 2210,
+    "ai": 3840,
+    "market": 2134,
+    "profit": 2148,
+    "platform": 2630
   },
   "per_language": {
-    "en": 2778,
-    "de": 2921,
-    "es": 2524,
-    "fr": 2494,
-    "it": 2536
+    "en": 6346,
+    "de": 6693,
+    "es": 5792,
+    "fr": 6002,
+    "it": 5982
   },
   "per_source": {
-    "original": 670,
-    "paraphrase": 12583
+    "original": 1340,
+    "paraphrase": 29475
   },
   "variants_per_intent_lang": {
     "min": 13,
-    "max": 33,
-    "avg": 19.78
+    "max": 41,
+    "avg": 23.0
   }
 }

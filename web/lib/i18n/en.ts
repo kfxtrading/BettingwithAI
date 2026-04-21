@@ -460,8 +460,297 @@ export type DictionaryKey =
   | 'support.faq.platform.alerts.q'
   | 'support.faq.platform.alerts.a'
   | 'support.faq.platform.trust.q'
-  | 'support.faq.platform.trust.a';
-
+  | 'support.faq.platform.trust.a'
+  // <BEGIN_FOLLOWUP_KEYS>
+  | 'support.faq.valueBet.fq'
+  | 'support.faq.valueBet.fa'
+  | 'support.faq.accuracy.fq'
+  | 'support.faq.accuracy.fa'
+  | 'support.faq.dataSource.fq'
+  | 'support.faq.dataSource.fa'
+  | 'support.faq.snapshotUpdate.fq'
+  | 'support.faq.snapshotUpdate.fa'
+  | 'support.faq.kelly.fq'
+  | 'support.faq.kelly.fa'
+  | 'support.faq.piRating.fq'
+  | 'support.faq.piRating.fa'
+  | 'support.faq.responsible.fq'
+  | 'support.faq.responsible.fa'
+  | 'support.faq.language.fq'
+  | 'support.faq.language.fa'
+  | 'support.faq.cookies.fq'
+  | 'support.faq.cookies.fa'
+  | 'support.faq.contact.fq'
+  | 'support.faq.contact.fa'
+  | 'support.faq.basics.oneX2.fq'
+  | 'support.faq.basics.oneX2.fa'
+  | 'support.faq.basics.odds.fq'
+  | 'support.faq.basics.odds.fa'
+  | 'support.faq.basics.winnings.fq'
+  | 'support.faq.basics.winnings.fa'
+  | 'support.faq.basics.single.fq'
+  | 'support.faq.basics.single.fa'
+  | 'support.faq.basics.accumulator.fq'
+  | 'support.faq.basics.accumulator.fa'
+  | 'support.faq.basics.system.fq'
+  | 'support.faq.basics.system.fa'
+  | 'support.faq.basics.valueBetBasic.fq'
+  | 'support.faq.basics.valueBetBasic.fa'
+  | 'support.faq.basics.probability.fq'
+  | 'support.faq.basics.probability.fa'
+  | 'support.faq.basics.bookie.fq'
+  | 'support.faq.basics.bookie.fa'
+  | 'support.faq.basics.bookieMoney.fq'
+  | 'support.faq.basics.bookieMoney.fa'
+  | 'support.faq.basics.overround.fq'
+  | 'support.faq.basics.overround.fa'
+  | 'support.faq.basics.live.fq'
+  | 'support.faq.basics.live.fa'
+  | 'support.faq.basics.cashout.fq'
+  | 'support.faq.basics.cashout.fa'
+  | 'support.faq.basics.handicap.fq'
+  | 'support.faq.basics.handicap.fa'
+  | 'support.faq.basics.asianHandicap.fq'
+  | 'support.faq.basics.asianHandicap.fa'
+  | 'support.faq.basics.ou25.fq'
+  | 'support.faq.basics.ou25.fa'
+  | 'support.faq.basics.btts.fq'
+  | 'support.faq.basics.btts.fa'
+  | 'support.faq.basics.dnb.fq'
+  | 'support.faq.basics.dnb.fa'
+  | 'support.faq.basics.doubleChance.fq'
+  | 'support.faq.basics.doubleChance.fa'
+  | 'support.faq.basics.specials.fq'
+  | 'support.faq.basics.specials.fa'
+  | 'support.faq.analysis.howTo.fq'
+  | 'support.faq.analysis.howTo.fa'
+  | 'support.faq.analysis.stats.fq'
+  | 'support.faq.analysis.stats.fa'
+  | 'support.faq.analysis.form.fq'
+  | 'support.faq.analysis.form.fa'
+  | 'support.faq.analysis.homeAway.fq'
+  | 'support.faq.analysis.homeAway.fa'
+  | 'support.faq.analysis.injuries.fq'
+  | 'support.faq.analysis.injuries.fa'
+  | 'support.faq.analysis.lineups.fq'
+  | 'support.faq.analysis.lineups.fa'
+  | 'support.faq.analysis.xg.fq'
+  | 'support.faq.analysis.xg.fa'
+  | 'support.faq.analysis.h2h.fq'
+  | 'support.faq.analysis.h2h.fa'
+  | 'support.faq.analysis.motivation.fq'
+  | 'support.faq.analysis.motivation.fa'
+  | 'support.faq.analysis.weather.fq'
+  | 'support.faq.analysis.weather.fa'
+  | 'support.faq.analysis.defOff.fq'
+  | 'support.faq.analysis.defOff.fa'
+  | 'support.faq.analysis.goalStats.fq'
+  | 'support.faq.analysis.goalStats.fa'
+  | 'support.faq.analysis.bestLeague.fq'
+  | 'support.faq.analysis.bestLeague.fa'
+  | 'support.faq.analysis.coach.fq'
+  | 'support.faq.analysis.coach.fa'
+  | 'support.faq.analysis.tempo.fq'
+  | 'support.faq.analysis.tempo.fa'
+  | 'support.faq.analysis.ouGames.fq'
+  | 'support.faq.analysis.ouGames.fa'
+  | 'support.faq.analysis.bttsGames.fq'
+  | 'support.faq.analysis.bttsGames.fa'
+  | 'support.faq.analysis.draws.fq'
+  | 'support.faq.analysis.draws.fa'
+  | 'support.faq.analysis.underdogs.fq'
+  | 'support.faq.analysis.underdogs.fa'
+  | 'support.faq.analysis.trapGames.fq'
+  | 'support.faq.analysis.trapGames.fa'
+  | 'support.faq.strategy.best.fq'
+  | 'support.faq.strategy.best.fa'
+  | 'support.faq.strategy.valueBet.fq'
+  | 'support.faq.strategy.valueBet.fa'
+  | 'support.faq.strategy.arbitrage.fq'
+  | 'support.faq.strategy.arbitrage.fa'
+  | 'support.faq.strategy.martingale.fq'
+  | 'support.faq.strategy.martingale.fa'
+  | 'support.faq.strategy.flat.fq'
+  | 'support.faq.strategy.flat.fa'
+  | 'support.faq.strategy.bankroll.fq'
+  | 'support.faq.strategy.bankroll.fa'
+  | 'support.faq.strategy.stake.fq'
+  | 'support.faq.strategy.stake.fa'
+  | 'support.faq.strategy.losingStreak.fq'
+  | 'support.faq.strategy.losingStreak.fa'
+  | 'support.faq.strategy.combos.fq'
+  | 'support.faq.strategy.combos.fa'
+  | 'support.faq.strategy.profitable.fq'
+  | 'support.faq.strategy.profitable.fa'
+  | 'support.faq.strategy.test.fq'
+  | 'support.faq.strategy.test.fa'
+  | 'support.faq.strategy.roi.fq'
+  | 'support.faq.strategy.roi.fa'
+  | 'support.faq.strategy.strikeRate.fq'
+  | 'support.faq.strategy.strikeRate.fa'
+  | 'support.faq.strategy.discipline.fq'
+  | 'support.faq.strategy.discipline.fa'
+  | 'support.faq.strategy.goodOdds.fq'
+  | 'support.faq.strategy.goodOdds.fa'
+  | 'support.faq.strategy.noBet.fq'
+  | 'support.faq.strategy.noBet.fa'
+  | 'support.faq.strategy.timing.fq'
+  | 'support.faq.strategy.timing.fa'
+  | 'support.faq.strategy.prematchLive.fq'
+  | 'support.faq.strategy.prematchLive.fa'
+  | 'support.faq.strategy.oddsMovement.fq'
+  | 'support.faq.strategy.oddsMovement.fa'
+  | 'support.faq.strategy.ownSystem.fq'
+  | 'support.faq.strategy.ownSystem.fa'
+  | 'support.faq.mistakes.loseMoney.fq'
+  | 'support.faq.mistakes.loseMoney.fa'
+  | 'support.faq.mistakes.chasing.fq'
+  | 'support.faq.mistakes.chasing.fa'
+  | 'support.faq.mistakes.emotions.fq'
+  | 'support.faq.mistakes.emotions.fa'
+  | 'support.faq.mistakes.accumulators.fq'
+  | 'support.faq.mistakes.accumulators.fa'
+  | 'support.faq.mistakes.overbetting.fq'
+  | 'support.faq.mistakes.overbetting.fa'
+  | 'support.faq.mistakes.tipsters.fq'
+  | 'support.faq.mistakes.tipsters.fa'
+  | 'support.faq.mistakes.noBankroll.fq'
+  | 'support.faq.mistakes.noBankroll.fa'
+  | 'support.faq.mistakes.sureBets.fq'
+  | 'support.faq.mistakes.sureBets.fa'
+  | 'support.faq.mistakes.favTeam.fq'
+  | 'support.faq.mistakes.favTeam.fa'
+  | 'support.faq.mistakes.beginner.fq'
+  | 'support.faq.mistakes.beginner.fa'
+  | 'support.faq.ai.how.fq'
+  | 'support.faq.ai.how.fa'
+  | 'support.faq.ai.data.fq'
+  | 'support.faq.ai.data.fa'
+  | 'support.faq.ai.reliability.fq'
+  | 'support.faq.ai.reliability.fa'
+  | 'support.faq.ai.model.fq'
+  | 'support.faq.ai.model.fa'
+  | 'support.faq.ai.ml.fq'
+  | 'support.faq.ai.ml.fa'
+  | 'support.faq.ai.features.fq'
+  | 'support.faq.ai.features.fa'
+  | 'support.faq.ai.history.fq'
+  | 'support.faq.ai.history.fa'
+  | 'support.faq.ai.oddsModel.fq'
+  | 'support.faq.ai.oddsModel.fa'
+  | 'support.faq.ai.valueBet.fq'
+  | 'support.faq.ai.valueBet.fa'
+  | 'support.faq.ai.overfitting.fq'
+  | 'support.faq.ai.overfitting.fa'
+  | 'support.faq.ai.algorithms.fq'
+  | 'support.faq.ai.algorithms.fa'
+  | 'support.faq.ai.liveData.fq'
+  | 'support.faq.ai.liveData.fa'
+  | 'support.faq.ai.realtime.fq'
+  | 'support.faq.ai.realtime.fa'
+  | 'support.faq.ai.measure.fq'
+  | 'support.faq.ai.measure.fa'
+  | 'support.faq.ai.improve.fq'
+  | 'support.faq.ai.improve.fa'
+  | 'support.faq.ai.combine.fq'
+  | 'support.faq.ai.combine.fa'
+  | 'support.faq.ai.ensemble.fq'
+  | 'support.faq.ai.ensemble.fa'
+  | 'support.faq.ai.apis.fq'
+  | 'support.faq.ai.apis.fa'
+  | 'support.faq.ai.dashboard.fq'
+  | 'support.faq.ai.dashboard.fa'
+  | 'support.faq.ai.automate.fq'
+  | 'support.faq.ai.automate.fa'
+  | 'support.faq.market.create.fq'
+  | 'support.faq.market.create.fa'
+  | 'support.faq.market.change.fq'
+  | 'support.faq.market.change.fa'
+  | 'support.faq.market.clv.fq'
+  | 'support.faq.market.clv.fa'
+  | 'support.faq.market.valueOdds.fq'
+  | 'support.faq.market.valueOdds.fa'
+  | 'support.faq.market.bestBooks.fq'
+  | 'support.faq.market.bestBooks.fa'
+  | 'support.faq.market.diffBooks.fq'
+  | 'support.faq.market.diffBooks.fa'
+  | 'support.faq.market.compare.fq'
+  | 'support.faq.market.compare.fa'
+  | 'support.faq.market.sharpPublic.fq'
+  | 'support.faq.market.sharpPublic.fa'
+  | 'support.faq.market.movement.fq'
+  | 'support.faq.market.movement.fa'
+  | 'support.faq.market.liquidity.fq'
+  | 'support.faq.market.liquidity.fa'
+  | 'support.faq.profit.earn.fq'
+  | 'support.faq.profit.earn.fa'
+  | 'support.faq.profit.longterm.fq'
+  | 'support.faq.profit.longterm.fa'
+  | 'support.faq.profit.roi.fq'
+  | 'support.faq.profit.roi.fa'
+  | 'support.faq.profit.timeToProfit.fq'
+  | 'support.faq.profit.timeToProfit.fa'
+  | 'support.faq.profit.capital.fq'
+  | 'support.faq.profit.capital.fa'
+  | 'support.faq.profit.skillVsLuck.fq'
+  | 'support.faq.profit.skillVsLuck.fa'
+  | 'support.faq.profit.prosVsAmateurs.fq'
+  | 'support.faq.profit.prosVsAmateurs.fa'
+  | 'support.faq.profit.prosWork.fq'
+  | 'support.faq.profit.prosWork.fa'
+  | 'support.faq.profit.patience.fq'
+  | 'support.faq.profit.patience.fa'
+  | 'support.faq.profit.fail90.fq'
+  | 'support.faq.profit.fail90.fa'
+  | 'support.faq.platform.daily.fq'
+  | 'support.faq.platform.daily.fa'
+  | 'support.faq.platform.autoload.fq'
+  | 'support.faq.platform.autoload.fa'
+  | 'support.faq.platform.updateFreq.fq'
+  | 'support.faq.platform.updateFreq.fa'
+  | 'support.faq.platform.confidence.fq'
+  | 'support.faq.platform.confidence.fa'
+  | 'support.faq.platform.visualize.fq'
+  | 'support.faq.platform.visualize.fa'
+  | 'support.faq.platform.bestBets.fq'
+  | 'support.faq.platform.bestBets.fa'
+  | 'support.faq.platform.history.fq'
+  | 'support.faq.platform.history.fa'
+  | 'support.faq.platform.tracking.fq'
+  | 'support.faq.platform.tracking.fa'
+  | 'support.faq.platform.ranking.fq'
+  | 'support.faq.platform.ranking.fa'
+  | 'support.faq.platform.lastBets.fq'
+  | 'support.faq.platform.lastBets.fa'
+  | 'support.faq.platform.wrongMatch.fq'
+  | 'support.faq.platform.wrongMatch.fa'
+  | 'support.faq.platform.valueVsPrediction.fq'
+  | 'support.faq.platform.valueVsPrediction.fa'
+  | 'support.faq.platform.alerts.fq'
+  | 'support.faq.platform.alerts.fa'
+  | 'support.faq.platform.trust.fq'
+  | 'support.faq.platform.trust.fa'
+  | 'support.faq.valueBet.alt1'
+  | 'support.faq.valueBet.alt2'
+  | 'support.faq.valueBet.alt3'
+  | 'support.faq.valueBet.alt4'
+  | 'support.faq.valueBet.alt5'
+  | 'support.faq.accuracy.alt1'
+  | 'support.faq.accuracy.alt2'
+  | 'support.faq.accuracy.alt3'
+  | 'support.faq.accuracy.alt4'
+  | 'support.faq.accuracy.alt5'
+  | 'support.faq.dataSource.alt1'
+  | 'support.faq.dataSource.alt2'
+  | 'support.faq.dataSource.alt3'
+  | 'support.faq.dataSource.alt4'
+  | 'support.faq.dataSource.alt5'
+  | 'support.faq.snapshotUpdate.alt1'
+  | 'support.faq.snapshotUpdate.alt2'
+  | 'support.faq.snapshotUpdate.alt3'
+  | 'support.faq.snapshotUpdate.alt4'
+  | 'support.faq.snapshotUpdate.alt5'
+  // <END_FOLLOWUP_KEYS>;
 export const en: Dictionary = {
   'site.title': 'Betting with AI',
   'site.tagline':
@@ -965,4 +1254,297 @@ export const en: Dictionary = {
   'support.faq.platform.alerts.a': "Push or email triggers on edge above threshold, odds movement or new high-confidence picks — always opt-in with a frequency cap.",
   'support.faq.platform.trust.q': "How do you build trust in the platform?",
   'support.faq.platform.trust.a': "A public, immutable track-record log, transparent methodology, clear calibration metrics and responsible-gambling messaging.",
+
+
+  // <BEGIN_FOLLOWUP_STRINGS>
+  'support.faq.valueBet.fq': "What is the most important next step on this topic?",
+  'support.faq.valueBet.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.accuracy.fq': "What is the most important next step on this topic?",
+  'support.faq.accuracy.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.dataSource.fq': "What is the most important next step on this topic?",
+  'support.faq.dataSource.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.snapshotUpdate.fq': "What is the most important next step on this topic?",
+  'support.faq.snapshotUpdate.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.kelly.fq': "What is the most important next step on this topic?",
+  'support.faq.kelly.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.piRating.fq': "What is the most important next step on this topic?",
+  'support.faq.piRating.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.responsible.fq': "What is the most important next step on this topic?",
+  'support.faq.responsible.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.language.fq': "What is the most important next step on this topic?",
+  'support.faq.language.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.cookies.fq': "What is the most important next step on this topic?",
+  'support.faq.cookies.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.contact.fq': "What is the most important next step on this topic?",
+  'support.faq.contact.fa': "Apply the concept to a concrete example, compare your result to a reference value and track the outcome over at least 50 decisions before adjusting behaviour.",
+  'support.faq.basics.oneX2.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.oneX2.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.odds.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.odds.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.winnings.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.winnings.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.single.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.single.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.accumulator.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.accumulator.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.system.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.system.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.valueBetBasic.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.valueBetBasic.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.probability.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.probability.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.bookie.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.bookie.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.bookieMoney.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.bookieMoney.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.overround.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.overround.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.live.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.live.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.cashout.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.cashout.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.handicap.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.handicap.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.asianHandicap.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.asianHandicap.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.ou25.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.ou25.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.btts.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.btts.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.dnb.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.dnb.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.doubleChance.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.doubleChance.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.basics.specials.fq': "When is this market actually the smart choice in practice?",
+  'support.faq.basics.specials.fa': "Pick this market when your model probability clearly beats the bookmaker's implied probability and the overround is below 6%. Switch to single-outcome markets when liquidity is thin or the line is late.",
+  'support.faq.analysis.howTo.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.howTo.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.stats.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.stats.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.form.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.form.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.homeAway.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.homeAway.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.injuries.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.injuries.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.lineups.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.lineups.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.xg.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.xg.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.h2h.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.h2h.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.motivation.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.motivation.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.weather.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.weather.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.defOff.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.defOff.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.goalStats.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.goalStats.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.bestLeague.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.bestLeague.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.coach.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.coach.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.tempo.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.tempo.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.ouGames.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.ouGames.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.bttsGames.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.bttsGames.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.draws.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.draws.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.underdogs.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.underdogs.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.analysis.trapGames.fq': "Which concrete signals carry the most weight here?",
+  'support.faq.analysis.trapGames.fa': "Prioritise stable indicators: xG differential over the last 8 matches, adjusted Pi-ratings, and the gap between opening and closing line value. Never rely on a single metric — combine at least three signals.",
+  'support.faq.strategy.best.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.best.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.valueBet.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.valueBet.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.arbitrage.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.arbitrage.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.martingale.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.martingale.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.flat.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.flat.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.bankroll.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.bankroll.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.stake.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.stake.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.losingStreak.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.losingStreak.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.combos.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.combos.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.profitable.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.profitable.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.test.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.test.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.roi.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.roi.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.strikeRate.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.strikeRate.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.discipline.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.discipline.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.goodOdds.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.goodOdds.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.noBet.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.noBet.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.timing.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.timing.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.prematchLive.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.prematchLive.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.oddsMovement.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.oddsMovement.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.strategy.ownSystem.fq': "How do you execute this strategy in practice with discipline?",
+  'support.faq.strategy.ownSystem.fa': "Lock in stake size (1–3% of bankroll), edge threshold (3% minimum) and exit rule in advance. Log every bet with pre-match odds and compare to the close — that is the only way to prove the edge is real, not luck.",
+  'support.faq.mistakes.loseMoney.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.loseMoney.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.chasing.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.chasing.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.emotions.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.emotions.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.accumulators.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.accumulators.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.overbetting.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.overbetting.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.tipsters.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.tipsters.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.noBankroll.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.noBankroll.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.sureBets.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.sureBets.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.favTeam.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.favTeam.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.mistakes.beginner.fq': "How do you concretely avoid this mistake in your daily routine?",
+  'support.faq.mistakes.beginner.fa': "Build guardrails: fixed weekly limits, a 24-hour cool-down after losses and a public bet log. If you break a limit, pause without exception — please use the responsible-gambling tools on the site if control slips.",
+  'support.faq.ai.how.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.how.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.data.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.data.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.reliability.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.reliability.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.model.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.model.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.ml.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.ml.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.features.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.features.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.history.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.history.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.oddsModel.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.oddsModel.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.valueBet.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.valueBet.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.overfitting.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.overfitting.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.algorithms.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.algorithms.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.liveData.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.liveData.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.realtime.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.realtime.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.measure.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.measure.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.improve.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.improve.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.combine.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.combine.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.ensemble.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.ensemble.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.apis.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.apis.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.dashboard.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.dashboard.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.ai.automate.fq': "Where are the limits of this AI approach?",
+  'support.faq.ai.automate.fa': "Models fail on rare events (cup upsets, post-coach-change regime shifts) and when market features are dominated by insider information. That is why calibration via isotonic/Platt and drift monitoring with a KS-test are mandatory.",
+  'support.faq.market.create.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.create.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.change.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.change.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.clv.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.clv.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.valueOdds.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.valueOdds.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.bestBooks.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.bestBooks.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.diffBooks.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.diffBooks.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.compare.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.compare.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.sharpPublic.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.sharpPublic.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.movement.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.movement.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.market.liquidity.fq': "How do you turn this market observation into an actual bet?",
+  'support.faq.market.liquidity.fa': "Compare the early price (T-24h) to the closing line across at least three bookmakers. If your bets regularly show positive CLV, the market is validating your edge — a stronger quality signal than short-term hit rate.",
+  'support.faq.profit.earn.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.earn.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.longterm.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.longterm.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.roi.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.roi.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.timeToProfit.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.timeToProfit.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.capital.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.capital.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.skillVsLuck.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.skillVsLuck.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.prosVsAmateurs.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.prosVsAmateurs.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.prosWork.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.prosWork.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.patience.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.patience.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.profit.fail90.fq': "What are the realistic expectations you should hold here?",
+  'support.faq.profit.fail90.fa': "Realistic numbers are 2–5% ROI over at least 500 bets for disciplined value players — with interim drawdowns of 20% or more. Anyone expecting faster 'profit' is underestimating sports-betting variance.",
+  'support.faq.platform.daily.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.daily.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.autoload.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.autoload.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.updateFreq.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.updateFreq.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.confidence.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.confidence.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.visualize.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.visualize.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.bestBets.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.bestBets.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.history.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.history.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.tracking.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.tracking.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.ranking.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.ranking.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.lastBets.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.lastBets.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.wrongMatch.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.wrongMatch.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.valueVsPrediction.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.valueVsPrediction.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.alerts.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.alerts.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.platform.trust.fq': "Where exactly do you find this information in the platform?",
+  'support.faq.platform.trust.fa': "The Today view shows the current snapshot with a timestamp; the Performance page exposes RPS, Brier and ROI per league; the Leagues page lists Pi-ratings. All raw data is published as JSON under data/snapshots/.",
+  'support.faq.valueBet.alt1': "Does this bet have positive expected value?",
+  'support.faq.valueBet.alt2': "Where is the edge on this one?",
+  'support.faq.valueBet.alt3': "Is this a +EV bet?",
+  'support.faq.valueBet.alt4': "Is the bet mathematically worth it?",
+  'support.faq.valueBet.alt5': "Is the bookmaker pricing this wrong?",
+  'support.faq.accuracy.alt1': "How accurate is your model really?",
+  'support.faq.accuracy.alt2': "What is the hit rate of the AI?",
+  'support.faq.accuracy.alt3': "How reliable are the predictions?",
+  'support.faq.accuracy.alt4': "Can I trust the forecasts?",
+  'support.faq.accuracy.alt5': "Is accuracy better than the bookmakers?",
+  'support.faq.dataSource.alt1': "Where does your data come from?",
+  'support.faq.dataSource.alt2': "Which sources does the platform use?",
+  'support.faq.dataSource.alt3': "Is the data official?",
+  'support.faq.dataSource.alt4': "How fresh are your result feeds?",
+  'support.faq.dataSource.alt5': "Are the odds pulled live from bookmakers?",
+  'support.faq.snapshotUpdate.alt1': "When does the snapshot get refreshed?",
+  'support.faq.snapshotUpdate.alt2': "How often do new tips appear?",
+  'support.faq.snapshotUpdate.alt3': "At what time are the predictions published?",
+  'support.faq.snapshotUpdate.alt4': "Is today's snapshot already current?",
+  'support.faq.snapshotUpdate.alt5': "What is the publishing cadence?",
+  // <END_FOLLOWUP_STRINGS>
+
 };

@@ -20,10 +20,11 @@ import {
 
 type Message =
   | { role: 'user'; text: string }
-  | { role: 'bot'; text: string };
+  | { role: 'bot'; text: string; followUpEntryId?: string };
 
 const SUGGESTION_LIMIT = 5;
 const MATCH_SCORE_THRESHOLD = 0.6;
+const FOLLOW_UP_CONFIDENCE_THRESHOLD = 0.4;
 
 export function SupportChat() {
   const { t } = useLocale();
@@ -44,25 +45,52 @@ export function SupportChat() {
     [],
   );
 
+  const byId = useMemo(
+    () => new Map(FAQ_ENTRIES.map((e) => [e.id, e] as const)),
+    [],
+  );
+
   const handleAsk = useCallback(
     (question: string) => {
       const text = question.trim();
       if (!text) return;
       const matches = searchFaq(text, fuse);
       const top = matches[0];
-      const answer =
-        top && top.score <= MATCH_SCORE_THRESHOLD
-          ? t(top.entry.answerKey)
-          : t('support.fallback');
+      const hit = top && top.score <= MATCH_SCORE_THRESHOLD ? top : undefined;
+      const answer = hit ? t(hit.entry.answerKey) : t('support.fallback');
+      const followUpEntryId =
+        hit &&
+        hit.score <= FOLLOW_UP_CONFIDENCE_THRESHOLD &&
+        hit.entry.followUpId &&
+        byId.has(hit.entry.followUpId)
+          ? hit.entry.followUpId
+          : undefined;
       setMessages((prev) => [
         ...prev,
         { role: 'user', text },
-        { role: 'bot', text: answer },
+        { role: 'bot', text: answer, followUpEntryId },
       ]);
       setInput('');
     },
-    [fuse, t],
+    [byId, fuse, t],
   );
+
+  const lastBot = [...messages].reverse().find((m) => m.role === 'bot') as
+    | Extract<Message, { role: 'bot' }>
+    | undefined;
+  const lastBotIdx = lastBot ? messages.lastIndexOf(lastBot) : -1;
+  const followUpEntry =
+    lastBot?.followUpEntryId ? byId.get(lastBot.followUpEntryId) : undefined;
+  const followUpConsumed =
+    lastBotIdx >= 0 && followUpEntry
+      ? messages
+          .slice(lastBotIdx + 1)
+          .some(
+            (m) =>
+              m.role === 'user' &&
+              m.text.trim() === t(followUpEntry.questionKey).trim(),
+          )
+      : false;
 
   useEffect(() => {
     if (open) {
@@ -170,6 +198,16 @@ export function SupportChat() {
                       {msg.text}
                     </div>
                   ))}
+                  {followUpEntry && !followUpConsumed && (
+                    <button
+                      type="button"
+                      onClick={() => handleAsk(t(followUpEntry.questionKey))}
+                      className="focus-ring press mr-auto max-w-[90%] rounded-[10px] border border-border bg-surface-2 px-3 py-2 text-left text-sm text-text transition-colors hover:border-accent"
+                    >
+                      {'\u21B3 '}
+                      {t(followUpEntry.questionKey)}
+                    </button>
+                  )}
                 </div>
               )}
               <div ref={bottomRef} />

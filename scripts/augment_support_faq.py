@@ -230,6 +230,12 @@ def paraphrases_for(row: dict) -> list[str]:
     # 0) canonical (variant 0) — added by caller, but we register its lowered form
     seen.add(lowercase_key(q))
 
+    # 0b) hand-written alt question seeds (from FaqEntry.altQuestionKeys)
+    for alt in row.get("alt_questions", []) or []:
+        add(alt)
+        add(strip_question_punct(alt))
+        add(alt.lower())
+
     # 1) prefix-wrapped variants (preserve trailing ? if any)
     q_trim = q.rstrip()
     for tpl in PREFIX_TEMPLATES.get(lang, []):

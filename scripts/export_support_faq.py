@@ -44,6 +44,8 @@ FAQ_ENTRY_RE = re.compile(
     r"questionKey:\s*'([^']+)',\s*"
     r"answerKey:\s*'([^']+)',\s*"
     r"tags:\s*\[([^\]]*)\],?\s*"
+    r"(?:followUpId:\s*'[^']*',\s*)?"
+    r"(?:altQuestionKeys:\s*\[([^\]]*)\],?\s*)?"
     r"\}",
     re.DOTALL,
 )
@@ -58,10 +60,17 @@ I18N_LINE_RE = re.compile(
 def parse_faq_entries(text: str):
     entries = []
     for m in FAQ_ENTRY_RE.finditer(text):
-        entry_id, qk, ak, raw_tags = m.groups()
+        entry_id, qk, ak, raw_tags, raw_alts = m.groups()
         tags = TAG_RE.findall(raw_tags)
+        alt_keys = TAG_RE.findall(raw_alts) if raw_alts else []
         entries.append(
-            {"id": entry_id, "questionKey": qk, "answerKey": ak, "tags": tags}
+            {
+                "id": entry_id,
+                "questionKey": qk,
+                "answerKey": ak,
+                "tags": tags,
+                "altQuestionKeys": alt_keys,
+            }
         )
     return entries
 
@@ -89,10 +98,19 @@ def parse_i18n_file(text: str) -> dict[str, str]:
 
 
 def chapter_of(question_key: str) -> str:
-    # support.faq.<chapter>.<slug>.q  →  chapter
-    # support.faq.<slug>.q            →  "general"
+    # support.faq.<chapter>.<slug>.(q|fq)  →  chapter
+    # support.faq.<slug>.(q|fq)            →  "general"
     parts = question_key.split(".")
-    return parts[2] if len(parts) == 5 else "general"
+    if parts and parts[-1] in {"q", "a", "fq", "fa"}:
+        parts = parts[:-1]
+    return parts[2] if len(parts) == 4 else "general"
+
+
+def _strip_key_suffix(key: str) -> str:
+    for suf in (".fq", ".fa", ".q", ".a"):
+        if key.endswith(suf):
+            return key[: -len(suf)]
+    return key
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +134,7 @@ def main() -> None:
     with jsonl_path.open("w", encoding="utf-8") as f:
         for entry in entries:
             qk, ak = entry["questionKey"], entry["answerKey"]
-            key = qk[:-2] if qk.endswith(".q") else qk  # strip trailing .q
+            key = _strip_key_suffix(qk)
             chapter = chapter_of(qk)
             for lang in LANGS:
                 q = locales[lang].get(qk)
@@ -124,6 +142,11 @@ def main() -> None:
                 if q is None or a is None:
                     missing.append((entry["id"], lang, qk))
                     continue
+                alts = [
+                    locales[lang][k]
+                    for k in entry.get("altQuestionKeys", [])
+                    if k in locales[lang]
+                ]
                 row = {
                     "id": entry["id"],
                     "key": key,
@@ -132,6 +155,7 @@ def main() -> None:
                     "question": q,
                     "answer": a,
                     "tags": entry["tags"],
+                    "alt_questions": alts,
                 }
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
@@ -139,7 +163,7 @@ def main() -> None:
     intents = [
         {
             "id": e["id"],
-            "key": e["questionKey"][:-2] if e["questionKey"].endswith(".q") else e["questionKey"],
+            "key": _strip_key_suffix(e["questionKey"]),
             "chapter": chapter_of(e["questionKey"]),
             "tags": e["tags"],
         }

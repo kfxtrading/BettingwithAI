@@ -1415,5 +1415,1904 @@
       "trust",
       "transparenz"
     ]
+  },
+  {
+    "id": "value-bet-fu",
+    "key": "support.faq.valueBet",
+    "chapter": "general",
+    "tags": [
+      "bet",
+      "deep",
+      "edge",
+      "follow",
+      "kelly",
+      "odds",
+      "practice",
+      "praxis",
+      "quote",
+      "value",
+      "wert",
+      "wette"
+    ]
+  },
+  {
+    "id": "accuracy-fu",
+    "key": "support.faq.accuracy",
+    "chapter": "general",
+    "tags": [
+      "accuracy",
+      "brier",
+      "deep",
+      "follow",
+      "genauigkeit",
+      "model",
+      "modell",
+      "practice",
+      "praxis",
+      "prediction",
+      "rps",
+      "vorhersage"
+    ]
+  },
+  {
+    "id": "data-source-fu",
+    "key": "support.faq.dataSource",
+    "chapter": "general",
+    "tags": [
+      "data",
+      "daten",
+      "deep",
+      "follow",
+      "football-data",
+      "odds",
+      "practice",
+      "praxis",
+      "quelle",
+      "sofascore",
+      "source"
+    ]
+  },
+  {
+    "id": "snapshot-update-fu",
+    "key": "support.faq.snapshotUpdate",
+    "chapter": "general",
+    "tags": [
+      "aktualisierung",
+      "deep",
+      "follow",
+      "practice",
+      "praxis",
+      "refresh",
+      "snapshot",
+      "time",
+      "update",
+      "wann",
+      "zeit"
+    ]
+  },
+  {
+    "id": "kelly-fu",
+    "key": "support.faq.kelly",
+    "chapter": "general",
+    "tags": [
+      "bankroll",
+      "deep",
+      "einsatz",
+      "follow",
+      "kelly",
+      "practice",
+      "praxis",
+      "risiko",
+      "risk",
+      "stake",
+      "staking"
+    ]
+  },
+  {
+    "id": "pi-rating-fu",
+    "key": "support.faq.piRating",
+    "chapter": "general",
+    "tags": [
+      "deep",
+      "elo",
+      "follow",
+      "pi",
+      "practice",
+      "praxis",
+      "rating",
+      "staerke",
+      "strength",
+      "stärke",
+      "team"
+    ]
+  },
+  {
+    "id": "responsible-fu",
+    "key": "support.faq.responsible",
+    "chapter": "general",
+    "tags": [
+      "advice",
+      "beratung",
+      "deep",
+      "financial",
+      "follow",
+      "gambling",
+      "practice",
+      "praxis",
+      "responsible",
+      "spielsucht",
+      "verantwortung"
+    ]
+  },
+  {
+    "id": "language-fu",
+    "key": "support.faq.language",
+    "chapter": "general",
+    "tags": [
+      "deep",
+      "follow",
+      "language",
+      "locale",
+      "practice",
+      "praxis",
+      "sprache",
+      "translation",
+      "übersetzung"
+    ]
+  },
+  {
+    "id": "cookies-fu",
+    "key": "support.faq.cookies",
+    "chapter": "general",
+    "tags": [
+      "consent",
+      "cookie",
+      "cookies",
+      "datenschutz",
+      "deep",
+      "einwilligung",
+      "follow",
+      "practice",
+      "praxis",
+      "privacy"
+    ]
+  },
+  {
+    "id": "contact-fu",
+    "key": "support.faq.contact",
+    "chapter": "general",
+    "tags": [
+      "contact",
+      "deep",
+      "email",
+      "follow",
+      "help",
+      "hilfe",
+      "kontakt",
+      "practice",
+      "praxis",
+      "support"
+    ]
+  },
+  {
+    "id": "basics-1x2-fu",
+    "key": "support.faq.basics.oneX2",
+    "chapter": "basics",
+    "tags": [
+      "1x2",
+      "auswärts",
+      "away",
+      "draw",
+      "heim",
+      "home",
+      "market",
+      "markt",
+      "practice",
+      "praxis",
+      "unentschieden",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-odds-fu",
+    "key": "support.faq.basics.odds",
+    "chapter": "basics",
+    "tags": [
+      "cote",
+      "cuota",
+      "decimal",
+      "dezimal",
+      "odds",
+      "practice",
+      "praxis",
+      "quote",
+      "quoten",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-winnings-fu",
+    "key": "support.faq.basics.winnings",
+    "chapter": "basics",
+    "tags": [
+      "auszahlung",
+      "berechnen",
+      "calculate",
+      "gewinn",
+      "payout",
+      "practice",
+      "praxis",
+      "profit",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-single-fu",
+    "key": "support.faq.basics.single",
+    "chapter": "basics",
+    "tags": [
+      "einzel",
+      "einzelwette",
+      "practice",
+      "praxis",
+      "single",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-accumulator-fu",
+    "key": "support.faq.basics.accumulator",
+    "chapter": "basics",
+    "tags": [
+      "accumulator",
+      "combo",
+      "kombi",
+      "kombiwette",
+      "parlay",
+      "practice",
+      "praxis",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-system-fu",
+    "key": "support.faq.basics.system",
+    "chapter": "basics",
+    "tags": [
+      "practice",
+      "praxis",
+      "system",
+      "systemwette",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-valuebet-fu",
+    "key": "support.faq.basics.valueBetBasic",
+    "chapter": "basics",
+    "tags": [
+      "+ev",
+      "edge",
+      "practice",
+      "praxis",
+      "value",
+      "wann",
+      "wert",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-probability-fu",
+    "key": "support.faq.basics.probability",
+    "chapter": "basics",
+    "tags": [
+      "implied",
+      "implizit",
+      "practice",
+      "praxis",
+      "probability",
+      "wahrscheinlichkeit",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-bookie-fu",
+    "key": "support.faq.basics.bookie",
+    "chapter": "basics",
+    "tags": [
+      "anbieter",
+      "bookie",
+      "bookmaker",
+      "buchmacher",
+      "practice",
+      "praxis",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-bookiemoney-fu",
+    "key": "support.faq.basics.bookieMoney",
+    "chapter": "basics",
+    "tags": [
+      "bookmaker",
+      "marge",
+      "overround",
+      "practice",
+      "praxis",
+      "profit",
+      "vig",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-overround-fu",
+    "key": "support.faq.basics.overround",
+    "chapter": "basics",
+    "tags": [
+      "juice",
+      "marge",
+      "margin",
+      "overround",
+      "practice",
+      "praxis",
+      "vig",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-live-fu",
+    "key": "support.faq.basics.live",
+    "chapter": "basics",
+    "tags": [
+      "in-play",
+      "live",
+      "livewette",
+      "practice",
+      "praxis",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-cashout-fu",
+    "key": "support.faq.basics.cashout",
+    "chapter": "basics",
+    "tags": [
+      "auszahlen",
+      "cash-out",
+      "cashout",
+      "practice",
+      "praxis",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-handicap-fu",
+    "key": "support.faq.basics.handicap",
+    "chapter": "basics",
+    "tags": [
+      "asian",
+      "asiatisch",
+      "handicap",
+      "practice",
+      "praxis",
+      "spread",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-asianhandicap-fu",
+    "key": "support.faq.basics.asianHandicap",
+    "chapter": "basics",
+    "tags": [
+      "asian",
+      "halb",
+      "handicap",
+      "practice",
+      "praxis",
+      "viertel",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-ou25-fu",
+    "key": "support.faq.basics.ou25",
+    "chapter": "basics",
+    "tags": [
+      "2.5",
+      "goals",
+      "over",
+      "practice",
+      "praxis",
+      "tore",
+      "totale",
+      "under",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-btts-fu",
+    "key": "support.faq.basics.btts",
+    "chapter": "basics",
+    "tags": [
+      "both",
+      "btts",
+      "practice",
+      "praxis",
+      "score",
+      "teams",
+      "tor",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-dnb-fu",
+    "key": "support.faq.basics.dnb",
+    "chapter": "basics",
+    "tags": [
+      "bet",
+      "dnb",
+      "draw",
+      "no",
+      "practice",
+      "praxis",
+      "remis",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-doublechance-fu",
+    "key": "support.faq.basics.doubleChance",
+    "chapter": "basics",
+    "tags": [
+      "chance",
+      "doppelt",
+      "double",
+      "practice",
+      "praxis",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "basics-specials-fu",
+    "key": "support.faq.basics.specials",
+    "chapter": "basics",
+    "tags": [
+      "practice",
+      "praxis",
+      "scorer",
+      "special",
+      "spezial",
+      "torschütze",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "analysis-howto-fu",
+    "key": "support.faq.analysis.howTo",
+    "chapter": "analysis",
+    "tags": [
+      "analyse",
+      "analyze",
+      "gewicht",
+      "match",
+      "signale",
+      "signals",
+      "spiel",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-stats-fu",
+    "key": "support.faq.analysis.stats",
+    "chapter": "analysis",
+    "tags": [
+      "gewicht",
+      "schüsse",
+      "shots",
+      "signale",
+      "signals",
+      "statistik",
+      "stats",
+      "weight",
+      "xg"
+    ]
+  },
+  {
+    "id": "analysis-form-fu",
+    "key": "support.faq.analysis.form",
+    "chapter": "analysis",
+    "tags": [
+      "aktuell",
+      "form",
+      "gewicht",
+      "momentum",
+      "signale",
+      "signals",
+      "streak",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-homeaway-fu",
+    "key": "support.faq.analysis.homeAway",
+    "chapter": "analysis",
+    "tags": [
+      "advantage",
+      "auswärts",
+      "away",
+      "gewicht",
+      "heim",
+      "home",
+      "signale",
+      "signals",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-injuries-fu",
+    "key": "support.faq.analysis.injuries",
+    "chapter": "analysis",
+    "tags": [
+      "ausfall",
+      "gewicht",
+      "injury",
+      "signale",
+      "signals",
+      "sperre",
+      "verletzung",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-lineups-fu",
+    "key": "support.faq.analysis.lineups",
+    "chapter": "analysis",
+    "tags": [
+      "aufstellung",
+      "gewicht",
+      "lineup",
+      "signale",
+      "signals",
+      "starting",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-xg-fu",
+    "key": "support.faq.analysis.xg",
+    "chapter": "analysis",
+    "tags": [
+      "expected",
+      "gewicht",
+      "goals",
+      "signale",
+      "signals",
+      "weight",
+      "xg"
+    ]
+  },
+  {
+    "id": "analysis-h2h-fu",
+    "key": "support.faq.analysis.h2h",
+    "chapter": "analysis",
+    "tags": [
+      "direkt",
+      "gewicht",
+      "h2h",
+      "head-to-head",
+      "signale",
+      "signals",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-motivation-fu",
+    "key": "support.faq.analysis.motivation",
+    "chapter": "analysis",
+    "tags": [
+      "abstieg",
+      "gewicht",
+      "motivation",
+      "pokal",
+      "signale",
+      "signals",
+      "titel",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-weather-fu",
+    "key": "support.faq.analysis.weather",
+    "chapter": "analysis",
+    "tags": [
+      "gewicht",
+      "regen",
+      "signale",
+      "signals",
+      "weather",
+      "weight",
+      "wetter",
+      "wind"
+    ]
+  },
+  {
+    "id": "analysis-deffoff-fu",
+    "key": "support.faq.analysis.defOff",
+    "chapter": "analysis",
+    "tags": [
+      "defense",
+      "defensiv",
+      "gewicht",
+      "offense",
+      "offensiv",
+      "signale",
+      "signals",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-goalstats-fu",
+    "key": "support.faq.analysis.goalStats",
+    "chapter": "analysis",
+    "tags": [
+      "gewicht",
+      "goals",
+      "signale",
+      "signals",
+      "tore",
+      "torstatistik",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-bestleague-fu",
+    "key": "support.faq.analysis.bestLeague",
+    "chapter": "analysis",
+    "tags": [
+      "gewicht",
+      "league",
+      "liga",
+      "signale",
+      "signals",
+      "vorhersagbar",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-coach-fu",
+    "key": "support.faq.analysis.coach",
+    "chapter": "analysis",
+    "tags": [
+      "coach",
+      "gewicht",
+      "signale",
+      "signals",
+      "trainer",
+      "wechsel",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-tempo-fu",
+    "key": "support.faq.analysis.tempo",
+    "chapter": "analysis",
+    "tags": [
+      "gewicht",
+      "pace",
+      "signale",
+      "signals",
+      "tactics",
+      "taktik",
+      "tempo",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-ougames-fu",
+    "key": "support.faq.analysis.ouGames",
+    "chapter": "analysis",
+    "tags": [
+      "gewicht",
+      "ou",
+      "over",
+      "signale",
+      "signals",
+      "tore",
+      "under",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-bttsgames-fu",
+    "key": "support.faq.analysis.bttsGames",
+    "chapter": "analysis",
+    "tags": [
+      "both",
+      "btts",
+      "gewicht",
+      "score",
+      "signale",
+      "signals",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-draws-fu",
+    "key": "support.faq.analysis.draws",
+    "chapter": "analysis",
+    "tags": [
+      "draw",
+      "gewicht",
+      "remis",
+      "signale",
+      "signals",
+      "unentschieden",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-underdogs-fu",
+    "key": "support.faq.analysis.underdogs",
+    "chapter": "analysis",
+    "tags": [
+      "außenseiter",
+      "gewicht",
+      "outsider",
+      "signale",
+      "signals",
+      "underdog",
+      "weight"
+    ]
+  },
+  {
+    "id": "analysis-trapgames-fu",
+    "key": "support.faq.analysis.trapGames",
+    "chapter": "analysis",
+    "tags": [
+      "cup",
+      "falle",
+      "gewicht",
+      "rotation",
+      "signale",
+      "signals",
+      "trap",
+      "weight"
+    ]
+  },
+  {
+    "id": "strategy-best-fu",
+    "key": "support.faq.strategy.best",
+    "chapter": "strategy",
+    "tags": [
+      "best",
+      "beste",
+      "discipline",
+      "execute",
+      "practice",
+      "praxis",
+      "strategie",
+      "strategy"
+    ]
+  },
+  {
+    "id": "strategy-value-fu",
+    "key": "support.faq.strategy.valueBet",
+    "chapter": "strategy",
+    "tags": [
+      "betting",
+      "discipline",
+      "edge",
+      "execute",
+      "practice",
+      "praxis",
+      "value"
+    ]
+  },
+  {
+    "id": "strategy-arbitrage-fu",
+    "key": "support.faq.strategy.arbitrage",
+    "chapter": "strategy",
+    "tags": [
+      "arbitrage",
+      "discipline",
+      "execute",
+      "practice",
+      "praxis",
+      "surebet"
+    ]
+  },
+  {
+    "id": "strategy-martingale-fu",
+    "key": "support.faq.strategy.martingale",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "doubling",
+      "execute",
+      "martingale",
+      "practice",
+      "praxis",
+      "progression"
+    ]
+  },
+  {
+    "id": "strategy-flat-fu",
+    "key": "support.faq.strategy.flat",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "flat",
+      "practice",
+      "praxis",
+      "staking"
+    ]
+  },
+  {
+    "id": "strategy-bankroll-fu",
+    "key": "support.faq.strategy.bankroll",
+    "chapter": "strategy",
+    "tags": [
+      "bankroll",
+      "discipline",
+      "execute",
+      "kapital",
+      "management",
+      "practice",
+      "praxis"
+    ]
+  },
+  {
+    "id": "strategy-stake-fu",
+    "key": "support.faq.strategy.stake",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "einsatz",
+      "execute",
+      "practice",
+      "praxis",
+      "size",
+      "stake"
+    ]
+  },
+  {
+    "id": "strategy-losingstreak-fu",
+    "key": "support.faq.strategy.losingStreak",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "drawdown",
+      "execute",
+      "practice",
+      "praxis",
+      "streak",
+      "verlust"
+    ]
+  },
+  {
+    "id": "strategy-combos-fu",
+    "key": "support.faq.strategy.combos",
+    "chapter": "strategy",
+    "tags": [
+      "combo",
+      "discipline",
+      "execute",
+      "kombi",
+      "parlay",
+      "practice",
+      "praxis"
+    ]
+  },
+  {
+    "id": "strategy-profitable-fu",
+    "key": "support.faq.strategy.profitable",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "langfristig",
+      "long-term",
+      "practice",
+      "praxis",
+      "profitabel"
+    ]
+  },
+  {
+    "id": "strategy-test-fu",
+    "key": "support.faq.strategy.test",
+    "chapter": "strategy",
+    "tags": [
+      "backtest",
+      "discipline",
+      "execute",
+      "practice",
+      "praxis",
+      "test",
+      "validieren"
+    ]
+  },
+  {
+    "id": "strategy-roi-fu",
+    "key": "support.faq.strategy.roi",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "investment",
+      "practice",
+      "praxis",
+      "return",
+      "roi"
+    ]
+  },
+  {
+    "id": "strategy-strikerate-fu",
+    "key": "support.faq.strategy.strikeRate",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "practice",
+      "praxis",
+      "rate",
+      "strike",
+      "trefferquote"
+    ]
+  },
+  {
+    "id": "strategy-discipline-fu",
+    "key": "support.faq.strategy.discipline",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "disziplin",
+      "execute",
+      "practice",
+      "praxis"
+    ]
+  },
+  {
+    "id": "strategy-goododds-fu",
+    "key": "support.faq.strategy.goodOdds",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "gute",
+      "odds",
+      "practice",
+      "praxis",
+      "quote",
+      "schlechte"
+    ]
+  },
+  {
+    "id": "strategy-nobet-fu",
+    "key": "support.faq.strategy.noBet",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "nicht",
+      "practice",
+      "praxis",
+      "skip",
+      "wetten"
+    ]
+  },
+  {
+    "id": "strategy-timing-fu",
+    "key": "support.faq.strategy.timing",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "practice",
+      "praxis",
+      "timing",
+      "wann",
+      "when"
+    ]
+  },
+  {
+    "id": "strategy-prematchlive-fu",
+    "key": "support.faq.strategy.prematchLive",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "execute",
+      "in-play",
+      "live",
+      "practice",
+      "praxis",
+      "pre-match"
+    ]
+  },
+  {
+    "id": "strategy-oddsmovement-fu",
+    "key": "support.faq.strategy.oddsMovement",
+    "chapter": "strategy",
+    "tags": [
+      "discipline",
+      "drift",
+      "execute",
+      "movement",
+      "odds",
+      "practice",
+      "praxis"
+    ]
+  },
+  {
+    "id": "strategy-ownsystem-fu",
+    "key": "support.faq.strategy.ownSystem",
+    "chapter": "strategy",
+    "tags": [
+      "custom",
+      "discipline",
+      "eigenes",
+      "execute",
+      "practice",
+      "praxis",
+      "system"
+    ]
+  },
+  {
+    "id": "mistakes-losemoney-fu",
+    "key": "support.faq.mistakes.loseMoney",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "guardrail",
+      "lose",
+      "money",
+      "verlieren",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-chasing-fu",
+    "key": "support.faq.mistakes.chasing",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "chasing",
+      "guardrail",
+      "losses",
+      "verlust",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-emotions-fu",
+    "key": "support.faq.mistakes.emotions",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "emotion",
+      "guardrail",
+      "tilt",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-accumulators-fu",
+    "key": "support.faq.mistakes.accumulators",
+    "chapter": "mistakes",
+    "tags": [
+      "accumulator",
+      "avoid",
+      "guardrail",
+      "kombi",
+      "riskant",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-overbetting-fu",
+    "key": "support.faq.mistakes.overbetting",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "guardrail",
+      "over",
+      "overbetting",
+      "stake",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-tipsters-fu",
+    "key": "support.faq.mistakes.tipsters",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "blind",
+      "experte",
+      "guardrail",
+      "tipster",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-nobankroll-fu",
+    "key": "support.faq.mistakes.noBankroll",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "bankroll",
+      "fail",
+      "guardrail",
+      "no",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-surebets-fu",
+    "key": "support.faq.mistakes.sureBets",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "guardrail",
+      "sichere",
+      "sure",
+      "tipps",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-favteam-fu",
+    "key": "support.faq.mistakes.favTeam",
+    "chapter": "mistakes",
+    "tags": [
+      "avoid",
+      "bias",
+      "fav",
+      "guardrail",
+      "lieblings",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "mistakes-beginner-fu",
+    "key": "support.faq.mistakes.beginner",
+    "chapter": "mistakes",
+    "tags": [
+      "anfänger",
+      "avoid",
+      "beginner",
+      "fehler",
+      "guardrail",
+      "vermeiden"
+    ]
+  },
+  {
+    "id": "ai-how-fu",
+    "key": "support.faq.ai.how",
+    "chapter": "ai",
+    "tags": [
+      "ai",
+      "grenze",
+      "ki",
+      "limit",
+      "limits",
+      "prediction",
+      "prognose"
+    ]
+  },
+  {
+    "id": "ai-data-fu",
+    "key": "support.faq.ai.data",
+    "chapter": "ai",
+    "tags": [
+      "data",
+      "daten",
+      "features",
+      "grenze",
+      "limit",
+      "limits"
+    ]
+  },
+  {
+    "id": "ai-reliability-fu",
+    "key": "support.faq.ai.reliability",
+    "chapter": "ai",
+    "tags": [
+      "accuracy",
+      "grenze",
+      "limit",
+      "limits",
+      "reliable",
+      "zuverlässig"
+    ]
+  },
+  {
+    "id": "ai-model-fu",
+    "key": "support.faq.ai.model",
+    "chapter": "ai",
+    "tags": [
+      "grenze",
+      "limit",
+      "limits",
+      "model",
+      "modell",
+      "prediction"
+    ]
+  },
+  {
+    "id": "ai-ml-fu",
+    "key": "support.faq.ai.ml",
+    "chapter": "ai",
+    "tags": [
+      "grenze",
+      "learning",
+      "limit",
+      "limits",
+      "machine",
+      "ml"
+    ]
+  },
+  {
+    "id": "ai-features-fu",
+    "key": "support.faq.ai.features",
+    "chapter": "ai",
+    "tags": [
+      "features",
+      "grenze",
+      "limit",
+      "limits",
+      "variablen"
+    ]
+  },
+  {
+    "id": "ai-history-fu",
+    "key": "support.faq.ai.history",
+    "chapter": "ai",
+    "tags": [
+      "daten",
+      "grenze",
+      "historisch",
+      "history",
+      "limit",
+      "limits"
+    ]
+  },
+  {
+    "id": "ai-oddsmodel-fu",
+    "key": "support.faq.ai.oddsModel",
+    "chapter": "ai",
+    "tags": [
+      "grenze",
+      "limit",
+      "limits",
+      "model",
+      "odds",
+      "quote"
+    ]
+  },
+  {
+    "id": "ai-valuebet-fu",
+    "key": "support.faq.ai.valueBet",
+    "chapter": "ai",
+    "tags": [
+      "edge",
+      "grenze",
+      "ki",
+      "limit",
+      "limits",
+      "value"
+    ]
+  },
+  {
+    "id": "ai-overfitting-fu",
+    "key": "support.faq.ai.overfitting",
+    "chapter": "ai",
+    "tags": [
+      "grenze",
+      "limit",
+      "limits",
+      "overfitting",
+      "regulation"
+    ]
+  },
+  {
+    "id": "ai-algorithms-fu",
+    "key": "support.faq.ai.algorithms",
+    "chapter": "ai",
+    "tags": [
+      "algorithm",
+      "catboost",
+      "grenze",
+      "limit",
+      "limits",
+      "randomforest"
+    ]
+  },
+  {
+    "id": "ai-livedata-fu",
+    "key": "support.faq.ai.liveData",
+    "chapter": "ai",
+    "tags": [
+      "daten",
+      "echtzeit",
+      "grenze",
+      "limit",
+      "limits",
+      "live"
+    ]
+  },
+  {
+    "id": "ai-realtime-fu",
+    "key": "support.faq.ai.realtime",
+    "chapter": "ai",
+    "tags": [
+      "echtzeit",
+      "grenze",
+      "limit",
+      "limits",
+      "realtime",
+      "update"
+    ]
+  },
+  {
+    "id": "ai-measure-fu",
+    "key": "support.faq.ai.measure",
+    "chapter": "ai",
+    "tags": [
+      "accuracy",
+      "genauigkeit",
+      "grenze",
+      "limit",
+      "limits",
+      "metric"
+    ]
+  },
+  {
+    "id": "ai-improve-fu",
+    "key": "support.faq.ai.improve",
+    "chapter": "ai",
+    "tags": [
+      "grenze",
+      "improve",
+      "limit",
+      "limits",
+      "model",
+      "verbessern"
+    ]
+  },
+  {
+    "id": "ai-combine-fu",
+    "key": "support.faq.ai.combine",
+    "chapter": "ai",
+    "tags": [
+      "combine",
+      "ensemble",
+      "grenze",
+      "kombinieren",
+      "limit",
+      "limits"
+    ]
+  },
+  {
+    "id": "ai-ensemble-fu",
+    "key": "support.faq.ai.ensemble",
+    "chapter": "ai",
+    "tags": [
+      "betting",
+      "ensemble",
+      "grenze",
+      "limit",
+      "limits",
+      "stacking"
+    ]
+  },
+  {
+    "id": "ai-apis-fu",
+    "key": "support.faq.ai.apis",
+    "chapter": "ai",
+    "tags": [
+      "api",
+      "daten",
+      "feed",
+      "grenze",
+      "limit",
+      "limits"
+    ]
+  },
+  {
+    "id": "ai-dashboard-fu",
+    "key": "support.faq.ai.dashboard",
+    "chapter": "ai",
+    "tags": [
+      "dashboard",
+      "grenze",
+      "limit",
+      "limits",
+      "ui",
+      "visualisierung"
+    ]
+  },
+  {
+    "id": "ai-automate-fu",
+    "key": "support.faq.ai.automate",
+    "chapter": "ai",
+    "tags": [
+      "automate",
+      "automatisieren",
+      "cron",
+      "grenze",
+      "limit",
+      "limits"
+    ]
+  },
+  {
+    "id": "market-create-fu",
+    "key": "support.faq.market.create",
+    "chapter": "market",
+    "tags": [
+      "closing",
+      "clv",
+      "entstehen",
+      "odds",
+      "quoten",
+      "use"
+    ]
+  },
+  {
+    "id": "market-change-fu",
+    "key": "support.faq.market.change",
+    "chapter": "market",
+    "tags": [
+      "change",
+      "closing",
+      "clv",
+      "move",
+      "use",
+      "ändern"
+    ]
+  },
+  {
+    "id": "market-clv-fu",
+    "key": "support.faq.market.clv",
+    "chapter": "market",
+    "tags": [
+      "closing",
+      "clv",
+      "line",
+      "use",
+      "value"
+    ]
+  },
+  {
+    "id": "market-valueOdds-fu",
+    "key": "support.faq.market.valueOdds",
+    "chapter": "market",
+    "tags": [
+      "closing",
+      "clv",
+      "erkennen",
+      "quote",
+      "use",
+      "value"
+    ]
+  },
+  {
+    "id": "market-bestbooks-fu",
+    "key": "support.faq.market.bestBooks",
+    "chapter": "market",
+    "tags": [
+      "beste",
+      "bookmaker",
+      "buchmacher",
+      "closing",
+      "clv",
+      "use"
+    ]
+  },
+  {
+    "id": "market-diffbooks-fu",
+    "key": "support.faq.market.diffBooks",
+    "chapter": "market",
+    "tags": [
+      "bookmaker",
+      "closing",
+      "clv",
+      "diff",
+      "unterschied",
+      "use"
+    ]
+  },
+  {
+    "id": "market-compare-fu",
+    "key": "support.faq.market.compare",
+    "chapter": "market",
+    "tags": [
+      "closing",
+      "clv",
+      "compare",
+      "odds",
+      "use",
+      "vergleich"
+    ]
+  },
+  {
+    "id": "market-sharppublic-fu",
+    "key": "support.faq.market.sharpPublic",
+    "chapter": "market",
+    "tags": [
+      "closing",
+      "clv",
+      "money",
+      "public",
+      "sharp",
+      "use"
+    ]
+  },
+  {
+    "id": "market-movement-fu",
+    "key": "support.faq.market.movement",
+    "chapter": "market",
+    "tags": [
+      "bewegung",
+      "closing",
+      "clv",
+      "drift",
+      "movement",
+      "use"
+    ]
+  },
+  {
+    "id": "market-liquidity-fu",
+    "key": "support.faq.market.liquidity",
+    "chapter": "market",
+    "tags": [
+      "closing",
+      "clv",
+      "liquidity",
+      "liquidität",
+      "use",
+      "volume"
+    ]
+  },
+  {
+    "id": "profit-earn-fu",
+    "key": "support.faq.profit.earn",
+    "chapter": "profit",
+    "tags": [
+      "expectation",
+      "geld",
+      "profit",
+      "realistic",
+      "realistisch",
+      "verdienen"
+    ]
+  },
+  {
+    "id": "profit-longterm-fu",
+    "key": "support.faq.profit.longterm",
+    "chapter": "profit",
+    "tags": [
+      "chance",
+      "expectation",
+      "langfristig",
+      "realistic",
+      "realistisch",
+      "winrate"
+    ]
+  },
+  {
+    "id": "profit-roi-fu",
+    "key": "support.faq.profit.roi",
+    "chapter": "profit",
+    "tags": [
+      "expectation",
+      "realistic",
+      "realistisch",
+      "roi"
+    ]
+  },
+  {
+    "id": "profit-timeToProfit-fu",
+    "key": "support.faq.profit.timeToProfit",
+    "chapter": "profit",
+    "tags": [
+      "dauer",
+      "expectation",
+      "profitabel",
+      "realistic",
+      "realistisch",
+      "zeit"
+    ]
+  },
+  {
+    "id": "profit-capital-fu",
+    "key": "support.faq.profit.capital",
+    "chapter": "profit",
+    "tags": [
+      "bankroll",
+      "expectation",
+      "kapital",
+      "realistic",
+      "realistisch",
+      "startgeld"
+    ]
+  },
+  {
+    "id": "profit-skillVsLuck-fu",
+    "key": "support.faq.profit.skillVsLuck",
+    "chapter": "profit",
+    "tags": [
+      "expectation",
+      "glück",
+      "luck",
+      "realistic",
+      "realistisch",
+      "skill"
+    ]
+  },
+  {
+    "id": "profit-prosVsAmateurs-fu",
+    "key": "support.faq.profit.prosVsAmateurs",
+    "chapter": "profit",
+    "tags": [
+      "amateur",
+      "expectation",
+      "profi",
+      "realistic",
+      "realistisch",
+      "unterschied"
+    ]
+  },
+  {
+    "id": "profit-prosWork-fu",
+    "key": "support.faq.profit.prosWork",
+    "chapter": "profit",
+    "tags": [
+      "arbeit",
+      "expectation",
+      "profi",
+      "realistic",
+      "realistisch",
+      "routine"
+    ]
+  },
+  {
+    "id": "profit-patience-fu",
+    "key": "support.faq.profit.patience",
+    "chapter": "profit",
+    "tags": [
+      "expectation",
+      "geduld",
+      "patience",
+      "realistic",
+      "realistisch"
+    ]
+  },
+  {
+    "id": "profit-fail90-fu",
+    "key": "support.faq.profit.fail90",
+    "chapter": "profit",
+    "tags": [
+      "90",
+      "expectation",
+      "realistic",
+      "realistisch",
+      "scheitern",
+      "verlieren"
+    ]
+  },
+  {
+    "id": "platform-daily-fu",
+    "key": "support.faq.platform.daily",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "daily",
+      "prediction",
+      "täglich",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-autoload-fu",
+    "key": "support.faq.platform.autoload",
+    "chapter": "platform",
+    "tags": [
+      "api",
+      "app",
+      "laden",
+      "spiele",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-updateFreq-fu",
+    "key": "support.faq.platform.updateFreq",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "frequenz",
+      "häufig",
+      "ui",
+      "update",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-confidence-fu",
+    "key": "support.faq.platform.confidence",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "confidence",
+      "score",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-visualize-fu",
+    "key": "support.faq.platform.visualize",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "chart",
+      "ui",
+      "visualisieren",
+      "visualize",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-bestbets-fu",
+    "key": "support.faq.platform.bestBets",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "beste",
+      "filter",
+      "ui",
+      "wetten",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-history-fu",
+    "key": "support.faq.platform.history",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "historisch",
+      "performance",
+      "track",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-tracking-fu",
+    "key": "support.faq.platform.tracking",
+    "chapter": "platform",
+    "tags": [
+      "analytics",
+      "app",
+      "tracking",
+      "ui",
+      "user",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-ranking-fu",
+    "key": "support.faq.platform.ranking",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "rank",
+      "ranking",
+      "tipps",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-lastBets-fu",
+    "key": "support.faq.platform.lastBets",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "bets",
+      "letzte",
+      "recent",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-wrongMatch-fu",
+    "key": "support.faq.platform.wrongMatch",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "bug",
+      "falsch",
+      "spiele",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-valueVsPrediction-fu",
+    "key": "support.faq.platform.valueVsPrediction",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "prediction",
+      "ui",
+      "unterschied",
+      "value",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-alerts-fu",
+    "key": "support.faq.platform.alerts",
+    "chapter": "platform",
+    "tags": [
+      "alert",
+      "app",
+      "benachrichtigung",
+      "notification",
+      "ui",
+      "where",
+      "wo"
+    ]
+  },
+  {
+    "id": "platform-trust-fu",
+    "key": "support.faq.platform.trust",
+    "chapter": "platform",
+    "tags": [
+      "app",
+      "transparenz",
+      "trust",
+      "ui",
+      "vertrauen",
+      "where",
+      "wo"
+    ]
   }
 ]

@@ -1,24 +1,24 @@
 {
-  "n_intents": 134,
+  "n_intents": 268,
   "n_languages": 5,
-  "n_rows": 670,
+  "n_rows": 1340,
   "per_chapter": {
-    "general": 10,
-    "basics": 20,
-    "analysis": 20,
-    "strategy": 20,
-    "mistakes": 10,
-    "ai": 20,
-    "market": 10,
-    "profit": 10,
-    "platform": 14
+    "general": 20,
+    "basics": 40,
+    "analysis": 40,
+    "strategy": 40,
+    "mistakes": 20,
+    "ai": 40,
+    "market": 20,
+    "profit": 20,
+    "platform": 28
   },
   "per_language": {
-    "en": 134,
-    "de": 134,
-    "es": 134,
-    "fr": 134,
-    "it": 134
+    "en": 268,
+    "de": 268,
+    "es": 268,
+    "fr": 268,
+    "it": 268
   },
   "missing_translations": []
 }
