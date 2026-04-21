@@ -6,6 +6,7 @@ Commands:
     fb rate              — Show pi-ratings top-N
     fb train             — Train CatBoost + calibrator
     fb train-mlp         — Train PyTorch MLP (v0.3)
+    fb train-support     — Train FAQ intent classifier (v0.3.1)
     fb predict           — Predict fixtures from JSON
     fb backtest          — Walk-forward backtest
     fb tune-ensemble     — Dirichlet-sampled weight tuning
@@ -56,7 +57,7 @@ console = Console()
 
 
 @click.group()
-@click.version_option("0.3.0")
+@click.version_option("0.3.1")
 def main() -> None:
     """Football Betting Model v0.3 — CatBoost + MLP + pi-Ratings + Sofascore xG."""
 
@@ -291,6 +292,45 @@ def train_mlp(league: str, seasons: tuple[str, ...], warmup: int) -> None:
     console.log(f"[green]MLP saved: {path}[/green]")
     console.print(f"  n_train={result['n_train']}, n_val={result['n_val']}")
     console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
+
+
+# ───────────────────────── train-support (v0.3.1) ─────────────────────────
+
+@main.command("train-support")
+@click.option(
+    "--lang",
+    default="all",
+    help="Language code (en|de|es|fr|it) or 'all'.",
+)
+@click.option(
+    "--dataset",
+    "dataset_path",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Path to dataset_augmented.jsonl (default: data/support_faq/…)",
+)
+@click.option(
+    "--out-dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output directory (default: models/support).",
+)
+def train_support(lang: str, dataset_path: Path | None, out_dir: Path | None) -> None:
+    """Train TF-IDF + Logistic Regression FAQ intent classifier per locale."""
+    from football_betting.config import SUPPORT_CFG
+    from football_betting.support.trainer import train_all
+
+    if lang.lower() == "all":
+        langs: list[str] | None = None
+    else:
+        lg = lang.lower()
+        if lg not in SUPPORT_CFG.languages:
+            raise click.BadParameter(
+                f"lang must be one of {('all', *SUPPORT_CFG.languages)}"
+            )
+        langs = [lg]
+
+    train_all(langs=langs, dataset_path=dataset_path, out_dir=out_dir)
 
 
 # ───────────────────────── export-onnx (v0.3) ─────────────────────────

@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.1 — 21. April 2026
+
+### 🚀 New Features
+
+**Support FAQ Intent Classifier (`src/football_betting/support/`)**
+- TF-IDF (char_wb 3–5 ⊕ word 1–2) → Logistic Regression
+- Trained per locale (en / de / es / fr / it) on `data/support_faq/dataset_augmented.jsonl` (30 815 rows · 268 intents)
+- `IntentClassifier.fit / predict / predict_topk / evaluate / save / load`
+- Persisted via joblib to `models/support/support_intent_{lang}.joblib`
+- Aggregated metrics (top-1 / top-3 / macro-F1 / per-chapter top-1) written to `models/support/support_intent_metrics.json`
+- New `fb train-support` CLI command + `scripts/train_support.py` wrapper
+- Zero new runtime deps (reuses existing `scikit-learn`)
+
 ## v0.3.0 — 18. April 2026
 
 ### 🚀 New Features

@@ -18,10 +18,13 @@ MONITORING_DIR = DATA_DIR / "monitoring"
 SNAPSHOT_DIR = DATA_DIR / "snapshots"
 WEATHER_DIR = DATA_DIR / "weather"
 MODELS_DIR = PROJECT_ROOT / "models"
+SUPPORT_DATA_DIR = DATA_DIR / "support_faq"
+SUPPORT_MODELS_DIR = MODELS_DIR / "support"
 
 for d in (
     RAW_DIR, PROCESSED_DIR, PREDICTIONS_DIR,
     BACKTEST_DIR, SOFASCORE_DIR, MONITORING_DIR, SNAPSHOT_DIR, WEATHER_DIR, MODELS_DIR,
+    SUPPORT_MODELS_DIR,
 ):
     d.mkdir(parents=True, exist_ok=True)
 
@@ -347,6 +350,50 @@ class EnsembleTuneConfig:
     metric: str = "rps"
 
 
+# ───────────────────────── Support Intent Classifier ─────────────────────────
+
+@dataclass(frozen=True, slots=True)
+class SupportConfig:
+    """TF-IDF + Logistic Regression intent classifier for the FAQ chatbot."""
+
+    # Dataset
+    dataset_filename: str = "dataset_augmented.jsonl"
+    metrics_filename: str = "support_intent_metrics.json"
+    model_filename_template: str = "support_intent_{lang}.joblib"
+    languages: tuple[str, ...] = ("en", "de", "es", "fr", "it")
+
+    # Split
+    val_fraction: float = 0.15
+    random_seed: int = 42
+
+    # Char n-gram vectorizer
+    char_ngram_min: int = 3
+    char_ngram_max: int = 5
+
+    # Word n-gram vectorizer
+    word_ngram_min: int = 1
+    word_ngram_max: int = 2
+
+    # Shared
+    min_df: int = 2
+    sublinear_tf: bool = True
+
+    # Logistic Regression
+    lr_C: float = 4.0
+    lr_max_iter: int = 2000
+    lr_solver: str = "liblinear"
+    lr_class_weight: str = "balanced"
+
+    # Inference
+    default_topk: int = 3
+
+    # Soft quality gate (warn only)
+    min_top1_accuracy: float = 0.75
+    target_top1_accuracy: float = 0.88
+    target_top3_accuracy: float = 0.97
+    target_macro_f1: float = 0.85
+
+
 # ───────────────────────── Defaults ─────────────────────────
 
 PI_CFG = PiRatingsConfig()
@@ -361,3 +408,4 @@ MONITORING_CFG = MonitoringConfig()
 BETTING_CFG = BettingConfig()
 BACKTEST_CFG = BacktestConfig()
 ENSEMBLE_TUNE_CFG = EnsembleTuneConfig()
+SUPPORT_CFG = SupportConfig()
