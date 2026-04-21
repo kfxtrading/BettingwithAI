@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "football_betting"
 version = "0.3.1"
-description = "CatBoost + MLP + pi-Ratings + Sofascore xG — Wettmodell für Top-5-Ligen"
+description = "NOMEN"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

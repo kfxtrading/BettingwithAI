@@ -750,6 +750,136 @@ export type DictionaryKey =
   | 'support.faq.snapshotUpdate.alt3'
   | 'support.faq.snapshotUpdate.alt4'
   | 'support.faq.snapshotUpdate.alt5'
+  | 'support.faq.kelly.alt1'
+  | 'support.faq.kelly.alt2'
+  | 'support.faq.kelly.alt3'
+  | 'support.faq.kelly.alt4'
+  | 'support.faq.kelly.alt5'
+  | 'support.faq.piRating.alt1'
+  | 'support.faq.piRating.alt2'
+  | 'support.faq.piRating.alt3'
+  | 'support.faq.piRating.alt4'
+  | 'support.faq.piRating.alt5'
+  | 'support.faq.responsible.alt1'
+  | 'support.faq.responsible.alt2'
+  | 'support.faq.responsible.alt3'
+  | 'support.faq.responsible.alt4'
+  | 'support.faq.responsible.alt5'
+  | 'support.faq.language.alt1'
+  | 'support.faq.language.alt2'
+  | 'support.faq.language.alt3'
+  | 'support.faq.language.alt4'
+  | 'support.faq.language.alt5'
+  | 'support.faq.cookies.alt1'
+  | 'support.faq.cookies.alt2'
+  | 'support.faq.cookies.alt3'
+  | 'support.faq.cookies.alt4'
+  | 'support.faq.cookies.alt5'
+  | 'support.faq.contact.alt1'
+  | 'support.faq.contact.alt2'
+  | 'support.faq.contact.alt3'
+  | 'support.faq.contact.alt4'
+  | 'support.faq.contact.alt5'
+  | 'support.faq.basics.oneX2.alt1'
+  | 'support.faq.basics.oneX2.alt2'
+  | 'support.faq.basics.oneX2.alt3'
+  | 'support.faq.basics.oneX2.alt4'
+  | 'support.faq.basics.oneX2.alt5'
+  | 'support.faq.basics.odds.alt1'
+  | 'support.faq.basics.odds.alt2'
+  | 'support.faq.basics.odds.alt3'
+  | 'support.faq.basics.odds.alt4'
+  | 'support.faq.basics.odds.alt5'
+  | 'support.faq.basics.winnings.alt1'
+  | 'support.faq.basics.winnings.alt2'
+  | 'support.faq.basics.winnings.alt3'
+  | 'support.faq.basics.winnings.alt4'
+  | 'support.faq.basics.winnings.alt5'
+  | 'support.faq.basics.single.alt1'
+  | 'support.faq.basics.single.alt2'
+  | 'support.faq.basics.single.alt3'
+  | 'support.faq.basics.single.alt4'
+  | 'support.faq.basics.single.alt5'
+  | 'support.faq.basics.accumulator.alt1'
+  | 'support.faq.basics.accumulator.alt2'
+  | 'support.faq.basics.accumulator.alt3'
+  | 'support.faq.basics.accumulator.alt4'
+  | 'support.faq.basics.accumulator.alt5'
+  | 'support.faq.basics.system.alt1'
+  | 'support.faq.basics.system.alt2'
+  | 'support.faq.basics.system.alt3'
+  | 'support.faq.basics.system.alt4'
+  | 'support.faq.basics.system.alt5'
+  | 'support.faq.basics.valueBetBasic.alt1'
+  | 'support.faq.basics.valueBetBasic.alt2'
+  | 'support.faq.basics.valueBetBasic.alt3'
+  | 'support.faq.basics.valueBetBasic.alt4'
+  | 'support.faq.basics.valueBetBasic.alt5'
+  | 'support.faq.basics.probability.alt1'
+  | 'support.faq.basics.probability.alt2'
+  | 'support.faq.basics.probability.alt3'
+  | 'support.faq.basics.probability.alt4'
+  | 'support.faq.basics.probability.alt5'
+  | 'support.faq.basics.bookie.alt1'
+  | 'support.faq.basics.bookie.alt2'
+  | 'support.faq.basics.bookie.alt3'
+  | 'support.faq.basics.bookie.alt4'
+  | 'support.faq.basics.bookie.alt5'
+  | 'support.faq.basics.bookieMoney.alt1'
+  | 'support.faq.basics.bookieMoney.alt2'
+  | 'support.faq.basics.bookieMoney.alt3'
+  | 'support.faq.basics.bookieMoney.alt4'
+  | 'support.faq.basics.bookieMoney.alt5'
+  | 'support.faq.basics.overround.alt1'
+  | 'support.faq.basics.overround.alt2'
+  | 'support.faq.basics.overround.alt3'
+  | 'support.faq.basics.overround.alt4'
+  | 'support.faq.basics.overround.alt5'
+  | 'support.faq.basics.live.alt1'
+  | 'support.faq.basics.live.alt2'
+  | 'support.faq.basics.live.alt3'
+  | 'support.faq.basics.live.alt4'
+  | 'support.faq.basics.live.alt5'
+  | 'support.faq.basics.cashout.alt1'
+  | 'support.faq.basics.cashout.alt2'
+  | 'support.faq.basics.cashout.alt3'
+  | 'support.faq.basics.cashout.alt4'
+  | 'support.faq.basics.cashout.alt5'
+  | 'support.faq.basics.handicap.alt1'
+  | 'support.faq.basics.handicap.alt2'
+  | 'support.faq.basics.handicap.alt3'
+  | 'support.faq.basics.handicap.alt4'
+  | 'support.faq.basics.handicap.alt5'
+  | 'support.faq.basics.asianHandicap.alt1'
+  | 'support.faq.basics.asianHandicap.alt2'
+  | 'support.faq.basics.asianHandicap.alt3'
+  | 'support.faq.basics.asianHandicap.alt4'
+  | 'support.faq.basics.asianHandicap.alt5'
+  | 'support.faq.basics.ou25.alt1'
+  | 'support.faq.basics.ou25.alt2'
+  | 'support.faq.basics.ou25.alt3'
+  | 'support.faq.basics.ou25.alt4'
+  | 'support.faq.basics.ou25.alt5'
+  | 'support.faq.basics.btts.alt1'
+  | 'support.faq.basics.btts.alt2'
+  | 'support.faq.basics.btts.alt3'
+  | 'support.faq.basics.btts.alt4'
+  | 'support.faq.basics.btts.alt5'
+  | 'support.faq.basics.dnb.alt1'
+  | 'support.faq.basics.dnb.alt2'
+  | 'support.faq.basics.dnb.alt3'
+  | 'support.faq.basics.dnb.alt4'
+  | 'support.faq.basics.dnb.alt5'
+  | 'support.faq.basics.doubleChance.alt1'
+  | 'support.faq.basics.doubleChance.alt2'
+  | 'support.faq.basics.doubleChance.alt3'
+  | 'support.faq.basics.doubleChance.alt4'
+  | 'support.faq.basics.doubleChance.alt5'
+  | 'support.faq.basics.specials.alt1'
+  | 'support.faq.basics.specials.alt2'
+  | 'support.faq.basics.specials.alt3'
+  | 'support.faq.basics.specials.alt4'
+  | 'support.faq.basics.specials.alt5'
   // <END_FOLLOWUP_KEYS>;
 export const en: Dictionary = {
   'site.title': 'Betting with AI',
@@ -1545,6 +1675,136 @@ export const en: Dictionary = {
   'support.faq.snapshotUpdate.alt3': "At what time are the predictions published?",
   'support.faq.snapshotUpdate.alt4': "Is today's snapshot already current?",
   'support.faq.snapshotUpdate.alt5': "What is the publishing cadence?",
+  'support.faq.kelly.alt1': "How much should I stake?",
+  'support.faq.kelly.alt2': "What's the optimal bet size?",
+  'support.faq.kelly.alt3': "How much of my bankroll should I risk?",
+  'support.faq.kelly.alt4': "Recommended stake size",
+  'support.faq.kelly.alt5': "What size should I pick for this bet?",
+  'support.faq.piRating.alt1': "How strong is this team?",
+  'support.faq.piRating.alt2': "Which team is the better opponent?",
+  'support.faq.piRating.alt3': "How is team strength calculated?",
+  'support.faq.piRating.alt4': "Which side is the favourite?",
+  'support.faq.piRating.alt5': "What's a team's Pi-Rating value?",
+  'support.faq.responsible.alt1': "Is this gambling safe?",
+  'support.faq.responsible.alt2': "Can I become addicted?",
+  'support.faq.responsible.alt3': "Help with gambling addiction",
+  'support.faq.responsible.alt4': "Is this financial advice?",
+  'support.faq.responsible.alt5': "Am I gambling responsibly?",
+  'support.faq.language.alt1': "Change language",
+  'support.faq.language.alt2': "Switch to English",
+  'support.faq.language.alt3': "Where are the language settings?",
+  'support.faq.language.alt4': "How do I pick a different locale?",
+  'support.faq.language.alt5': "Is the site available in my language?",
+  'support.faq.cookies.alt1': "What cookies do you set?",
+  'support.faq.cookies.alt2': "Withdraw cookie consent",
+  'support.faq.cookies.alt3': "Disable tracking",
+  'support.faq.cookies.alt4': "Cookie privacy policy",
+  'support.faq.cookies.alt5': "Do you store my data?",
+  'support.faq.contact.alt1': "How can I reach you?",
+  'support.faq.contact.alt2': "Contact support",
+  'support.faq.contact.alt3': "What's your email address?",
+  'support.faq.contact.alt4': "How do I file a help request?",
+  'support.faq.contact.alt5': "Where can I find support?",
+  'support.faq.basics.oneX2.alt1': "What does 1X2 mean?",
+  'support.faq.basics.oneX2.alt2': "Three-way bet explained",
+  'support.faq.basics.oneX2.alt3': "Home win, draw, away win — how?",
+  'support.faq.basics.oneX2.alt4': "How does the 1X2 market work?",
+  'support.faq.basics.oneX2.alt5': "Explain the 1X2 market",
+  'support.faq.basics.odds.alt1': "How do I read odds?",
+  'support.faq.basics.odds.alt2': "What are decimal odds?",
+  'support.faq.basics.odds.alt3': "What does odds of 2.50 mean?",
+  'support.faq.basics.odds.alt4': "Understanding odds",
+  'support.faq.basics.odds.alt5': "Convert odds to probability",
+  'support.faq.basics.winnings.alt1': "How do I calculate winnings?",
+  'support.faq.basics.winnings.alt2': "Payout formula",
+  'support.faq.basics.winnings.alt3': "How much do I get back?",
+  'support.faq.basics.winnings.alt4': "What will I win?",
+  'support.faq.basics.winnings.alt5': "Compute profit from odds",
+  'support.faq.basics.single.alt1': "What's a single bet?",
+  'support.faq.basics.single.alt2': "Single bet explained",
+  'support.faq.basics.single.alt3': "What does a single mean?",
+  'support.faq.basics.single.alt4': "Bet on just one game",
+  'support.faq.basics.single.alt5': "Advantage of singles",
+  'support.faq.basics.accumulator.alt1': "What's an accumulator?",
+  'support.faq.basics.accumulator.alt2': "How does a parlay work?",
+  'support.faq.basics.accumulator.alt3': "Combine multiple games into one bet",
+  'support.faq.basics.accumulator.alt4': "Accumulator explained",
+  'support.faq.basics.accumulator.alt5': "Combine several tips",
+  'support.faq.basics.system.alt1': "What's a system bet?",
+  'support.faq.basics.system.alt2': "System bet explained",
+  'support.faq.basics.system.alt3': "How does a 2-from-3 system work?",
+  'support.faq.basics.system.alt4': "System bet example",
+  'support.faq.basics.system.alt5': "Advantage of system bets",
+  'support.faq.basics.valueBetBasic.alt1': "What's a value bet for beginners?",
+  'support.faq.basics.valueBetBasic.alt2': "Good tip for today",
+  'support.faq.basics.valueBetBasic.alt3': "Where do I find value?",
+  'support.faq.basics.valueBetBasic.alt4': "How to spot a +EV bet?",
+  'support.faq.basics.valueBetBasic.alt5': "Is this odd worth it?",
+  'support.faq.basics.probability.alt1': "What's implied probability?",
+  'support.faq.basics.probability.alt2': "Convert odds to percentage",
+  'support.faq.basics.probability.alt3': "Calculate probability from odds",
+  'support.faq.basics.probability.alt4': "What does a 60% chance mean?",
+  'support.faq.basics.probability.alt5': "Implied probability explained",
+  'support.faq.basics.bookie.alt1': "What's a bookmaker?",
+  'support.faq.basics.bookie.alt2': "Which bookie is good?",
+  'support.faq.basics.bookie.alt3': "Betting provider explained",
+  'support.faq.basics.bookie.alt4': "Bookmaker recommendation",
+  'support.faq.basics.bookie.alt5': "How to choose a bookie",
+  'support.faq.basics.bookieMoney.alt1': "How do bookmakers make money?",
+  'support.faq.basics.bookieMoney.alt2': "Why does the bookie always win?",
+  'support.faq.basics.bookieMoney.alt3': "Bookmaker margin explained",
+  'support.faq.basics.bookieMoney.alt4': "Does the bookie profit from me?",
+  'support.faq.basics.bookieMoney.alt5': "Bookmaker business model",
+  'support.faq.basics.overround.alt1': "What is overround?",
+  'support.faq.basics.overround.alt2': "Calculate bookmaker margin",
+  'support.faq.basics.overround.alt3': "Vig explained",
+  'support.faq.basics.overround.alt4': "How big is the margin on a market?",
+  'support.faq.basics.overround.alt5': "Juice in odds",
+  'support.faq.basics.live.alt1': "What's a live bet?",
+  'support.faq.basics.live.alt2': "In-play betting explained",
+  'support.faq.basics.live.alt3': "Bet live during the match",
+  'support.faq.basics.live.alt4': "Live odds keep changing",
+  'support.faq.basics.live.alt5': "Pros and cons of live bets",
+  'support.faq.basics.cashout.alt1': "What is cashout?",
+  'support.faq.basics.cashout.alt2': "Cash out a bet early",
+  'support.faq.basics.cashout.alt3': "Is cash-out worth it?",
+  'support.faq.basics.cashout.alt4': "Cashout feature explained",
+  'support.faq.basics.cashout.alt5': "When should I cash out?",
+  'support.faq.basics.handicap.alt1': "What's a handicap bet?",
+  'support.faq.basics.handicap.alt2': "Spread bet explained",
+  'support.faq.basics.handicap.alt3': "What does +1 handicap mean?",
+  'support.faq.basics.handicap.alt4': "When to use handicap?",
+  'support.faq.basics.handicap.alt5': "Understanding the handicap market",
+  'support.faq.basics.asianHandicap.alt1': "What's an Asian handicap?",
+  'support.faq.basics.asianHandicap.alt2': "AH +0.5 explained",
+  'support.faq.basics.asianHandicap.alt3': "Quarter handicap explained",
+  'support.faq.basics.asianHandicap.alt4': "Asian handicap vs regular handicap",
+  'support.faq.basics.asianHandicap.alt5': "When is AH worth it?",
+  'support.faq.basics.ou25.alt1': "What does Over/Under 2.5 mean?",
+  'support.faq.basics.ou25.alt2': "Over 2.5 goals bet",
+  'support.faq.basics.ou25.alt3': "Low-scoring bet",
+  'support.faq.basics.ou25.alt4': "Over Under explained",
+  'support.faq.basics.ou25.alt5': "When to bet Over 2.5?",
+  'support.faq.basics.btts.alt1': "What is BTTS?",
+  'support.faq.basics.btts.alt2': "Both teams to score bet",
+  'support.faq.basics.btts.alt3': "GG tip explained",
+  'support.faq.basics.btts.alt4': "Both Teams to Score explained",
+  'support.faq.basics.btts.alt5': "When to bet BTTS?",
+  'support.faq.basics.dnb.alt1': "What is Draw No Bet?",
+  'support.faq.basics.dnb.alt2': "DNB explained",
+  'support.faq.basics.dnb.alt3': "Bet with no draw risk",
+  'support.faq.basics.dnb.alt4': "Stake back on a draw",
+  'support.faq.basics.dnb.alt5': "When is DNB worth it?",
+  'support.faq.basics.doubleChance.alt1': "What is Double Chance?",
+  'support.faq.basics.doubleChance.alt2': "Double chance explained",
+  'support.faq.basics.doubleChance.alt3': "1X or X2 bet",
+  'support.faq.basics.doubleChance.alt4': "Bet on not losing",
+  'support.faq.basics.doubleChance.alt5': "When to use double chance?",
+  'support.faq.basics.specials.alt1': "What are special bets?",
+  'support.faq.basics.specials.alt2': "Who scores the first goal?",
+  'support.faq.basics.specials.alt3': "First scorer bet explained",
+  'support.faq.basics.specials.alt4': "Examples of prop bets",
+  'support.faq.basics.specials.alt5': "Special markets explained",
   // <END_FOLLOWUP_STRINGS>
 
 };

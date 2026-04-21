@@ -1,9 +1,9 @@
 {
   "n_input_rows": 1340,
-  "n_output_rows": 30767,
+  "n_output_rows": 31715,
   "per_chapter": {
-    "general": 3228,
-    "basics": 5299,
+    "general": 3472,
+    "basics": 6003,
     "analysis": 4882,
     "strategy": 4396,
     "mistakes": 2210,
@@ -13,19 +13,19 @@
     "platform": 2630
   },
   "per_language": {
-    "en": 6346,
-    "de": 6687,
-    "es": 5786,
-    "fr": 5984,
-    "it": 5964
+    "en": 6539,
+    "de": 6870,
+    "es": 5969,
+    "fr": 6180,
+    "it": 6157
   },
   "per_source": {
     "original": 1340,
-    "paraphrase": 29427
+    "paraphrase": 30375
   },
   "variants_per_intent_lang": {
     "min": 13,
     "max": 41,
-    "avg": 22.96
+    "avg": 23.67
   }
 }
