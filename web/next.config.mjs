@@ -22,6 +22,16 @@ const nextConfig = {
     NEXT_PUBLIC_SITE_URL:
       process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   },
+  async headers() {
+    return [
+      {
+        source: '/:locale(en|de|fr|it|es)/legal/cookies',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, follow' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

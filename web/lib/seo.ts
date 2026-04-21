@@ -89,13 +89,22 @@ export function buildMetadata({
       ? {
           index: false,
           follow: true,
-          googleBot: { index: false, follow: true },
+          nocache: true,
+          googleBot: {
+            index: false,
+            follow: true,
+            noimageindex: true,
+            'max-snippet': 0,
+            'max-image-preview': 'none',
+          },
         }
       : undefined,
-    alternates: {
-      canonical: url,
-      languages: buildLanguageAlternates(path),
-    },
+    alternates: noIndex
+      ? { canonical: url }
+      : {
+          canonical: url,
+          languages: buildLanguageAlternates(path),
+        },
     openGraph: {
       type: ogType,
       url,
