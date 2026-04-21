@@ -124,7 +124,7 @@ export const de: Dictionary = {
   'rail.section.today': 'Heute',
   'rail.spaces.all': 'Alle Ligen',
   'rail.today.empty': 'Keine anstehenden Anstöße.',
-  'rail.today.snapshot': 'Snapshot · vor {age} aktualisiert',
+  'rail.today.snapshot': 'Vorhersagen · vor {age} aktualisiert',
   'rail.quick.learn': 'Lernen',
   'rail.quick.trackRecord': 'Track Record',
   'footer.text':

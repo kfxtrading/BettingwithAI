@@ -78,9 +78,10 @@ def regrade_all() -> list[GradedBet]:
     # (more recent) snapshots overwrite earlier ones — giving us the freshest
     # odds/stake for each unique bet.
     #
-    # Two maps: value bets win collisions over most-likely predictions, so a
-    # match's Kelly-sized value bet on outcome X is never duplicated by its
-    # prediction wrapper on the same outcome.
+    # Two maps: value bets and most-likely predictions are tracked
+    # independently. When both strategies agree on the same outcome for a
+    # match we still keep both rows so each strategy is represented in the
+    # "Letzte Wetten" history.
     value_map: dict[tuple[str, str, str, str, str], object] = {}
     pred_map: dict[tuple[str, str, str, str, str], object] = {}
     for _snap_date, payload in iter_historical_snapshots():
@@ -105,9 +106,6 @@ def regrade_all() -> list[GradedBet]:
                 tracked.outcome,
             )
             pred_map[key] = tracked
-    # Drop predictions that collide with a real value bet on the same outcome.
-    for k in value_map:
-        pred_map.pop(k, None)
     graded = grade_bets(value_map.values(), kind="value") + grade_bets(
         pred_map.values(), kind="prediction"
     )
