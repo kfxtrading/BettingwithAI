@@ -1,0 +1,31 @@
+{
+  "n_input_rows": 670,
+  "n_output_rows": 13253,
+  "per_chapter": {
+    "general": 1258,
+    "basics": 2219,
+    "analysis": 2002,
+    "strategy": 1876,
+    "mistakes": 1000,
+    "ai": 1800,
+    "market": 974,
+    "profit": 898,
+    "platform": 1226
+  },
+  "per_language": {
+    "en": 2778,
+    "de": 2921,
+    "es": 2524,
+    "fr": 2494,
+    "it": 2536
+  },
+  "per_source": {
+    "original": 670,
+    "paraphrase": 12583
+  },
+  "variants_per_intent_lang": {
+    "min": 13,
+    "max": 33,
+    "avg": 19.78
+  }
+}
