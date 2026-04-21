@@ -1,0 +1,24 @@
+{
+  "n_intents": 134,
+  "n_languages": 5,
+  "n_rows": 670,
+  "per_chapter": {
+    "general": 10,
+    "basics": 20,
+    "analysis": 20,
+    "strategy": 20,
+    "mistakes": 10,
+    "ai": 20,
+    "market": 10,
+    "profit": 10,
+    "platform": 14
+  },
+  "per_language": {
+    "en": 134,
+    "de": 134,
+    "es": 134,
+    "fr": 134,
+    "it": 134
+  },
+  "missing_translations": []
+}
