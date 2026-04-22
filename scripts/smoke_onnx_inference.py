@@ -3,6 +3,7 @@
 For each language: load model.int8.onnx + tokenizer, push a short probe,
 print top-3 predictions. Fast sanity check after export.
 """
+
 from __future__ import annotations
 
 import sys
@@ -27,7 +28,9 @@ PROBES = {
 
 
 def smoke(lang: str) -> bool:
-    model_dir = SUPPORT_MODELS_DIR / SUPPORT_CFG.transformer_model_dirname_template.format(lang=lang)
+    model_dir = SUPPORT_MODELS_DIR / SUPPORT_CFG.transformer_model_dirname_template.format(
+        lang=lang
+    )
     onnx_path = model_dir / "model.int8.onnx"
     if not onnx_path.exists():
         onnx_path = model_dir / "model.onnx"
@@ -37,17 +40,32 @@ def smoke(lang: str) -> bool:
 
     sess_opts = ort.SessionOptions()
     sess_opts.intra_op_num_threads = 1
-    sess = ort.InferenceSession(str(onnx_path), sess_options=sess_opts, providers=["CPUExecutionProvider"])
+    sess = ort.InferenceSession(
+        str(onnx_path), sess_options=sess_opts, providers=["CPUExecutionProvider"]
+    )
     tok = AutoTokenizer.from_pretrained(str(model_dir))
 
     # Load classes_ from support_meta.json
     import json as _json
+
     meta = _json.loads((model_dir / "support_meta.json").read_text(encoding="utf-8"))
     classes = meta["classes_"]
 
     query = PROBES[lang]
-    enc = tok(query, return_tensors="np", padding="max_length", truncation=True, max_length=SUPPORT_CFG.transformer_max_seq_length)
-    logits = sess.run(["logits"], {"input_ids": enc["input_ids"].astype(np.int64), "attention_mask": enc["attention_mask"].astype(np.int64)})[0]
+    enc = tok(
+        query,
+        return_tensors="np",
+        padding="max_length",
+        truncation=True,
+        max_length=SUPPORT_CFG.transformer_max_seq_length,
+    )
+    logits = sess.run(
+        ["logits"],
+        {
+            "input_ids": enc["input_ids"].astype(np.int64),
+            "attention_mask": enc["attention_mask"].astype(np.int64),
+        },
+    )[0]
     probs = np.exp(logits - logits.max(axis=-1, keepdims=True))
     probs = probs / probs.sum(axis=-1, keepdims=True)
     top3 = np.argsort(probs[0])[::-1][:3]
