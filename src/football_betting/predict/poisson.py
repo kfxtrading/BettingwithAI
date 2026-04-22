@@ -9,11 +9,17 @@ with optional low-score correlation correction τ.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from math import exp, factorial
 
 from football_betting.config import LEAGUES, LeagueConfig
 from football_betting.data.models import Fixture, Prediction
+from football_betting.features.home_advantage import (
+    GHOST_PERIODS,
+    dynamic_home_advantage,
+)
 from football_betting.rating.pi_ratings import PiRatings
 
 
@@ -24,6 +30,10 @@ class PoissonModel:
     pi_ratings: PiRatings
     rho: float = -0.08  # Dixon-Coles correlation parameter (typical range -0.1..0)
     max_goals: int = 8
+    # COVID ghost-games correction applied to ``league.home_advantage`` when a
+    # fixture date falls inside one of the configured ghost periods.
+    ghost_factor: float = 0.35
+    ghost_periods: Sequence[tuple[date, date]] = GHOST_PERIODS
 
     @staticmethod
     def _pmf(lam: float, k: int) -> float:
@@ -66,10 +76,19 @@ class PoissonModel:
         home_team: str,
         away_team: str,
         league: LeagueConfig,
+        match_date: date | None = None,
     ) -> tuple[float, float, float, float, float]:
         """Return (P_H, P_D, P_A, λ_H, λ_A)."""
+        home_adv = league.home_advantage
+        if match_date is not None:
+            home_adv = dynamic_home_advantage(
+                match_date,
+                home_adv,
+                ghost_factor=self.ghost_factor,
+                periods=self.ghost_periods,
+            )
         lam_h, lam_a = self.pi_ratings.expected_goals(
-            home_team, away_team, league.avg_goals_per_team, league.home_advantage
+            home_team, away_team, league.avg_goals_per_team, home_adv
         )
         lam_h = min(lam_h, 4.0)  # cap for numerical stability
         lam_a = min(lam_a, 3.5)
@@ -84,7 +103,7 @@ class PoissonModel:
         """Generate a single Prediction."""
         league_cfg = LEAGUES[fixture.league]
         p_h, p_d, p_a, lam_h, lam_a = self.probabilities(
-            fixture.home_team, fixture.away_team, league_cfg
+            fixture.home_team, fixture.away_team, league_cfg, match_date=fixture.date
         )
         return Prediction(
             fixture=fixture,

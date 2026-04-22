@@ -21,7 +21,10 @@ from typing import TYPE_CHECKING
 from football_betting.config import FEATURE_CFG, LEAGUES, POINT_DEDUCTIONS, FeatureConfig
 from football_betting.features.form import FormTracker
 from football_betting.features.h2h import H2HTracker
-from football_betting.features.home_advantage import HomeAdvantageTracker
+from football_betting.features.home_advantage import (
+    HomeAdvantageTracker,
+    dynamic_home_advantage,
+)
 from football_betting.features.market_movement import MarketMovementTracker
 from football_betting.features.real_xg import RealXgTracker
 from football_betting.features.rest_days import RestDaysTracker
@@ -117,11 +120,18 @@ class FeatureBuilder:
 
         # Dynamic HA
         if self.cfg.use_home_advantage:
-            feats.update(self.home_adv_tracker.features_for_match(home_team, away_team))
+            feats.update(
+                self.home_adv_tracker.features_for_match(home_team, away_team, match_date)
+            )
 
         # League meta
         feats["league_avg_goals"] = league.avg_goals_per_team
-        feats["league_home_adv"] = league.home_advantage
+        feats["league_home_adv"] = dynamic_home_advantage(
+            match_date,
+            league.home_advantage,
+            ghost_factor=self.home_adv_tracker.cfg.ghost_factor,
+            periods=self.home_adv_tracker.cfg.ghost_periods,
+        )
 
         # Market features
         if self.cfg.use_market_odds:

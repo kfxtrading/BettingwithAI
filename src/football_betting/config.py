@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Literal
 
@@ -176,6 +177,14 @@ class RestDaysConfig:
 class HomeAdvantageConfig:
     min_home_games: int = 5
     window_games: int = 25
+    # COVID ghost-games correction (empty stadiums reduce home advantage).
+    # Applied multiplicatively to the team/league HA when a match date falls
+    # inside one of the configured periods.
+    ghost_factor: float = 0.35
+    ghost_periods: tuple[tuple[date, date], ...] = (
+        (date(2020, 3, 1), date(2021, 6, 30)),
+        (date(2021, 8, 1), date(2021, 12, 31)),
+    )
 
 
 @dataclass(frozen=True, slots=True)
