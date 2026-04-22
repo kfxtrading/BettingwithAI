@@ -475,6 +475,58 @@ def train_tab(league: str, seasons: tuple[str, ...], warmup: int, device: str) -
     console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
 
 
+# ───────────────────────── train-sequence (v0.4) ─────────────────────────
+
+
+@main.command("train-sequence")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(list(LEAGUES.keys()), case_sensitive=False),
+    required=True,
+)
+@click.option(
+    "--seasons",
+    "-s",
+    multiple=True,
+    default=("2021-22", "2022-23", "2023-24", "2024-25"),
+)
+@click.option("--warmup", default=100, show_default=True)
+@click.option(
+    "--device",
+    type=click.Choice(["auto", "cuda", "dml", "cpu"], case_sensitive=False),
+    default="auto",
+    show_default=True,
+    help="Torch backend: auto → CUDA → DirectML → CPU.",
+)
+def train_sequence(
+    league: str,
+    seasons: tuple[str, ...],
+    warmup: int,
+    device: str,
+) -> None:
+    """Train 1D-CNN + Transformer sequence head (v0.4)."""
+    import os as _os
+
+    from football_betting.predict.sequence_model import SequencePredictor
+
+    league = league.upper()
+    _os.environ["FB_TORCH_DEVICE"] = device.lower()
+
+    matches = load_league(league, seasons=list(seasons))
+
+    seq = SequencePredictor()
+    console.log(f"[cyan]Training Sequence head for {LEAGUES[league].name}…[/cyan]")
+    result = seq.fit(matches, warmup_games=warmup)
+
+    path = MODELS_DIR / f"sequence_{league}.pt"
+    seq.save(path)
+    console.log(f"[green]Sequence model saved: {path}[/green]")
+    console.print(f"  n_train={result.get('n_train', '?')}, n_val={result.get('n_val', '?')}")
+    if "best_val_loss" in result:
+        console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
+
+
 # ───────────────────────── train-support (v0.3.1) ─────────────────────────
 
 
@@ -1089,9 +1141,13 @@ def backtest(
 @click.option("--val-season", default="2024-25")
 @click.option(
     "--objective",
-    type=click.Choice(["rps", "log_loss", "brier", "clv", "blended"], case_sensitive=False),
+    type=click.Choice(
+        ["rps", "log_loss", "brier", "clv", "blended", "brier_logloss_blended"],
+        case_sensitive=False,
+    ),
     default="rps",
-    help="Tuning objective (Phase 6). 'clv'/'blended' require opening-line snapshots.",
+    help="Tuning objective. 'clv'/'blended' require opening-line snapshots. "
+    "'brier_logloss_blended' minimises equally-weighted z(Brier)+z(LogLoss) (Phase 4).",
 )
 @click.option(
     "--blend",
@@ -1099,9 +1155,22 @@ def backtest(
     show_default=True,
     help="Weight of RPS in 'blended' objective (0 = CLV only, 1 = RPS only).",
 )
-def tune_ensemble(league: str, val_season: str, objective: str, blend: float) -> None:
-    """Dirichlet-sampled ensemble weight tuning (RPS / CLV / blended)."""
+@click.option(
+    "--use-sequence/--no-sequence",
+    default=True,
+    show_default=True,
+    help="Include 1D-CNN+Transformer sequence head in the ensemble (if trained).",
+)
+def tune_ensemble(
+    league: str,
+    val_season: str,
+    objective: str,
+    blend: float,
+    use_sequence: bool,
+) -> None:
+    """Dirichlet-sampled ensemble weight tuning (RPS / CLV / blended / Brier+LogLoss)."""
     from football_betting.data.snapshot_service import merge_snapshots_into_matches
+    from football_betting.predict.sequence_model import SequencePredictor
 
     league = league.upper()
     objective = objective.lower()
@@ -1113,7 +1182,8 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
     val_matches = merge_snapshots_into_matches(val_matches, league)
 
     fb = FeatureBuilder()
-    for season in {m.season for m in train_matches}:
+    all_seasons = {m.season for m in train_matches} | {val_season}
+    for season in all_seasons:
         sf = SofascoreClient.load_matches(league, season)
         if sf:
             fb.stage_sofascore_batch(sf)
@@ -1127,7 +1197,32 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
     cb = CatBoostPredictor.for_league(league, fb)
     poisson = PoissonModel(pi_ratings=fb.pi_ratings)
     mlp = MLPPredictor.for_league(league, fb)
-    ensemble = EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
+
+    # Optional 4th ensemble member: 1D-CNN + Transformer sequence head
+    sequence: SequencePredictor | None = None
+    seq_path = MODELS_DIR / f"sequence_{league}.pt"
+    if use_sequence and seq_path.exists():
+        from football_betting.predict.sequence_features import (
+            build_dataset as seq_build_dataset,
+        )
+
+        sequence = SequencePredictor()
+        sequence.load(seq_path)
+        # Replay history so form/pi trackers are current by val_season kickoff
+        seq_build_dataset(
+            sorted(train_matches, key=lambda m: m.date),
+            sequence.form_tracker,
+            sequence.pi_ratings,
+            window_t=sequence.cfg.window_t,
+            warmup_games=0,
+        )
+        console.log(f"[green]Sequence head loaded: {seq_path}[/green]")
+    elif use_sequence:
+        console.log(f"[yellow]No Sequence model at {seq_path} — skipping.[/yellow]")
+
+    ensemble = EnsembleModel(
+        catboost=cb, poisson=poisson, mlp=mlp, sequence=sequence,
+    )
 
     fixtures = []
     actuals = []
@@ -1158,7 +1253,7 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
             objective=objective,  # type: ignore[arg-type]
             blend=blend,
         )
-    elif objective in ("log_loss", "brier"):
+    elif objective in ("log_loss", "brier", "brier_logloss_blended"):
         result = ensemble.tune_dirichlet(
             fixtures,
             actuals,
@@ -1172,7 +1267,12 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
     console.print(f"  Poisson:  {result['best_w_poisson']:.3f}")
     if mlp is not None:
         console.print(f"  MLP:      {result['best_w_mlp']:.3f}")
-    skip = {"best_w_catboost", "best_w_poisson", "best_w_mlp", "n_samples_tried", "objective"}
+    if sequence is not None:
+        console.print(f"  Sequence: {result['best_w_sequence']:.3f}")
+    skip = {
+        "best_w_catboost", "best_w_poisson", "best_w_mlp", "best_w_sequence",
+        "n_samples_tried", "objective",
+    }
     for k, v in result.items():
         if k in skip:
             continue

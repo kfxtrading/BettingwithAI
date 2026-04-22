@@ -95,6 +95,24 @@ class FeatureBuilder:
         elif self.cfg.use_xg_proxy:
             feats.update(self.xg_tracker.features_for_match(home_team, away_team))
             feats["has_real_xg"] = 0.0
+            # Emit zero-valued real_xg_* keys so downstream schemas (CatBoost
+            # feature list) stay stable when a fixture has no Sofascore data.
+            if self.cfg.use_real_xg:
+                feats.update({
+                    "real_xg_home_for": 0.0,
+                    "real_xg_home_against": 0.0,
+                    "real_xg_home_diff": 0.0,
+                    "real_xg_home_at_home_for": 0.0,
+                    "real_xg_home_finishing": 0.0,
+                    "real_xg_home_big_chances": 0.0,
+                    "real_xg_away_for": 0.0,
+                    "real_xg_away_against": 0.0,
+                    "real_xg_away_diff": 0.0,
+                    "real_xg_away_at_away_for": 0.0,
+                    "real_xg_away_finishing": 0.0,
+                    "real_xg_away_big_chances": 0.0,
+                    "real_xg_matchup_diff": 0.0,
+                })
 
         # Squad quality (v0.3)
         if self.cfg.use_squad_quality:
