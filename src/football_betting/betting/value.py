@@ -109,10 +109,17 @@ def find_value_bets(
             continue
         if not (cfg.min_odds <= odds <= cfg.max_odds):
             continue
+        # Positive-EV cushion guard: skip bets whose raw EV doesn't clear the
+        # configured buffer. `(model_p * odds) - 1` is the fractional EV per
+        # unit staked; requiring a cushion here absorbs small adverse line
+        # drifts between selection and kick-off (negative-CLV defence).
+        ev_frac = model_p * odds - 1.0
+        if ev_frac < cfg.min_ev_pct:
+            continue
 
         k_full = kelly_fraction(model_p, odds)
         stake = kelly_stake(model_p, odds, bankroll, cfg)
-        ev_pct = (model_p * odds - 1.0) * 100
+        ev_pct = ev_frac * 100
 
         value_bets.append(
             ValueBet(

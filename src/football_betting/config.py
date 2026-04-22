@@ -501,6 +501,11 @@ class BettingConfig:
     min_odds: float = 1.30
     max_odds: float = 15.0
     devig_method: Literal["multiplicative", "power", "shin"] = "power"
+    #: Extra positive-EV cushion (decimal, e.g. 0.02 → require ≥2 % EV beyond
+    #: break-even). Guards against negative closing-line-value: if the line
+    #: drifts by 1-2 % between selection and kick-off we still stay in the
+    #: green. 0.0 (default) disables the guard to preserve legacy behaviour.
+    min_ev_pct: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
