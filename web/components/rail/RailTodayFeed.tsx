@@ -9,20 +9,40 @@ import { useLanding } from '@/app/LandingContext';
 import { formatKickoff } from '@/lib/datetime';
 import type { Prediction } from '@/lib/types';
 
-const MAX_ITEMS = 4;
+// Upper bound to keep the rail from growing unbounded on heavy match days.
+// A single day rarely has more than ~20 fixtures across the leagues we cover.
+const MAX_ITEMS = 20;
+
+function matchKey(p: { date: string; home_team: string; away_team: string }): string {
+  return `${p.date}|${p.home_team.toLowerCase().trim()}|${p.away_team.toLowerCase().trim()}`;
+}
 
 function pickUpcoming(
   predictions: Prediction[] | undefined,
   now: Date,
 ): Prediction[] {
   if (!predictions || predictions.length === 0) return [];
+  const seen = new Set<string>();
   const enriched = predictions
     .map((p) => {
       const t = p.kickoff_utc ? Date.parse(p.kickoff_utc) : NaN;
       return { p, t };
     })
-    .filter((x) => Number.isFinite(x.t) && x.t >= now.getTime() - 105 * 60_000)
-    .sort((a, b) => a.t - b.t);
+    .filter((x) => {
+      // Hide matches that ended more than 105 min ago; keep entries without
+      // a parseable kickoff_utc so at least the pairing is visible.
+      if (Number.isFinite(x.t) && x.t < now.getTime() - 105 * 60_000) return false;
+      const key = matchKey(x.p);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      // Entries without kickoff_utc sort to the end but stay visible.
+      const ta = Number.isFinite(a.t) ? a.t : Number.POSITIVE_INFINITY;
+      const tb = Number.isFinite(b.t) ? b.t : Number.POSITIVE_INFINITY;
+      return ta - tb;
+    });
   return enriched.slice(0, MAX_ITEMS).map((x) => x.p);
 }
 
