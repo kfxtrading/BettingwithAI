@@ -26,12 +26,22 @@ COL_AS = "AS"  # away shots
 COL_HST = "HST"  # home shots on target
 COL_AST = "AST"  # away shots on target
 
-# Preferred odds columns (Pinnacle > Bet365 > Average)
+# Preferred CLOSING odds (Pinnacle Closing > Bet365 Closing > Pinnacle pre-match >
+# Bet365 pre-match > Averages). football-data.co.uk ships PSCH/PSCD/PSCA as the
+# true closing lines; PSH/B365H are earlier (pre-match) prices.
 ODDS_PRIORITY = [
+    ("PSCH", "PSCD", "PSCA", "Pinnacle_closing"),
+    ("B365CH", "B365CD", "B365CA", "Bet365_closing"),
     ("PSH", "PSD", "PSA", "Pinnacle"),
     ("B365H", "B365D", "B365A", "Bet365"),
     ("AvgH", "AvgD", "AvgA", "avg"),
     ("BbAvH", "BbAvD", "BbAvA", "avg_legacy"),
+]
+
+# Opening-line proxies (earliest-available pre-match price) in preference order.
+OPENING_PRIORITY = [
+    ("PSH", "PSD", "PSA", "Pinnacle_opening"),
+    ("B365H", "B365D", "B365A", "Bet365_opening"),
 ]
 
 
@@ -87,26 +97,30 @@ def _extract_odds(row: pd.Series) -> MatchOdds | None:
 def _extract_opening_odds(row: pd.Series, closing: MatchOdds | None) -> MatchOdds | None:
     """Phase 4 best-effort opening proxy.
 
-    football-data.co.uk ships closing (PSH/PSD/PSA) *and* an earlier Bet365
-    snapshot (B365H/D/A). We treat Bet365 as the opening line when it differs
-    from the closing line chosen by ``_extract_odds``; otherwise the bookmaker
-    is identical and no movement can be derived → return ``None``.
+    football-data.co.uk ships both pre-match (PSH/B365H) and closing
+    (PSCH/B365CH) columns. When the closing line comes from Pinnacle/Bet365
+    *closing*, the matching pre-match column is the natural opening proxy.
+    We fall back through :data:`OPENING_PRIORITY` and return the first
+    opening triple that differs numerically from ``closing`` — otherwise
+    ``None`` (degenerate CLV == 0 for that bet).
     """
-    h_col, d_col, a_col = "B365H", "B365D", "B365A"
-    if h_col not in row or pd.isna(row[h_col]) or row[h_col] <= 1.0:
-        return None
-    try:
-        opening = MatchOdds(
-            home=float(row[h_col]),
-            draw=float(row[d_col]),
-            away=float(row[a_col]),
-            bookmaker="Bet365_opening",
-        )
-    except (ValueError, KeyError):
-        return None
-    if closing is not None and closing.bookmaker == "Bet365":
-        return None
-    return opening
+    closing_triple = (
+        (closing.home, closing.draw, closing.away) if closing is not None else None
+    )
+    for h_col, d_col, a_col, bookmaker in OPENING_PRIORITY:
+        if h_col not in row or pd.isna(row[h_col]) or row[h_col] <= 1.0:
+            continue
+        try:
+            h, d, a = float(row[h_col]), float(row[d_col]), float(row[a_col])
+        except (ValueError, KeyError, TypeError):
+            continue
+        if closing_triple is not None and (h, d, a) == closing_triple:
+            continue
+        try:
+            return MatchOdds(home=h, draw=d, away=a, bookmaker=bookmaker)
+        except ValueError:
+            continue
+    return None
 
 
 def _infer_season(filename: str) -> str:
