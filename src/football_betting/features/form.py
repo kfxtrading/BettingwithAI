@@ -187,3 +187,12 @@ class FormTracker:
 
     def games_played(self, team: str) -> int:
         return len(self.history.get(team, []))
+
+    def get_recent(self, team: str, n: int = 10) -> list[MatchRecord]:
+        """Return up to ``n`` most recent match records for ``team``.
+
+        v0.4 — consumed by ``MatchSequenceModel``. Leakage-safe because the
+        tracker is only updated AFTER each match's features are extracted.
+        """
+        records = list(self.history.get(team, []))
+        return records[-n:] if n > 0 else records

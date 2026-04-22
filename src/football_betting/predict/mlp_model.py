@@ -82,12 +82,18 @@ class MLPPredictor:
         self,
         matches: list[Match],
         warmup_games: int = 100,
-    ) -> tuple[pd.DataFrame, np.ndarray]:
-        """Same no-leak chronological walk as CatBoostPredictor."""
+    ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+        """Same no-leak chronological walk as CatBoostPredictor.
+
+        Returns (features_df, labels, odds_array) where odds_array has shape
+        (N, 3) — columns (home, draw, away). Missing odds → (2.0, 3.5, 3.5)
+        placeholder so KellyLoss stays well-defined.
+        """
         self.feature_builder.reset()
 
         rows: list[dict[str, float]] = []
         labels: list[int] = []
+        odds_rows: list[tuple[float, float, float]] = []
         matches_sorted = sorted(matches, key=lambda m: m.date)
 
         for idx, match in enumerate(matches_sorted):
@@ -105,12 +111,16 @@ class MLPPredictor:
                 )
                 rows.append(feats)
                 labels.append(OUTCOME_TO_INT[match.result])
+                if match.odds:
+                    odds_rows.append((match.odds.home, match.odds.draw, match.odds.away))
+                else:
+                    odds_rows.append((2.0, 3.5, 3.5))
 
             self.feature_builder.update_with_match(match)
 
         df = pd.DataFrame(rows).fillna(0.0)
         self.feature_names = list(df.columns)
-        return df, np.array(labels)
+        return df, np.array(labels), np.asarray(odds_rows, dtype=np.float32)
 
     # ───────────────────────── Training ─────────────────────────
 
@@ -124,13 +134,14 @@ class MLPPredictor:
         torch, nn, optim, DataLoader, TensorDataset = _import_torch()
         torch.manual_seed(self.cfg.random_seed)
 
-        X, y = self.build_training_data(matches, warmup_games=warmup_games)
+        X, y, odds = self.build_training_data(matches, warmup_games=warmup_games)
         if len(X) < 200:
             raise ValueError(f"Too few samples: {len(X)}")
 
         split = int(len(X) * (1 - val_fraction))
         X_train, X_val = X.iloc[:split].values, X.iloc[split:].values
         y_train, y_val = y[:split], y[split:]
+        odds_train, odds_val = odds[:split], odds[split:]
 
         # Fit scaler on train only
         self.scaler = StandardScaler()
@@ -147,15 +158,31 @@ class MLPPredictor:
             lr=self.cfg.learning_rate,
             weight_decay=self.cfg.weight_decay,
         )
-        criterion = nn.CrossEntropyLoss()
+
+        use_kelly = bool(getattr(self.cfg, "use_kelly_loss", False))
+        if use_kelly:
+            from football_betting.predict.losses import CombinedLoss
+            combined = CombinedLoss(
+                lam=self.cfg.kelly_lambda,
+                f_cap=self.cfg.kelly_f_cap,
+            )
+            ce_only = nn.CrossEntropyLoss()
+        else:
+            combined = None
+            ce_only = nn.CrossEntropyLoss()
+
+        def _onehot(yb: Any) -> Any:
+            return nn.functional.one_hot(yb, num_classes=3).float()
 
         train_ds = TensorDataset(
             torch.tensor(X_train_s, dtype=torch.float32, device=device),
             torch.tensor(y_train, dtype=torch.long, device=device),
+            torch.tensor(odds_train, dtype=torch.float32, device=device),
         )
         val_ds = TensorDataset(
             torch.tensor(X_val_s, dtype=torch.float32, device=device),
             torch.tensor(y_val, dtype=torch.long, device=device),
+            torch.tensor(odds_val, dtype=torch.float32, device=device),
         )
         train_loader = DataLoader(train_ds, batch_size=self.cfg.batch_size, shuffle=True)
         val_loader = DataLoader(val_ds, batch_size=self.cfg.batch_size)
@@ -165,25 +192,35 @@ class MLPPredictor:
         best_state = None
 
         for epoch in range(self.cfg.epochs):
+            # λ-schedule: warmup 3 epochs → full λ (only when Kelly enabled)
+            if use_kelly and combined is not None:
+                if epoch < 3:
+                    combined.set_lambda(0.0)
+                else:
+                    combined.set_lambda(self.cfg.kelly_lambda)
+
             # Train
             self.model.train()
             train_loss = 0.0
-            for xb, yb in train_loader:
+            for xb, yb, ob in train_loader:
                 optimizer.zero_grad()
                 logits = self.model(xb)
-                loss = criterion(logits, yb)
+                if use_kelly and combined is not None:
+                    loss = combined(logits, yb, odds=ob, y_onehot=_onehot(yb))
+                else:
+                    loss = ce_only(logits, yb)
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item() * xb.size(0)
             train_loss /= len(train_ds)
 
-            # Validate
+            # Validate (always CE-only for comparability)
             self.model.eval()
             val_loss = 0.0
             with torch.no_grad():
-                for xb, yb in val_loader:
+                for xb, yb, _ob in val_loader:
                     logits = self.model(xb)
-                    val_loss += criterion(logits, yb).item() * xb.size(0)
+                    val_loss += ce_only(logits, yb).item() * xb.size(0)
             val_loss /= len(val_ds)
 
             if val_loss < best_val_loss:
@@ -224,6 +261,19 @@ class MLPPredictor:
         }
 
     # ───────────────────────── Inference ─────────────────────────
+
+    def predict_logits(self, fixture: Fixture) -> np.ndarray:
+        """Return raw pre-softmax logits (shape (3,)) — used by stacking meta-learner."""
+        if self.model is None or self.scaler is None:
+            raise RuntimeError("Model not trained / loaded.")
+        torch, *_ = _import_torch()
+        feats = self.feature_builder.features_for_fixture(fixture)
+        X = pd.DataFrame([feats]).reindex(columns=self.feature_names, fill_value=0.0).fillna(0.0).values
+        X_s = self.scaler.transform(X)
+        self.model.eval()
+        with torch.no_grad():
+            logits = self.model(torch.tensor(X_s, dtype=torch.float32))
+        return logits.cpu().numpy()[0]
 
     def predict(self, fixture: Fixture) -> Prediction:
         if self.model is None or self.scaler is None:

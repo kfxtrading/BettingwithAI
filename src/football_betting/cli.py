@@ -888,7 +888,10 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
 @click.option("--no-ensemble", is_flag=True)
 @click.option("--walk-forward", "walk_forward", is_flag=True,
               help="Run the Phase 6 multi-fold walk-forward schedule")
-def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool) -> None:
+@click.option("--stacking", is_flag=True,
+              help="Phase 7: level-2 stacking meta-learner (CatBoost+Poisson L1 OOF → LR meta)")
+def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool,
+             stacking: bool) -> None:
     """Walk-forward backtest (single season or Phase 6 multi-fold)."""
     league = league.upper()
 
@@ -898,6 +901,7 @@ def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool
             league,
             bankroll=bankroll,
             use_ensemble=not no_ensemble,
+            use_stacking=stacking,
         )
         console.rule(f"[bold green]Walk-Forward — {LEAGUES[league].name}[/bold green]")
         console.print(f"  Folds: {len(summary.folds)}")
@@ -926,7 +930,11 @@ def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool
         summary.save()
         return
 
-    bt = Backtester(initial_bankroll=bankroll, use_ensemble=not no_ensemble)
+    bt = Backtester(
+        initial_bankroll=bankroll,
+        use_ensemble=not no_ensemble,
+        use_stacking=stacking,
+    )
     result = bt.run(league)
 
     console.rule(f"[bold green]Backtest — {LEAGUES[league].name}[/bold green]")

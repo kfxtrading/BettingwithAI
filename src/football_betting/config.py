@@ -227,6 +227,9 @@ class CatBoostConfig:
     # Time-decay sample weighting: newest season gets 1.0, older seasons get
     # decay**Δ. Set to None to disable weighting.
     time_decay: float | None = 0.85
+    # GPU training (v0.4). Opt-in — default stays CPU for bit-reproducibility.
+    use_gpu: bool = False
+    gpu_devices: str = "0"
 
 
 # ───────────────────────── MLP (v0.3) ─────────────────────────
@@ -243,6 +246,46 @@ class MLPConfig:
     epochs: int = 200
     early_stopping_patience: int = 20
     weight_decay: float = 1e-5
+    random_seed: int = 42
+    # v0.4: Differentiable Kelly-loss + AMP
+    use_kelly_loss: bool = False
+    kelly_lambda: float = 0.3
+    kelly_f_cap: float = 0.25
+    use_amp: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class SequenceConfig:
+    """v0.4: GRU+Attention sequence model over last-N matches per team."""
+
+    enabled: bool = False
+    window_t: int = 10
+    n_features: int = 14
+    gru_hidden: int = 64
+    gru_layers: int = 2
+    bidirectional: bool = True
+    dropout: float = 0.2
+    learning_rate: float = 5e-4
+    batch_size: int = 128
+    epochs: int = 25
+    weight_decay: float = 1e-4
+    use_kelly_loss: bool = False
+    kelly_lambda: float = 0.3
+    random_seed: int = 42
+
+
+@dataclass(frozen=True, slots=True)
+class StackingConfig:
+    """v0.4: Level-2 meta-learner stacking."""
+
+    enabled: bool = False
+    meta_learner: Literal["lr", "nn"] = "lr"
+    inner_train_fraction: float = 0.80  # chrono split within train_seasons
+    lr_C: float = 1.0
+    lr_max_iter: int = 1000
+    nn_hidden: int = 32
+    nn_epochs: int = 50
+    nn_lr: float = 1e-3
     random_seed: int = 42
 
 
@@ -545,6 +588,8 @@ PI_CFG = PiRatingsConfig()
 FEATURE_CFG = FeatureConfig()
 CATBOOST_CFG = CatBoostConfig()
 MLP_CFG = MLPConfig()
+SEQUENCE_CFG = SequenceConfig()
+STACKING_CFG = StackingConfig()
 SOFASCORE_CFG = SofascoreConfig()
 WEATHER_CFG = WeatherConfig()
 ODDS_API_CFG = OddsApiConfig()

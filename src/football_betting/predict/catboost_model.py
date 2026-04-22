@@ -132,7 +132,7 @@ class CatBoostPredictor:
         )
         val_pool = Pool(X_val, y_val, feature_names=self.feature_names)
 
-        self.model = CatBoostClassifier(
+        cb_kwargs: dict[str, Any] = dict(
             iterations=self.cfg.iterations,
             learning_rate=self.cfg.learning_rate,
             depth=self.cfg.depth,
@@ -144,6 +144,18 @@ class CatBoostPredictor:
             verbose=self.cfg.verbose,
             classes_count=3,
         )
+        if self.cfg.use_gpu:
+            from football_betting.predict.gpu_utils import detect_gpu
+            if detect_gpu():
+                cb_kwargs["task_type"] = "GPU"
+                cb_kwargs["devices"] = self.cfg.gpu_devices
+                cb_kwargs["bootstrap_type"] = "Bayesian"
+                console.log(
+                    f"[cyan]CatBoost GPU enabled (devices={self.cfg.gpu_devices})[/cyan]"
+                )
+            else:
+                console.log("[yellow]CatBoost GPU requested but no CUDA — falling back to CPU[/yellow]")
+        self.model = CatBoostClassifier(**cb_kwargs)
         self.model.fit(train_pool, eval_set=val_pool)
 
         val_preds = self.model.predict_proba(X_val)

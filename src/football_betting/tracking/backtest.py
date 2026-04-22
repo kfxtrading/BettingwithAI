@@ -29,13 +29,16 @@ from football_betting.config import (
     BACKTEST_DIR,
     BETTING_CFG,
     LEAGUES,
+    STACKING_CFG,
     BacktestConfig,
     BettingConfig,
+    StackingConfig,
 )
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, Match
 from football_betting.data.snapshot_service import merge_snapshots_into_matches
 from football_betting.features.builder import FeatureBuilder
+from football_betting.features.weather import WeatherTracker
 from football_betting.predict.catboost_model import CatBoostPredictor
 from football_betting.predict.poisson import PoissonModel
 
@@ -90,6 +93,8 @@ class Backtester:
     bet_cfg: BettingConfig = field(default_factory=lambda: BETTING_CFG)
     initial_bankroll: float = 1000.0
     use_ensemble: bool = True
+    use_stacking: bool = False
+    stacking_cfg: StackingConfig = field(default_factory=lambda: STACKING_CFG)
 
     # ───────────────────────── Core loop ─────────────────────────
 
@@ -114,10 +119,37 @@ class Backtester:
         console.log(f"Train: {len(train_matches)} matches ({self.cfg.train_seasons})")
         console.log(f"Test:  {len(test_matches)} matches ({self.cfg.test_season})")
 
-        # Train feature builder + CatBoost on training seasons
-        feature_builder = FeatureBuilder()
+        # Train feature builder + CatBoost on training seasons.
+        # Inject WeatherTracker so Familie-A features (temp, WBGT, precip,
+        # wind, humidity, pressure, clouds, extreme-flag) flow into the
+        # model at train-time as well as inference — required for the
+        # weather features to be present in the CatBoost feature schema.
+        feature_builder = FeatureBuilder(weather_tracker=WeatherTracker())
         cb = CatBoostPredictor(feature_builder=feature_builder)
-        training_info = cb.fit(train_matches, warmup_games=100, val_fraction=0.15, calibrate=True)
+
+        # Phase 7: Stacking uses chronological inner split of train_matches
+        stacking = None
+        stack_val_matches: list[Match] = []
+        if self.use_stacking:
+            train_sorted = sorted(train_matches, key=lambda m: m.date)
+            split = int(len(train_sorted) * self.stacking_cfg.inner_train_fraction)
+            inner_train = train_sorted[:split]
+            stack_val_matches = train_sorted[split:]
+            if inner_train and stack_val_matches:
+                assert max(m.date for m in inner_train) <= min(
+                    m.date for m in stack_val_matches
+                ), "Stacking leakage: inner_train/stack_val overlap"
+                console.log(
+                    f"Stacking inner-split: train={len(inner_train)} "
+                    f"stack_val={len(stack_val_matches)}"
+                )
+            training_info = cb.fit(
+                inner_train, warmup_games=100, val_fraction=0.15, calibrate=True
+            )
+        else:
+            training_info = cb.fit(
+                train_matches, warmup_games=100, val_fraction=0.15, calibrate=True
+            )
         console.log(
             f"Training complete: {training_info['n_train']} samples, "
             f"{training_info['n_features']} features"
@@ -132,6 +164,35 @@ class Backtester:
             EnsembleModel(catboost=cb, poisson=poisson) if self.use_ensemble else cb
         )
 
+        # Phase 7: Meta-learner fit on OOF probs over stack_val
+        if self.use_stacking and stack_val_matches:
+            from football_betting.predict.stacking import (
+                StackingEnsemble,
+                build_meta_row,
+            )
+            meta_rows: list[np.ndarray] = []
+            meta_labels: list[int] = []
+            for sm in stack_val_matches:
+                fx = self._fixture_from_match(sm)
+                cb_pred = cb.predict(fx)
+                po_pred = poisson.predict(fx)
+                odds_t = (
+                    (sm.odds.home, sm.odds.draw, sm.odds.away) if sm.odds else None
+                )
+                meta_rows.append(
+                    build_meta_row(
+                        cb_pred.as_tuple(), po_pred.as_tuple(), None, None, odds_t
+                    )
+                )
+                meta_labels.append({"H": 0, "D": 1, "A": 2}[sm.result])
+                feature_builder.update_with_match(sm)
+            stacking = StackingEnsemble(cfg=self.stacking_cfg)
+            stacking.fit(np.vstack(meta_rows), np.asarray(meta_labels, dtype=np.int64))
+            console.log(
+                f"[cyan]Stacking meta-learner fitted on {len(meta_labels)} OOF rows "
+                f"(learner={self.stacking_cfg.meta_learner})[/cyan]"
+            )
+
         rows: list[dict[str, object]] = []
         bet_records: list[dict[str, object]] = []
         predictions_for_metrics: list[tuple[tuple[float, float, float], str]] = []
@@ -143,7 +204,14 @@ class Backtester:
             task = progress.add_task(f"Backtest {league_key}", total=len(test_matches_sorted))
             for m in test_matches_sorted:
                 fixture = self._fixture_from_match(m)
-                pred = model.predict(fixture)
+                if stacking is not None:
+                    cb_pred = cb.predict(fixture)
+                    po_pred = poisson.predict(fixture)
+                    pred = stacking.predict_one(
+                        fixture, cb_pred.as_tuple(), po_pred.as_tuple(), None, None
+                    )
+                else:
+                    pred = model.predict(fixture)
 
                 probs = pred.as_tuple()
                 predictions_for_metrics.append((probs, m.result))
@@ -333,6 +401,7 @@ def walk_forward_backtest(
     bet_cfg: BettingConfig | None = None,
     bankroll: float = 1000.0,
     use_ensemble: bool = True,
+    use_stacking: bool = False,
 ) -> WalkForwardSummary:
     """
     Run a chronological multi-fold walk-forward backtest.
@@ -358,6 +427,7 @@ def walk_forward_backtest(
             bet_cfg=bet_cfg or BETTING_CFG,
             initial_bankroll=bankroll,
             use_ensemble=use_ensemble,
+            use_stacking=use_stacking,
         )
         console.rule(
             f"[bold magenta]Fold: train={list(train_seasons)} test={test_season}[/bold magenta]"
