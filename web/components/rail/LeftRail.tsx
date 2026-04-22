@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { RailQuickLinks } from './RailQuickLinks';
 import { RailSpaces } from './RailSpaces';
 import { RailTodayFeed } from './RailTodayFeed';
@@ -30,8 +31,9 @@ export function LeftRail() {
         <RailTodayFeed />
       </div>
 
-      <div className="flex items-center justify-between border-t border-black/5 pt-3 dark:border-white/5">
+      <div className="flex items-center justify-between gap-2 border-t border-black/5 pt-3 dark:border-white/5">
         <LanguageSwitcher />
+        <ThemeToggle />
       </div>
     </aside>
   );

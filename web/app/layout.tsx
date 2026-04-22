@@ -139,6 +139,11 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href={API_URL} crossOrigin="anonymous" />
         <JsonLd data={[organizationLd, websiteLd]} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('theme');var m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var d=s?s==='dark':m;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-h-screen bg-bg text-text antialiased">
         <Providers initialLocale={locale}>
