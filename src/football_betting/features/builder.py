@@ -12,6 +12,7 @@ v0.3 additions:
 * MarketMovementTracker (fed from odds snapshots over time)
 * Auto-fallback: uses xg_proxy when no Sofascore data available
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -90,10 +91,9 @@ class FeatureBuilder:
         # is available for both teams, zero-filled otherwise). The
         # ``has_real_xg`` flag tells downstream models which source was
         # active so they can weight the two feature groups appropriately.
-        has_real_xg = (
-            self.real_xg_tracker.team_has_data(home_team)
-            and self.real_xg_tracker.team_has_data(away_team)
-        )
+        has_real_xg = self.real_xg_tracker.team_has_data(
+            home_team
+        ) and self.real_xg_tracker.team_has_data(away_team)
         if self.cfg.use_xg_proxy:
             feats.update(self.xg_tracker.features_for_match(home_team, away_team))
         if self.cfg.use_real_xg:
@@ -101,21 +101,23 @@ class FeatureBuilder:
                 feats.update(self.real_xg_tracker.features_for_match(home_team, away_team))
                 feats["has_real_xg"] = 1.0
             else:
-                feats.update({
-                    "real_xg_home_for": 0.0,
-                    "real_xg_home_against": 0.0,
-                    "real_xg_home_diff": 0.0,
-                    "real_xg_home_at_home_for": 0.0,
-                    "real_xg_home_finishing": 0.0,
-                    "real_xg_home_big_chances": 0.0,
-                    "real_xg_away_for": 0.0,
-                    "real_xg_away_against": 0.0,
-                    "real_xg_away_diff": 0.0,
-                    "real_xg_away_at_away_for": 0.0,
-                    "real_xg_away_finishing": 0.0,
-                    "real_xg_away_big_chances": 0.0,
-                    "real_xg_matchup_diff": 0.0,
-                })
+                feats.update(
+                    {
+                        "real_xg_home_for": 0.0,
+                        "real_xg_home_against": 0.0,
+                        "real_xg_home_diff": 0.0,
+                        "real_xg_home_at_home_for": 0.0,
+                        "real_xg_home_finishing": 0.0,
+                        "real_xg_home_big_chances": 0.0,
+                        "real_xg_away_for": 0.0,
+                        "real_xg_away_against": 0.0,
+                        "real_xg_away_diff": 0.0,
+                        "real_xg_away_at_away_for": 0.0,
+                        "real_xg_away_finishing": 0.0,
+                        "real_xg_away_big_chances": 0.0,
+                        "real_xg_matchup_diff": 0.0,
+                    }
+                )
                 feats["has_real_xg"] = 0.0
         elif self.cfg.use_xg_proxy:
             # Proxy-only path: keep the legacy sentinel so older models
@@ -146,9 +148,7 @@ class FeatureBuilder:
 
         # Dynamic HA
         if self.cfg.use_home_advantage:
-            feats.update(
-                self.home_adv_tracker.features_for_match(home_team, away_team, match_date)
-            )
+            feats.update(self.home_adv_tracker.features_for_match(home_team, away_team, match_date))
 
         # League meta
         feats["league_avg_goals"] = league.avg_goals_per_team
@@ -167,12 +167,17 @@ class FeatureBuilder:
                 feats["market_p_draw"] = (1 / odds_draw) / total
                 feats["market_p_away"] = (1 / odds_away) / total
                 feats["market_margin"] = total - 1.0
-                feats["market_fav_ratio"] = max(feats["market_p_home"], feats["market_p_away"]) / max(
-                    min(feats["market_p_home"], feats["market_p_away"]), 0.01
-                )
+                feats["market_fav_ratio"] = max(
+                    feats["market_p_home"], feats["market_p_away"]
+                ) / max(min(feats["market_p_home"], feats["market_p_away"]), 0.01)
             else:
-                for k in ("market_p_home", "market_p_draw", "market_p_away",
-                          "market_margin", "market_fav_ratio"):
+                for k in (
+                    "market_p_home",
+                    "market_p_draw",
+                    "market_p_away",
+                    "market_margin",
+                    "market_fav_ratio",
+                ):
                     feats[k] = -1.0
 
         # Point deduction adjustment
@@ -187,7 +192,10 @@ class FeatureBuilder:
         if self.cfg.use_weather and self.weather_tracker is not None:
             feats.update(
                 self.weather_tracker.features_for_match(
-                    home_team, away_team, match_date, kickoff_datetime_utc,
+                    home_team,
+                    away_team,
+                    match_date,
+                    kickoff_datetime_utc,
                 )
             )
 
@@ -285,9 +293,8 @@ class FeatureBuilder:
         if sample is not None:
             return list(sample.keys())
         from datetime import date as _date
-        dummy = self.build_features(
-            "_TEAM_A_", "_TEAM_B_", "PL", _date(2025, 1, 1)
-        )
+
+        dummy = self.build_features("_TEAM_A_", "_TEAM_B_", "PL", _date(2025, 1, 1))
         return list(dummy.keys())
 
     def reset(self, keep_staged_sofascore: bool = True) -> None:

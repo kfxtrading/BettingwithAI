@@ -20,14 +20,15 @@ Output schema (JSON lines in ``data/graded_bets.jsonl``)::
 
 ``status`` is one of ``won``, ``lost``, ``pending`` (result not yet in CSVs).
 """
+
 from __future__ import annotations
 
 import csv
 import json
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Iterable
 
 from football_betting.api.schemas import PredictionOut, TodayPayload, ValueBetOut
 from football_betting.config import DATA_DIR, LEAGUES, RAW_DIR, SNAPSHOT_DIR

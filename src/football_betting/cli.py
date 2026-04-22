@@ -1110,6 +1110,7 @@ def backtest(
             available_seasons = {
                 p.stem.split("_", 1)[1] for p in (DATA_DIR / "raw").glob(f"{league_code}_*.csv")
             }
+
             # football-data suffix is YYYY without dash, e.g. 2122 for 2021-22.
             def _fd(season: str) -> str:
                 return season[2:4] + season[-2:]
@@ -1278,7 +1279,10 @@ def tune_ensemble(
         console.log(f"[yellow]No Sequence model at {seq_path} — skipping.[/yellow]")
 
     ensemble = EnsembleModel(
-        catboost=cb, poisson=poisson, mlp=mlp, sequence=sequence,
+        catboost=cb,
+        poisson=poisson,
+        mlp=mlp,
+        sequence=sequence,
     )
 
     fixtures = []
@@ -1327,8 +1331,12 @@ def tune_ensemble(
     if sequence is not None:
         console.print(f"  Sequence: {result['best_w_sequence']:.3f}")
     skip = {
-        "best_w_catboost", "best_w_poisson", "best_w_mlp", "best_w_sequence",
-        "n_samples_tried", "objective",
+        "best_w_catboost",
+        "best_w_poisson",
+        "best_w_mlp",
+        "best_w_sequence",
+        "n_samples_tried",
+        "objective",
     }
     for k, v in result.items():
         if k in skip:
