@@ -168,6 +168,24 @@ class Backtester:
                     )
                     bankroll += profit
 
+                    # CLV pipeline: bet_odds_at_placement vs closing_odds.
+                    # Phase 3: no opening-snapshots available → both equal m.odds
+                    # (CLV ≡ 0). Phase 4 will fill `opening_odds` with real T-48h
+                    # snapshots so CLV becomes non-degenerate.
+                    closing_match_odds = m.odds
+                    opening_match_odds = getattr(m, "opening_odds", None) or closing_match_odds
+                    outcome_idx = {"H": "home", "D": "draw", "A": "away"}[best.outcome]
+                    bet_odds_at_placement = (
+                        getattr(opening_match_odds, outcome_idx)
+                        if opening_match_odds is not None
+                        else None
+                    )
+                    closing_odds = (
+                        getattr(closing_match_odds, outcome_idx)
+                        if closing_match_odds is not None
+                        else None
+                    )
+
                     bet_records.append(
                         {
                             "date": m.date.isoformat(),
@@ -179,6 +197,8 @@ class Backtester:
                             "won": best.outcome == m.result,
                             "profit": profit,
                             "bankroll_after": bankroll,
+                            "bet_odds_at_placement": bet_odds_at_placement,
+                            "closing_odds": closing_odds,
                         }
                     )
                     row["bet"] = best.bet_label
@@ -186,6 +206,8 @@ class Backtester:
                     row["bet_stake"] = stake
                     row["bet_profit"] = profit
                     row["bankroll"] = bankroll
+                    row["bet_odds_at_placement"] = bet_odds_at_placement
+                    row["closing_odds"] = closing_odds
 
                 rows.append(row)
 
@@ -206,6 +228,13 @@ class Backtester:
             curve = bankroll_curve(self.initial_bankroll, stakes, profits)
             dd = max_drawdown(curve)
             per_bet_returns = [p / s if s > 0 else 0.0 for p, s in zip(profits, stakes, strict=True)]
+            bet_odds_at_placement = [
+                r.get("bet_odds_at_placement") for r in bet_records  # type: ignore[misc]
+            ]
+            closing_odds_list = [
+                r.get("closing_odds") for r in bet_records  # type: ignore[misc]
+            ]
+            clv_stats = clv_summary(bet_odds_at_placement, closing_odds_list)
             bet_metrics = {
                 "n_bets": len(bet_records),
                 "hits": sum(1 for r in bet_records if r["won"]),
@@ -213,11 +242,21 @@ class Backtester:
                 "total_profit": sum(profits),
                 "roi": calc_roi(stakes, returns),
                 "sharpe": sharpe_ratio(per_bet_returns, annualization_factor=len(bet_records)),
+                "clv_n": clv_stats["n"],
+                "clv_mean": clv_stats["mean_clv"],
+                "clv_median": clv_stats["median_clv"],
+                "clv_pct_positive": clv_stats["pct_positive"],
             }
         else:
             curve = [self.initial_bankroll]
             dd = max_drawdown(curve)
-            bet_metrics = {"n_bets": 0}
+            bet_metrics = {
+                "n_bets": 0,
+                "clv_n": 0,
+                "clv_mean": 0.0,
+                "clv_median": 0.0,
+                "clv_pct_positive": 0.0,
+            }
 
         result = BacktestResult(
             league=league_key,

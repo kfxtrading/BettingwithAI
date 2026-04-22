@@ -66,14 +66,25 @@ def clv(bet_odds: float, closing_odds: float) -> float:
     return (bet_odds / closing_odds) - 1.0
 
 
-def clv_summary(bet_odds_list: list[float], close_odds_list: list[float]) -> dict[str, float]:
-    """Aggregate CLV statistics."""
+def clv_summary(
+    bet_odds_list: list[float | None],
+    close_odds_list: list[float | None],
+) -> dict[str, float]:
+    """Aggregate CLV statistics. Pairs with a ``None`` on either side are skipped."""
     if len(bet_odds_list) != len(close_odds_list):
         raise ValueError("Lists must be same length")
-    if not bet_odds_list:
+
+    clvs: list[float] = []
+    for b, c in zip(bet_odds_list, close_odds_list, strict=True):
+        if b is None or c is None:
+            continue
+        if b <= 1.0 or c <= 1.0:
+            continue
+        clvs.append(clv(b, c))
+
+    if not clvs:
         return {"n": 0, "mean_clv": 0.0, "median_clv": 0.0, "pct_positive": 0.0}
 
-    clvs = [clv(b, c) for b, c in zip(bet_odds_list, close_odds_list, strict=True)]
     return {
         "n": len(clvs),
         "mean_clv": float(np.mean(clvs)),
