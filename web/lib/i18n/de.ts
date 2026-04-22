@@ -927,6 +927,37 @@ export const de: Dictionary = {
   'support.faq.basics.specials.alt3': "Torschützen-Wette erklärt",
   'support.faq.basics.specials.alt4': "Sonderwetten Beispiele",
   'support.faq.basics.specials.alt5': "Spezialmärkte erklärt",
+  'footer.col.company': 'Unternehmen',
+  'footer.link.investors': 'Investor-Anfragen',
+  'page.investors.title': 'Investor-Anfragen',
+  'page.investors.description': 'Ein kurzer Überblick für strategische Investoren, die an Betting with AI interessiert sind.',
+  'page.investors.intro':
+    'Betting with AI entwickelt eine KI-gestützte Fußball-Intelligenzplattform mit Fokus auf Prognosen, datengetriebene Einblicke und Premium-Abonnementprodukte. Wir freuen uns auf Gespräche mit strategischen Investoren und Betreibern mit Erfahrung in den Bereichen Sport, KI, Konsumprodukte und Abonnementgeschäfte.',
+  'page.investors.block.product.title': 'Produkt',
+  'page.investors.block.product.body': 'KI-gestützte Fußball-Insights und Prognoseinfrastruktur.',
+  'page.investors.block.market.title': 'Markt',
+  'page.investors.block.market.body': 'Skalierbare Verbraucher- und Premium-Datenprodukte im europäischen Fußball.',
+  'page.investors.block.stage.title': 'Phase',
+  'page.investors.block.stage.body': 'Derzeit im Aufbau von Marktpräsenz, Produkt und ersten Investorengesprächen.',
+  'page.investors.cta.requestAccess': 'Investoreninformationen anfordern',
+  'page.investors.cta.emailLabel': 'Oder schreiben Sie uns direkt',
+  'page.investors.contact.title': 'Investoreninformationen anfordern',
+  'page.investors.contact.description': 'Ein kurzes Kontaktformular. Wir antworten persönlich innerhalb weniger Werktage.',
+  'page.investors.contact.intro':
+    'Teilen Sie uns kurz mit, wer Sie sind und was Sie an Betting with AI interessiert. Wir melden uns mit detaillierterem Material, wenn es passt.',
+  'page.investors.form.name': 'Name',
+  'page.investors.form.company': 'Unternehmen oder Fonds',
+  'page.investors.form.email': 'E-Mail',
+  'page.investors.form.checkSize': 'Ticketgröße oder Investitionsschwerpunkt',
+  'page.investors.form.region': 'Region',
+  'page.investors.form.message': 'Kurze Nachricht',
+  'page.investors.form.submit': 'Anfrage senden',
+  'page.investors.form.submitting': 'Wird gesendet...',
+  'page.investors.form.success.title': 'Danke – wir haben Ihre Anfrage erhalten.',
+  'page.investors.form.success.body':
+    'Wir melden uns persönlich bei Ihnen. Bitte behalten Sie das angegebene Postfach im Blick.',
+  'page.investors.form.error.generic': 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es in einem Moment erneut.',
+  'page.investors.form.error.validation': 'Bitte füllen Sie die Pflichtfelder mit gültigen Werten aus.',
   // <END_FOLLOWUP_STRINGS>
 
 };

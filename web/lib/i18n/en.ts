@@ -882,6 +882,34 @@ export type DictionaryKey =
   | 'support.faq.basics.specials.alt3'
   | 'support.faq.basics.specials.alt4'
   | 'support.faq.basics.specials.alt5'
+  | 'footer.col.company'
+  | 'footer.link.investors'
+  | 'page.investors.title'
+  | 'page.investors.description'
+  | 'page.investors.intro'
+  | 'page.investors.block.product.title'
+  | 'page.investors.block.product.body'
+  | 'page.investors.block.market.title'
+  | 'page.investors.block.market.body'
+  | 'page.investors.block.stage.title'
+  | 'page.investors.block.stage.body'
+  | 'page.investors.cta.requestAccess'
+  | 'page.investors.cta.emailLabel'
+  | 'page.investors.contact.title'
+  | 'page.investors.contact.description'
+  | 'page.investors.contact.intro'
+  | 'page.investors.form.name'
+  | 'page.investors.form.company'
+  | 'page.investors.form.email'
+  | 'page.investors.form.checkSize'
+  | 'page.investors.form.region'
+  | 'page.investors.form.message'
+  | 'page.investors.form.submit'
+  | 'page.investors.form.submitting'
+  | 'page.investors.form.success.title'
+  | 'page.investors.form.success.body'
+  | 'page.investors.form.error.generic'
+  | 'page.investors.form.error.validation'
   // <END_FOLLOWUP_KEYS>;
 export const en: Dictionary = {
   'site.title': 'Betting with AI',
@@ -1809,6 +1837,37 @@ export const en: Dictionary = {
   'support.faq.basics.specials.alt3': "First scorer bet explained",
   'support.faq.basics.specials.alt4': "Examples of prop bets",
   'support.faq.basics.specials.alt5': "Special markets explained",
+  'footer.col.company': 'Company',
+  'footer.link.investors': 'Investor inquiries',
+  'page.investors.title': 'Investor inquiries',
+  'page.investors.description': 'A short overview for strategic investors interested in Betting with AI.',
+  'page.investors.intro':
+    'Betting with AI is building an AI-powered football intelligence platform focused on predictions, data-driven insights and premium subscription products. We welcome conversations with strategic investors and operators with experience in sports, AI, consumer products and subscription businesses.',
+  'page.investors.block.product.title': 'Product',
+  'page.investors.block.product.body': 'AI-driven football insights and prediction infrastructure.',
+  'page.investors.block.market.title': 'Market',
+  'page.investors.block.market.body': 'Scalable consumer and premium data products across European football.',
+  'page.investors.block.stage.title': 'Stage',
+  'page.investors.block.stage.body': 'Currently building traction, product and early investor conversations.',
+  'page.investors.cta.requestAccess': 'Request investor information',
+  'page.investors.cta.emailLabel': 'Or email us directly',
+  'page.investors.contact.title': 'Request investor information',
+  'page.investors.contact.description': 'A short intake form. We reply personally within a few business days.',
+  'page.investors.contact.intro':
+    "Tell us briefly who you are and what interests you about Betting with AI. We'll follow up with more detailed materials when there is a fit.",
+  'page.investors.form.name': 'Name',
+  'page.investors.form.company': 'Company or fund',
+  'page.investors.form.email': 'Email',
+  'page.investors.form.checkSize': 'Check size or investment focus',
+  'page.investors.form.region': 'Region',
+  'page.investors.form.message': 'Short message',
+  'page.investors.form.submit': 'Send inquiry',
+  'page.investors.form.submitting': 'Sending...',
+  'page.investors.form.success.title': "Thanks — we've received your inquiry.",
+  'page.investors.form.success.body':
+    "We'll get back to you personally. Please keep an eye on the inbox you provided.",
+  'page.investors.form.error.generic': 'Something went wrong. Please try again in a moment.',
+  'page.investors.form.error.validation': 'Please fill in the required fields with valid values.',
   // <END_FOLLOWUP_STRINGS>
 
 };

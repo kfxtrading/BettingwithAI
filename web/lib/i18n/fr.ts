@@ -933,6 +933,37 @@ export const fr: Dictionary = {
   'support.faq.basics.specials.alt3': "Pari premier buteur expliqué",
   'support.faq.basics.specials.alt4': "Exemples de paris spéciaux",
   'support.faq.basics.specials.alt5': "Marchés spéciaux expliqués",
+  'footer.col.company': 'Société',
+  'footer.link.investors': 'Demandes investisseurs',
+  'page.investors.title': 'Demandes investisseurs',
+  'page.investors.description': 'Un aperçu destiné aux investisseurs stratégiques intéressés par Betting with AI.',
+  'page.investors.intro':
+    "Betting with AI développe une plateforme d'intelligence footballistique propulsée par l'IA, axée sur les prédictions, les analyses fondées sur les données et les produits d'abonnement premium. Nous accueillons les échanges avec des investisseurs stratégiques et des opérateurs expérimentés dans les domaines du sport, de l'IA, des produits grand public et des modèles d'abonnement.",
+  'page.investors.block.product.title': 'Produit',
+  'page.investors.block.product.body': "Analyses football et infrastructure de prédiction basées sur l'IA.",
+  'page.investors.block.market.title': 'Marché',
+  'page.investors.block.market.body': 'Produits de données grand public et premium évolutifs dans le football européen.',
+  'page.investors.block.stage.title': 'Étape',
+  'page.investors.block.stage.body': 'En phase de développement de la traction, du produit et des premières discussions avec des investisseurs.',
+  'page.investors.cta.requestAccess': 'Demander des informations investisseur',
+  'page.investors.cta.emailLabel': 'Ou contactez-nous directement par e-mail',
+  'page.investors.contact.title': 'Demander des informations investisseur',
+  'page.investors.contact.description': 'Un court formulaire de contact. Nous répondons personnellement sous quelques jours ouvrés.',
+  'page.investors.contact.intro':
+    'Dites-nous brièvement qui vous êtes et ce qui vous intéresse dans Betting with AI. Nous vous enverrons des documents plus détaillés si votre profil correspond.',
+  'page.investors.form.name': 'Nom',
+  'page.investors.form.company': 'Société ou fonds',
+  'page.investors.form.email': 'E-mail',
+  'page.investors.form.checkSize': "Ticket d'investissement ou focus",
+  'page.investors.form.region': 'Région',
+  'page.investors.form.message': 'Message court',
+  'page.investors.form.submit': 'Envoyer la demande',
+  'page.investors.form.submitting': 'Envoi en cours...',
+  'page.investors.form.success.title': 'Merci — nous avons bien reçu votre demande.',
+  'page.investors.form.success.body':
+    'Nous vous répondrons personnellement. Merci de surveiller l\'adresse e-mail que vous avez fournie.',
+  'page.investors.form.error.generic': 'Une erreur est survenue. Veuillez réessayer dans un instant.',
+  'page.investors.form.error.validation': 'Veuillez remplir les champs obligatoires avec des valeurs valides.',
   // <END_FOLLOWUP_STRINGS>
 
 };

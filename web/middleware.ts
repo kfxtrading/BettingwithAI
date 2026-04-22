@@ -88,6 +88,6 @@ export const config = {
   // Skip Next internals, API routes, files with a dot (assets), and known
   // SEO files served by route handlers / static files.
   matcher: [
-    '/((?!_next/|api/|healthz|llms\\.txt|robots\\.txt|sitemap\\.xml|sitemaps/|favicon\\.ico|icon|apple-icon|.*\\..*).*)',
+    '/((?!_next/|api/|admin|healthz|llms\\.txt|robots\\.txt|sitemap\\.xml|sitemaps/|favicon\\.ico|icon|apple-icon|.*\\..*).*)',
   ],
 };

@@ -932,6 +932,37 @@ export const it: Dictionary = {
   'support.faq.basics.specials.alt3': "Scommessa primo marcatore spiegata",
   'support.faq.basics.specials.alt4': "Esempi di scommesse speciali",
   'support.faq.basics.specials.alt5': "Mercati speciali spiegati",
+  'footer.col.company': 'Azienda',
+  'footer.link.investors': 'Richieste investitori',
+  'page.investors.title': 'Richieste investitori',
+  'page.investors.description': 'Una breve panoramica per investitori strategici interessati a Betting with AI.',
+  'page.investors.intro':
+    "Betting with AI sta sviluppando una piattaforma di intelligenza calcistica basata sull'IA, focalizzata su previsioni, analisi basate sui dati e prodotti in abbonamento premium. Accogliamo con favore le conversazioni con investitori strategici e operatori con esperienza nel settore sportivo, nell'IA, nei prodotti consumer e nei modelli in abbonamento.",
+  'page.investors.block.product.title': 'Prodotto',
+  'page.investors.block.product.body': "Analisi calcistiche e infrastruttura previsionale basate sull'IA.",
+  'page.investors.block.market.title': 'Mercato',
+  'page.investors.block.market.body': 'Prodotti dati consumer e premium scalabili nel calcio europeo.',
+  'page.investors.block.stage.title': 'Fase',
+  'page.investors.block.stage.body': 'Attualmente in fase di sviluppo della trazione, del prodotto e dei primi dialoghi con gli investitori.',
+  'page.investors.cta.requestAccess': 'Richiedi informazioni per investitori',
+  'page.investors.cta.emailLabel': 'Oppure scrivici direttamente',
+  'page.investors.contact.title': 'Richiedi informazioni per investitori',
+  'page.investors.contact.description': 'Un breve modulo di contatto. Rispondiamo personalmente entro pochi giorni lavorativi.',
+  'page.investors.contact.intro':
+    "Dicci brevemente chi sei e cosa ti interessa di Betting with AI. Ti invieremo materiali più dettagliati se c'è una compatibilità.",
+  'page.investors.form.name': 'Nome',
+  'page.investors.form.company': 'Azienda o fondo',
+  'page.investors.form.email': 'E-mail',
+  'page.investors.form.checkSize': 'Dimensione del ticket o focus di investimento',
+  'page.investors.form.region': 'Regione',
+  'page.investors.form.message': 'Breve messaggio',
+  'page.investors.form.submit': 'Invia richiesta',
+  'page.investors.form.submitting': 'Invio in corso...',
+  'page.investors.form.success.title': 'Grazie — abbiamo ricevuto la tua richiesta.',
+  'page.investors.form.success.body':
+    'Ti risponderemo personalmente. Ti preghiamo di controllare la casella e-mail indicata.',
+  'page.investors.form.error.generic': 'Si è verificato un errore. Riprova tra un momento.',
+  'page.investors.form.error.validation': 'Compila i campi obbligatori con valori validi.',
   // <END_FOLLOWUP_STRINGS>
 
 };
