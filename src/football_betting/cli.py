@@ -886,9 +886,46 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
 @click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
 @click.option("--bankroll", default=1000.0)
 @click.option("--no-ensemble", is_flag=True)
-def backtest(league: str, bankroll: float, no_ensemble: bool) -> None:
-    """Walk-forward backtest."""
+@click.option("--walk-forward", "walk_forward", is_flag=True,
+              help="Run the Phase 6 multi-fold walk-forward schedule")
+def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool) -> None:
+    """Walk-forward backtest (single season or Phase 6 multi-fold)."""
     league = league.upper()
+
+    if walk_forward:
+        from football_betting.tracking.backtest import walk_forward_backtest
+        summary = walk_forward_backtest(
+            league,
+            bankroll=bankroll,
+            use_ensemble=not no_ensemble,
+        )
+        console.rule(f"[bold green]Walk-Forward — {LEAGUES[league].name}[/bold green]")
+        console.print(f"  Folds: {len(summary.folds)}")
+        for fold in summary.folds:
+            console.print(
+                f"    • test={fold.league}: "
+                f"n_preds={fold.n_predictions}, n_bets={fold.n_bets}, "
+                f"bankroll={fold.bankroll_final:.2f}"
+            )
+
+        table = Table(title="Aggregate (mean ± std across folds)")
+        table.add_column("Metric")
+        table.add_column("Mean", justify="right")
+        table.add_column("Std", justify="right")
+        table.add_column("Min", justify="right")
+        table.add_column("Max", justify="right")
+        for metric, stats in summary.aggregate.items():
+            table.add_row(
+                metric,
+                f"{stats['mean']:.4f}",
+                f"{stats['std']:.4f}",
+                f"{stats['min']:.4f}",
+                f"{stats['max']:.4f}",
+            )
+        console.print(table)
+        summary.save()
+        return
+
     bt = Backtester(initial_bankroll=bankroll, use_ensemble=not no_ensemble)
     result = bt.run(league)
 
@@ -912,12 +949,26 @@ def backtest(league: str, bankroll: float, no_ensemble: bool) -> None:
 @main.command("tune-ensemble")
 @click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
 @click.option("--val-season", default="2024-25")
-def tune_ensemble(league: str, val_season: str) -> None:
-    """Dirichlet-sampled ensemble weight tuning."""
+@click.option(
+    "--objective",
+    type=click.Choice(["rps", "log_loss", "brier", "clv", "blended"], case_sensitive=False),
+    default="rps",
+    help="Tuning objective (Phase 6). 'clv'/'blended' require opening-line snapshots.",
+)
+@click.option("--blend", default=0.5, show_default=True,
+              help="Weight of RPS in 'blended' objective (0 = CLV only, 1 = RPS only).")
+def tune_ensemble(league: str, val_season: str, objective: str, blend: float) -> None:
+    """Dirichlet-sampled ensemble weight tuning (RPS / CLV / blended)."""
+    from football_betting.data.snapshot_service import merge_snapshots_into_matches
+
     league = league.upper()
+    objective = objective.lower()
     matches = load_league(league)
     val_matches = [m for m in matches if m.season == val_season]
     train_matches = [m for m in matches if m.season < val_season]
+
+    # Phase 6 + Phase 4: overlay opening-line snapshots so CLV is non-degenerate
+    val_matches = merge_snapshots_into_matches(val_matches, league)
 
     fb = FeatureBuilder()
     for season in {m.season for m in train_matches}:
@@ -938,22 +989,52 @@ def tune_ensemble(league: str, val_season: str) -> None:
 
     fixtures = []
     actuals = []
+    bet_odds_triples: list[tuple[float, float, float] | None] = []
+    close_odds_triples: list[tuple[float, float, float] | None] = []
     for m in sorted(val_matches, key=lambda m: m.date):
         fixtures.append(Fixture(
             date=m.date, league=m.league,
             home_team=m.home_team, away_team=m.away_team, odds=m.odds,
         ))
         actuals.append(m.result)
+        closing = m.odds
+        opening = getattr(m, "opening_odds", None) or closing
+        bet_odds_triples.append(
+            (opening.home, opening.draw, opening.away) if opening else None
+        )
+        close_odds_triples.append(
+            (closing.home, closing.draw, closing.away) if closing else None
+        )
 
-    result = ensemble.tune_weights(fixtures, actuals)
-    console.print("[bold]Best weights:[/bold]")
+    if objective in ("clv", "blended"):
+        result = ensemble.tune_dirichlet(
+            fixtures, actuals,
+            bet_odds=bet_odds_triples,
+            closing_odds=close_odds_triples,
+            objective=objective,  # type: ignore[arg-type]
+            blend=blend,
+        )
+    elif objective in ("log_loss", "brier"):
+        result = ensemble.tune_dirichlet(
+            fixtures, actuals, objective=objective,  # type: ignore[arg-type]
+        )
+    else:
+        result = ensemble.tune_weights(fixtures, actuals)
+
+    console.print(f"[bold]Best weights (objective={objective}):[/bold]")
     console.print(f"  CatBoost: {result['best_w_catboost']:.3f}")
     console.print(f"  Poisson:  {result['best_w_poisson']:.3f}")
     if mlp is not None:
         console.print(f"  MLP:      {result['best_w_mlp']:.3f}")
-    metric_key = next(k for k in result if k.startswith("best_") and k != "best_w_catboost"
-                      and k != "best_w_poisson" and k != "best_w_mlp")
-    console.print(f"  {metric_key}: {result[metric_key]:.4f}")
+    skip = {"best_w_catboost", "best_w_poisson", "best_w_mlp",
+            "n_samples_tried", "objective"}
+    for k, v in result.items():
+        if k in skip:
+            continue
+        if isinstance(v, float):
+            console.print(f"  {k}: {v:.4f}")
+        else:
+            console.print(f"  {k}: {v}")
 
 
 # ───────────────────────── monitor (v0.3) ─────────────────────────

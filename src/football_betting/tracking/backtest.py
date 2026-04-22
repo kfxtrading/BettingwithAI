@@ -26,11 +26,11 @@ from rich.progress import Progress
 from football_betting.betting.value import find_value_bets
 from football_betting.config import (
     BACKTEST_CFG,
-    BETTING_CFG,
     BACKTEST_DIR,
+    BETTING_CFG,
+    LEAGUES,
     BacktestConfig,
     BettingConfig,
-    LEAGUES,
 )
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, Match
@@ -45,10 +45,11 @@ from football_betting.tracking.metrics import (
     bankroll_curve,
     clv_summary,
     max_drawdown,
-    mean_rps,
-    roi as calc_roi,
     sharpe_ratio,
     summary_stats,
+)
+from football_betting.tracking.metrics import (
+    roi as calc_roi,
 )
 
 console = Console()
@@ -285,3 +286,118 @@ class Backtester:
             odds=m.odds,
             kickoff_datetime_utc=m.kickoff_datetime_utc,
         )
+
+
+# ───────────────────────── Phase 6: Walk-Forward ─────────────────────────
+
+
+@dataclass(slots=True)
+class WalkForwardSummary:
+    """Aggregated multi-fold walk-forward result."""
+
+    league: str
+    folds: list[BacktestResult]
+    aggregate: dict[str, dict[str, float]]  # metric → {mean, std, min, max}
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "league": self.league,
+            "n_folds": len(self.folds),
+            "folds": [f.to_dict() for f in self.folds],
+            "aggregate": self.aggregate,
+        }
+
+    def save(self, outdir: Path | None = None) -> Path:
+        outdir = outdir or BACKTEST_DIR
+        path = outdir / f"walk_forward_{self.league}.json"
+        with path.open("w") as f:
+            json.dump(self.to_dict(), f, indent=2, default=str)
+        return path
+
+
+#: Default walk-forward schedule per the Phase 6 plan.
+#:
+#: Each tuple = (train_seasons, test_season). ``max(train_seasons) <
+#: test_season`` must always hold to avoid train/test leakage.
+DEFAULT_WALK_FORWARD_FOLDS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("2019-20", "2020-21", "2021-22"), "2022-23"),
+    (("2020-21", "2021-22", "2022-23"), "2023-24"),
+    (("2021-22", "2022-23", "2023-24"), "2024-25"),
+)
+
+
+def walk_forward_backtest(
+    league_key: str,
+    folds: tuple[tuple[tuple[str, ...], str], ...] | None = None,
+    *,
+    bet_cfg: BettingConfig | None = None,
+    bankroll: float = 1000.0,
+    use_ensemble: bool = True,
+) -> WalkForwardSummary:
+    """
+    Run a chronological multi-fold walk-forward backtest.
+
+    Each fold re-fits the CatBoost model on its train window, then rolls
+    through the corresponding test season with the standard Backtester.
+    No train/test leakage is possible because :class:`BacktestConfig` is
+    rebuilt per fold and ``min(test_date) > max(train_date)`` is asserted.
+    """
+    folds = folds or DEFAULT_WALK_FORWARD_FOLDS
+    _validate_folds(folds)
+
+    results: list[BacktestResult] = []
+    for train_seasons, test_season in folds:
+        fold_cfg = BacktestConfig(
+            train_seasons=train_seasons,
+            test_season=test_season,
+            min_train_games=BACKTEST_CFG.min_train_games,
+            update_frequency_days=BACKTEST_CFG.update_frequency_days,
+        )
+        bt = Backtester(
+            cfg=fold_cfg,
+            bet_cfg=bet_cfg or BETTING_CFG,
+            initial_bankroll=bankroll,
+            use_ensemble=use_ensemble,
+        )
+        console.rule(
+            f"[bold magenta]Fold: train={list(train_seasons)} test={test_season}[/bold magenta]"
+        )
+        result = bt.run(league_key)
+        results.append(result)
+
+    aggregate = _aggregate_folds(results)
+    return WalkForwardSummary(league=league_key, folds=results, aggregate=aggregate)
+
+
+def _validate_folds(folds: tuple[tuple[tuple[str, ...], str], ...]) -> None:
+    if not folds:
+        raise ValueError("At least one fold is required")
+    for train_seasons, test_season in folds:
+        if not train_seasons:
+            raise ValueError("train_seasons must be non-empty")
+        if max(train_seasons) >= test_season:
+            raise ValueError(
+                f"Train/test leakage: max(train)={max(train_seasons)} >= test={test_season}"
+            )
+
+
+def _aggregate_folds(results: list[BacktestResult]) -> dict[str, dict[str, float]]:
+    """Mean / std / min / max for every numeric metric across folds."""
+    collected: dict[str, list[float]] = {}
+    for r in results:
+        for src in (r.metrics, r.bet_metrics):
+            for k, v in src.items():
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    collected.setdefault(k, []).append(float(v))
+
+    out: dict[str, dict[str, float]] = {}
+    for k, values in collected.items():
+        arr = np.array(values, dtype=float)
+        out[k] = {
+            "mean": float(arr.mean()),
+            "std": float(arr.std(ddof=1)) if len(arr) > 1 else 0.0,
+            "min": float(arr.min()),
+            "max": float(arr.max()),
+            "n": len(arr),
+        }
+    return out
