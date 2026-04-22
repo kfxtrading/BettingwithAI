@@ -96,6 +96,8 @@ export const es: Dictionary = {
   'predictionCard.outcome.draw': 'Empate',
   'predictionCard.outcome.away': 'Victoria visitante',
   'predictionCard.pick': 'Selección:',
+  'predictionCard.stake': 'Apuesta:',
+  'predictionCard.noStake': 'Sin apuesta (confianza baja)',
   'predictionCard.badge.live': 'En vivo',
   'predictionCard.badge.correct': 'Pronóstico acertado',
   'predictionCard.badge.incorrect': 'Pronóstico fallado',

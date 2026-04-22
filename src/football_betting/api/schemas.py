@@ -42,6 +42,8 @@ class PredictionOut(BaseModel):
     pick_correct: bool | None = None
     ft_score: str | None = None
     sofascore_event_id: int | None = None
+    stake: float | None = None  # monetary units (EUR), filled by staking allocator
+    stake_pct: float | None = None  # % share of daily bankroll
 
 
 class ValueBetOut(BaseModel):

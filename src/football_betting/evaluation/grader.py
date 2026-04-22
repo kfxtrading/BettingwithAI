@@ -224,7 +224,7 @@ def prediction_to_tracked_bet(pred: PredictionOut) -> ValueBetOut | None:
         market_prob=market_prob,
         edge=0.0,
         edge_pct=0.0,
-        kelly_stake=1.0,
+        kelly_stake=pred.stake if pred.stake is not None else 1.0,
         expected_value_pct=0.0,
         confidence="low",
     )

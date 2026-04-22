@@ -366,6 +366,7 @@ def _persist_sofascore_event_id(
 def build_predictions_for_fixtures(
     fixtures_data: list[dict],
     bankroll: float = 1000.0,
+    staking_strategy: str | None = None,
 ) -> TodayPayload:
     """
     Run the full prediction pipeline over a list of fixture dicts.
@@ -516,6 +517,26 @@ def build_predictions_for_fixtures(
         "[predict] DONE — %d predictions, %d value bets across %d league(s).",
         len(predictions), len(value_bets), len(data_sources),
     )
+
+    # Allocate the daily bankroll across all 1X2 predictions (confidence-weighted).
+    from dataclasses import replace
+
+    from football_betting.betting.prediction_stakes import allocate_prediction_stakes
+    from football_betting.config import PREDICTION_STAKING_CFG
+
+    staking_cfg = replace(
+        PREDICTION_STAKING_CFG,
+        daily_bankroll=bankroll,
+        **({"strategy": staking_strategy} if staking_strategy else {}),
+    )
+    stakes = allocate_prediction_stakes(predictions, staking_cfg)
+    predictions = [
+        p.model_copy(update={
+            "stake": s,
+            "stake_pct": round(s / bankroll * 100.0, 2) if bankroll > 0 else None,
+        })
+        for p, s in zip(predictions, stakes)
+    ]
 
     return TodayPayload(
         generated_at=datetime.now(UTC),

@@ -92,6 +92,8 @@ export const de: Dictionary = {
   'predictionCard.outcome.draw': 'Unentschieden',
   'predictionCard.outcome.away': 'Auswärtssieg',
   'predictionCard.pick': 'Tipp:',
+  'predictionCard.stake': 'Einsatz:',
+  'predictionCard.noStake': 'Kein Einsatz (Konfidenz zu niedrig)',
   'predictionCard.badge.live': 'Live',
   'predictionCard.badge.correct': 'Tipp richtig',
   'predictionCard.badge.incorrect': 'Tipp falsch',

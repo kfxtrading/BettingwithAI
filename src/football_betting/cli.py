@@ -1039,7 +1039,13 @@ def settle_live_cmd(days_from: int) -> None:
     help="Path to a fixtures JSON file (defaults to latest data/fixtures_*.json).",
 )
 @click.option("--bankroll", "-b", default=1000.0)
-def snapshot(fixtures: str | None, bankroll: float) -> None:
+@click.option(
+    "--staking-strategy",
+    type=click.Choice(["flat", "conf", "power", "hybrid", "entropy"]),
+    default=None,
+    help="1X2 prediction staking strategy (default: config value, usually 'hybrid').",
+)
+def snapshot(fixtures: str | None, bankroll: float, staking_strategy: str | None) -> None:
     """Generate today.json snapshot consumed by the web UI."""
     from football_betting.api.services import build_predictions_for_fixtures
     from football_betting.api.snapshots import write_today
@@ -1056,7 +1062,9 @@ def snapshot(fixtures: str | None, bankroll: float) -> None:
         path = Path(fixtures)
 
     fixtures_data = json.loads(path.read_text(encoding="utf-8"))
-    payload = build_predictions_for_fixtures(fixtures_data, bankroll=bankroll)
+    payload = build_predictions_for_fixtures(
+        fixtures_data, bankroll=bankroll, staking_strategy=staking_strategy
+    )
     out_path = write_today(payload)
 
     console.log(

@@ -27,6 +27,8 @@ export interface Prediction {
   is_live?: boolean;
   pick_correct?: boolean | null;
   ft_score?: string | null;
+  stake?: number | null;
+  stake_pct?: number | null;
 }
 
 export interface ValueBet {

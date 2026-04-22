@@ -78,6 +78,8 @@ export type DictionaryKey =
   | 'predictionCard.outcome.away'
   | 'predictionCard.pick'
   | 'predictionCard.vs'
+  | 'predictionCard.stake'
+  | 'predictionCard.noStake'
   | 'predictionCard.badge.live'
   | 'predictionCard.badge.correct'
   | 'predictionCard.badge.incorrect'
@@ -972,6 +974,8 @@ export const en: Dictionary = {
   'predictionCard.outcome.draw': 'Draw',
   'predictionCard.outcome.away': 'Away win',
   'predictionCard.pick': 'Pick:',
+  'predictionCard.stake': 'Stake:',
+  'predictionCard.noStake': 'No stake (confidence too low)',
   'predictionCard.vs': 'vs',
   'predictionCard.badge.live': 'Live',
   'predictionCard.badge.correct': 'Pick correct',

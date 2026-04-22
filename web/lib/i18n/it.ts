@@ -94,6 +94,8 @@ export const it: Dictionary = {
   'predictionCard.outcome.draw': 'Pareggio',
   'predictionCard.outcome.away': 'Vittoria trasferta',
   'predictionCard.pick': 'Scelta:',
+  'predictionCard.stake': 'Puntata:',
+  'predictionCard.noStake': 'Nessuna puntata (confidenza bassa)',
   'predictionCard.badge.live': 'Live',
   'predictionCard.badge.correct': 'Pronostico corretto',
   'predictionCard.badge.incorrect': 'Pronostico errato',

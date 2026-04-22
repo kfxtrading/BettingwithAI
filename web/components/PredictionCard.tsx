@@ -99,6 +99,22 @@ export function PredictionCard({ prediction }: { prediction: Prediction }) {
           </span>
         )}
       </footer>
+
+      {prediction.stake != null && prediction.stake > 0 ? (
+        <div className="flex items-center justify-between text-2xs text-muted">
+          <span>{t('predictionCard.stake')}</span>
+          <span className="font-mono text-text">
+            {prediction.stake.toFixed(2)} €
+            {prediction.stake_pct != null
+              ? ` (${prediction.stake_pct.toFixed(1)} %)`
+              : ''}
+          </span>
+        </div>
+      ) : prediction.stake === 0 ? (
+        <div className="text-2xs italic text-muted">
+          {t('predictionCard.noStake')}
+        </div>
+      ) : null}
     </article>
   );
 }

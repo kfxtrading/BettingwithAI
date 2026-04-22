@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 # ───────────────────────── Paths ─────────────────────────
 
@@ -352,6 +353,17 @@ class BettingConfig:
     max_odds: float = 15.0
 
 
+@dataclass(frozen=True, slots=True)
+class PredictionStakingConfig:
+    """1X2-Prediction staking allocator (see Erweiterungen/Staking-Algorithmen.md)."""
+
+    strategy: Literal["flat", "conf", "power", "hybrid", "entropy"] = "hybrid"
+    daily_bankroll: float = 1000.0
+    power_k: float = 2.0
+    odds_floor: float = 2.0
+    min_p: float = 0.40
+
+
 # ───────────────────────── Point Deductions ─────────────────────────
 
 POINT_DEDUCTIONS: dict[tuple[str, str], int] = {
@@ -526,6 +538,7 @@ ODDS_API_CFG = OddsApiConfig()
 CALIBRATION_CFG = CalibrationConfig()
 MONITORING_CFG = MonitoringConfig()
 BETTING_CFG = BettingConfig()
+PREDICTION_STAKING_CFG = PredictionStakingConfig()
 BACKTEST_CFG = BacktestConfig()
 ENSEMBLE_TUNE_CFG = EnsembleTuneConfig()
 SUPPORT_CFG = SupportConfig()
