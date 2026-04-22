@@ -1849,7 +1849,17 @@ def stress_test(
         try:
             s = float(rec.get("stake", 0.0))
             o = float(rec.get("odds", 0.0))
-            p = float(rec.get("prob", rec.get("model_prob", 0.0)))
+            raw_p = rec.get("prob", rec.get("model_prob"))
+            # Fallback: use status-derived realized prob if no model prob is
+            # stored. This lets legacy bet records (pre-model_prob) still be
+            # stress-tested against odds alone via the 1/odds implied prob.
+            if raw_p is None:
+                if o > 1.0:
+                    p = 1.0 / o
+                else:
+                    continue
+            else:
+                p = float(raw_p)
         except (TypeError, ValueError):
             continue
         if s > 0.0 and o > 1.0 and 0.0 < p < 1.0:

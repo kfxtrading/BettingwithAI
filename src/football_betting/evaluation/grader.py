@@ -53,6 +53,7 @@ class GradedBet:
     status: str  # "won" | "lost" | "pending"
     pnl: float
     kind: str = "value"  # "value" | "prediction"
+    model_prob: float | None = None
 
 
 def _norm(name: str) -> str:
@@ -127,6 +128,7 @@ def _grade_one(bet: ValueBetOut, results: dict, kind: str = "value") -> GradedBe
     key = (match_date, _norm(bet.home_team), _norm(bet.away_team))
     stake = _stake_amount(bet)
 
+    model_prob = getattr(bet, "model_prob", None)
     hit = results.get(key)
     if hit is None:
         return GradedBet(
@@ -144,6 +146,7 @@ def _grade_one(bet: ValueBetOut, results: dict, kind: str = "value") -> GradedBe
             status="pending",
             pnl=0.0,
             kind=kind,
+            model_prob=model_prob,
         )
     ftr, fthg, ftag = hit
     won = ftr == bet.outcome
@@ -163,6 +166,7 @@ def _grade_one(bet: ValueBetOut, results: dict, kind: str = "value") -> GradedBe
         status="won" if won else "lost",
         pnl=pnl,
         kind=kind,
+        model_prob=model_prob,
     )
 
 

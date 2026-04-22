@@ -84,20 +84,23 @@ class FeatureBuilder:
         if self.cfg.use_form:
             feats.update(self.form_tracker.features_for_match(home_team, away_team))
 
-        # xG — prefer real xG, fall back to proxy
+        # xG — always emit a stable schema so trained models can be used
+        # on fixtures with or without Sofascore coverage. We emit the proxy
+        # (when enabled) AND the real-xG keys (real values if Sofascore data
+        # is available for both teams, zero-filled otherwise). The
+        # ``has_real_xg`` flag tells downstream models which source was
+        # active so they can weight the two feature groups appropriately.
         has_real_xg = (
             self.real_xg_tracker.team_has_data(home_team)
             and self.real_xg_tracker.team_has_data(away_team)
         )
-        if self.cfg.use_real_xg and has_real_xg:
-            feats.update(self.real_xg_tracker.features_for_match(home_team, away_team))
-            feats["has_real_xg"] = 1.0
-        elif self.cfg.use_xg_proxy:
+        if self.cfg.use_xg_proxy:
             feats.update(self.xg_tracker.features_for_match(home_team, away_team))
-            feats["has_real_xg"] = 0.0
-            # Emit zero-valued real_xg_* keys so downstream schemas (CatBoost
-            # feature list) stay stable when a fixture has no Sofascore data.
-            if self.cfg.use_real_xg:
+        if self.cfg.use_real_xg:
+            if has_real_xg:
+                feats.update(self.real_xg_tracker.features_for_match(home_team, away_team))
+                feats["has_real_xg"] = 1.0
+            else:
                 feats.update({
                     "real_xg_home_for": 0.0,
                     "real_xg_home_against": 0.0,
@@ -113,6 +116,11 @@ class FeatureBuilder:
                     "real_xg_away_big_chances": 0.0,
                     "real_xg_matchup_diff": 0.0,
                 })
+                feats["has_real_xg"] = 0.0
+        elif self.cfg.use_xg_proxy:
+            # Proxy-only path: keep the legacy sentinel so older models
+            # that relied on ``has_real_xg`` continue to see it.
+            feats["has_real_xg"] = 0.0
 
         # Squad quality (v0.3)
         if self.cfg.use_squad_quality:
