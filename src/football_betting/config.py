@@ -450,12 +450,17 @@ class SupportConfig:
         ("it", ("fr", "es", "en")),
     )
 
-    # ─── Transformer fine-tune (M3) — ModernGBERT / XLM-R + SupCon hybrid loss ───
+    # ─── Transformer fine-tune (M3) — XLM-R + SupCon hybrid loss ───
+    # NOTE: originally ModernGBERT_134M was planned for DE, but its backward
+    # pass is not supported on torch-directml 0.2.5 (AMD/Windows) — a DML
+    # internal op fails to materialise during gradient computation on AMD
+    # W7700. XLM-R-base is used for all languages; it trains end-to-end on
+    # DML and remains strong on German (multilingual corpus includes de).
     transformer_model_dirname_template: str = "support_transformer_{lang}"
     transformer_metrics_filename: str = "support_intent_transformer_metrics.json"
     transformer_default_backbone: str = "FacebookAI/xlm-roberta-base"
     transformer_backbone_by_lang: tuple[tuple[str, str], ...] = (
-        ("de", "LSX-UniWue/ModernGBERT_134M"),
+        ("de", "FacebookAI/xlm-roberta-base"),
         ("en", "FacebookAI/xlm-roberta-base"),
         ("es", "FacebookAI/xlm-roberta-base"),
         ("fr", "FacebookAI/xlm-roberta-base"),

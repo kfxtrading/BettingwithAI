@@ -9,6 +9,7 @@ in the encoder's latent space — the report's recommended remedy for the
 Torch is imported lazily inside the module body so the base install (without
 ``.[ml]``/``.[support-aug]``) does not crash on ``from football_betting...``.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -69,8 +70,10 @@ def sup_con_loss(
     # Positives mask: same label & off-diagonal.
     labels_col = labels.view(-1, 1)
     pos_mask = (labels_col == labels_col.T).to(logits.dtype)
-    eye = torch.eye(batch_size, device=device, dtype=logits.dtype)
-    off_diag = 1.0 - eye
+    # NOTE: built with arange/broadcasting instead of torch.eye — torch-directml
+    # 0.2.5 falls back `aten::eye.m_out` to CPU and returns a malformed tensor.
+    idx = torch.arange(batch_size, device=device)
+    off_diag = (idx.view(-1, 1) != idx.view(1, -1)).to(logits.dtype)
     pos_mask = pos_mask * off_diag
 
     exp_logits = torch.exp(logits) * off_diag
@@ -78,9 +81,7 @@ def sup_con_loss(
 
     pos_counts = pos_mask.sum(dim=1)
     # Anchors without positives contribute 0 loss (avoid div-by-zero).
-    safe_counts = torch.where(
-        pos_counts == 0, torch.ones_like(pos_counts), pos_counts
-    )
+    safe_counts = torch.where(pos_counts == 0, torch.ones_like(pos_counts), pos_counts)
     mean_log_prob_pos = (pos_mask * log_prob).sum(dim=1) / safe_counts
     valid = (pos_counts > 0).to(mean_log_prob_pos.dtype)
 

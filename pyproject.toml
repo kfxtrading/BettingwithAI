@@ -84,3 +84,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=football_betting --cov-report=term-missing"
+markers = [
+    "slow: tests that take noticeably longer (>5s) — de-selected in default CI run",
+    "gpu: requires a CUDA GPU",
+    "dml: requires torch-directml (AMD/Intel GPU on Windows)",
+]

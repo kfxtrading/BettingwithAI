@@ -30,7 +30,6 @@ from rich.table import Table
 
 from football_betting.config import (
     SUPPORT_CFG,
-    SUPPORT_DATA_DIR,
     SUPPORT_MODELS_DIR,
 )
 from football_betting.support.dataset import load_dataset, stratified_split
@@ -202,12 +201,70 @@ def _fmt(val: object) -> str:
 @click.option("--cluster/--no-cluster", default=False, help="Also evaluate the cluster-filtered variant.")
 @click.option("--reranker-model-name", default=None, help="Override BAAI/bge-reranker-base.")
 @click.option("--cluster-top-c", type=int, default=None, help="Top-C clusters to keep (default cfg).")
+@click.option(
+    "--onnx-int8",
+    is_flag=True,
+    default=False,
+    help="Latency-only mode: benchmark the INT8 ONNX transformer on CPU "
+         "(skips the ML/Fuse/Emb accuracy table).",
+)
+@click.option(
+    "--onnx-lang",
+    default="de",
+    show_default=True,
+    help="Language for the ONNX latency benchmark (used with --onnx-int8).",
+)
+@click.option(
+    "--onnx-threads",
+    type=int,
+    multiple=True,
+    default=(1, 4),
+    show_default=True,
+    help="Thread counts to benchmark (repeat flag for multiple values).",
+)
+@click.option(
+    "--onnx-runs",
+    type=int,
+    default=100,
+    show_default=True,
+    help="Number of single-sample inferences per thread-count setting.",
+)
+@click.option(
+    "--onnx-warmup",
+    type=int,
+    default=10,
+    show_default=True,
+    help="Warmup runs (excluded from latency stats) per thread-count setting.",
+)
+@click.option(
+    "--onnx-p95-target-ms",
+    type=float,
+    default=120.0,
+    show_default=True,
+    help="p95 latency ceiling (ms). Script exits non-zero if any setting exceeds it.",
+)
 def main(
     rerank: bool,
     cluster: bool,
     reranker_model_name: str | None,
     cluster_top_c: int | None,
+    onnx_int8: bool,
+    onnx_lang: str,
+    onnx_threads: tuple[int, ...],
+    onnx_runs: int,
+    onnx_warmup: int,
+    onnx_p95_target_ms: float,
 ) -> None:
+    if onnx_int8:
+        _bench_onnx_int8(
+            lang=onnx_lang,
+            thread_counts=list(onnx_threads),
+            n_runs=onnx_runs,
+            n_warmup=onnx_warmup,
+            p95_target_ms=onnx_p95_target_ms,
+        )
+        return
+
     shared_reranker = None
     if rerank:
         from football_betting.support.reranker import CrossEncoderReranker
@@ -296,6 +353,161 @@ def main(
     out_path = SUPPORT_MODELS_DIR / "benchmark_3way.json"
     out_path.write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     console.log(f"[green]Wrote {out_path}[/green]")
+
+
+# ───────────────────────── ONNX INT8 latency benchmark ─────────────────────────
+
+
+def _bench_onnx_int8(
+    *,
+    lang: str,
+    thread_counts: list[int],
+    n_runs: int,
+    n_warmup: int,
+    p95_target_ms: float,
+) -> None:
+    """Single-sentence CPU latency benchmark on the INT8 ONNX transformer.
+
+    Loads ``models/support/support_transformer_<lang>/model.int8.onnx`` (or
+    ``model.onnx`` as a fallback) and the colocated tokenizer, then runs
+    ``n_warmup + n_runs`` single-sentence inferences per thread-count setting
+    using different realistic DE queries to avoid per-input caching effects.
+    """
+    import statistics
+    import sys
+    import time
+
+    try:
+        import numpy as np
+        import onnxruntime as ort  # type: ignore[import-not-found]
+        from transformers import AutoTokenizer  # type: ignore[import-not-found]
+    except Exception as exc:  # noqa: BLE001
+        console.log(f"[red]ONNX bench requires onnxruntime + transformers: {exc}[/red]")
+        sys.exit(2)
+
+    dirname = SUPPORT_CFG.transformer_model_dirname_template.format(lang=lang)
+    model_dir = SUPPORT_MODELS_DIR / dirname
+    int8_path = model_dir / "model.int8.onnx"
+    fp32_path = model_dir / "model.onnx"
+    if int8_path.exists():
+        onnx_path = int8_path
+        mode = "INT8"
+    elif fp32_path.exists():
+        onnx_path = fp32_path
+        mode = "fp32 (INT8 missing)"
+    else:
+        console.log(
+            f"[red]No ONNX file under {model_dir} "
+            f"(expected model.int8.onnx or model.onnx).[/red]"
+        )
+        sys.exit(3)
+
+    console.rule(f"[cyan]ONNX latency — {lang} ({mode})[/cyan]")
+    console.log(f"Model:  {onnx_path} ({onnx_path.stat().st_size / 1024:.0f} KiB)")
+
+    tokenizer = AutoTokenizer.from_pretrained(str(model_dir))
+    max_len = SUPPORT_CFG.transformer_max_seq_length
+
+    # A small pool of DE queries — tokenising different strings avoids any
+    # tensor-caching artefacts that would flatter the numbers.
+    sample_queries = [
+        "Wie berechnet ihr den Value einer Wette?",
+        "Was ist das Kelly-Kriterium?",
+        "Kann ich meine Einzahlung zurückbuchen lassen?",
+        "Was ist ein Systemschein?",
+        "Wie lange dauert eine Auszahlung?",
+        "Zeigt die App auch Live-Quoten?",
+        "Wie ändere ich mein Passwort?",
+        "Was bedeutet CLV in der Performance-Historie?",
+        "Warum ist mein Tipp nicht gewertet worden?",
+        "Welche Sportarten bietet ihr an?",
+    ]
+
+    rows: list[dict[str, object]] = []
+    any_over_budget = False
+    for threads in thread_counts:
+        sess_options = ort.SessionOptions()
+        sess_options.intra_op_num_threads = int(threads)
+        sess_options.inter_op_num_threads = 1
+        session = ort.InferenceSession(
+            str(onnx_path),
+            sess_options=sess_options,
+            providers=["CPUExecutionProvider"],
+        )
+
+        # Warmup
+        for i in range(n_warmup):
+            enc = tokenizer(
+                sample_queries[i % len(sample_queries)],
+                return_tensors="np",
+                padding="max_length",
+                truncation=True,
+                max_length=max_len,
+            )
+            session.run(
+                ["logits"],
+                {
+                    "input_ids": enc["input_ids"].astype(np.int64),
+                    "attention_mask": enc["attention_mask"].astype(np.int64),
+                },
+            )
+
+        latencies_ms: list[float] = []
+        for i in range(n_runs):
+            query = sample_queries[i % len(sample_queries)]
+            enc = tokenizer(
+                query,
+                return_tensors="np",
+                padding="max_length",
+                truncation=True,
+                max_length=max_len,
+            )
+            feed = {
+                "input_ids": enc["input_ids"].astype(np.int64),
+                "attention_mask": enc["attention_mask"].astype(np.int64),
+            }
+            t0 = time.perf_counter()
+            session.run(["logits"], feed)
+            latencies_ms.append((time.perf_counter() - t0) * 1000.0)
+
+        latencies_ms.sort()
+        p50 = latencies_ms[int(0.50 * len(latencies_ms))]
+        p95 = latencies_ms[int(0.95 * len(latencies_ms))]
+        p99 = latencies_ms[int(0.99 * len(latencies_ms))]
+        mean = statistics.fmean(latencies_ms)
+        over = p95 > p95_target_ms
+        any_over_budget = any_over_budget or over
+        status = "[red]OVER BUDGET[/red]" if over else "[green]ok[/green]"
+        console.log(
+            f"threads={threads:>2d}  runs={n_runs:>3d}  "
+            f"mean={mean:6.2f}ms  p50={p50:6.2f}ms  "
+            f"p95={p95:6.2f}ms  p99={p99:6.2f}ms  {status}"
+        )
+        rows.append(
+            {
+                "lang": lang,
+                "onnx_path": str(onnx_path),
+                "mode": mode,
+                "threads": int(threads),
+                "n_runs": int(n_runs),
+                "n_warmup": int(n_warmup),
+                "mean_ms": round(mean, 3),
+                "p50_ms": round(p50, 3),
+                "p95_ms": round(p95, 3),
+                "p99_ms": round(p99, 3),
+                "p95_target_ms": p95_target_ms,
+                "over_budget": over,
+            }
+        )
+
+    out_path = SUPPORT_MODELS_DIR / f"benchmark_onnx_latency_{lang}.json"
+    out_path.write_text(
+        json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    console.log(f"[green]Wrote {out_path}[/green]")
+    if any_over_budget:
+        console.log(f"[red]At least one setting exceeded p95={p95_target_ms}ms.[/red]")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

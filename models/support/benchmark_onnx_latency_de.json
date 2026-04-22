@@ -1,0 +1,30 @@
+[
+  {
+    "lang": "de",
+    "onnx_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_transformer_de\\model.int8.onnx",
+    "mode": "INT8",
+    "threads": 1,
+    "n_runs": 100,
+    "n_warmup": 10,
+    "mean_ms": 102.637,
+    "p50_ms": 102.828,
+    "p95_ms": 104.991,
+    "p99_ms": 109.405,
+    "p95_target_ms": 120.0,
+    "over_budget": false
+  },
+  {
+    "lang": "de",
+    "onnx_path": "C:\\Users\\Marcel\\source\\repos\\BettingwithAI\\models\\support\\support_transformer_de\\model.int8.onnx",
+    "mode": "INT8",
+    "threads": 4,
+    "n_runs": 100,
+    "n_warmup": 10,
+    "mean_ms": 30.772,
+    "p50_ms": 30.762,
+    "p95_ms": 31.048,
+    "p99_ms": 32.4,
+    "p95_target_ms": 120.0,
+    "over_budget": false
+  }
+]

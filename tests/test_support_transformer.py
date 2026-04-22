@@ -16,7 +16,9 @@ from football_betting.support.transformer_model import resolve_backbone
 
 
 def test_resolve_backbone_default_and_overrides() -> None:
-    assert resolve_backbone("de") == "LSX-UniWue/ModernGBERT_134M"
+    # torch-directml 0.2.5 rejects ModernGBERT's backward pass on AMD,
+    # so DE falls back to XLM-R — the per-language map reflects that.
+    assert resolve_backbone("de") == SUPPORT_CFG.transformer_default_backbone
     assert resolve_backbone("en") == SUPPORT_CFG.transformer_default_backbone
     assert resolve_backbone("zz") == SUPPORT_CFG.transformer_default_backbone
 
@@ -31,6 +33,7 @@ def test_module_imports_without_torch() -> None:
 # ───────────────────────── Heavy end-to-end (opt-in) ─────────────────────────
 
 
+@pytest.mark.slow
 def test_transformer_fit_predict_smoke(tmp_path: Path) -> None:
     pytest.importorskip("torch")
     transformers = pytest.importorskip("transformers")

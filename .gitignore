@@ -37,6 +37,11 @@ models/*.joblib
 models/*.pt
 models/*.onnx
 models/*.features.txt
+# Support transformer fine-tunes (large: ~1GB safetensors + ~1GB ONNX + ~266MB INT8)
+models/support/support_transformer_*/
+models/support/smoke_*/
+# Keep metrics + bench JSONs (small, reproducibility-relevant) — explicit allowlist:
+!models/support/*.json
 
 # IDE
 .idea/

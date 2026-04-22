@@ -530,7 +530,8 @@ def augment_support(
     "--backbone",
     type=str,
     default=None,
-    help="Override HF backbone (default: ModernGBERT-134M for de, XLM-R base otherwise).",
+    help="Override HF backbone (default: XLM-R base for all languages — "
+         "ModernGBERT's backward pass is not DirectML-compatible on W7700).",
 )
 @click.option(
     "--include-ood/--no-ood",
@@ -538,14 +539,43 @@ def augment_support(
     show_default=True,
     help="Inject curated OOD seed rows during training.",
 )
+@click.option(
+    "--seed",
+    type=int,
+    default=42,
+    show_default=True,
+    help="Seed for Python/NumPy/torch RNGs (cuDNN-deterministic only on CUDA).",
+)
+@click.option(
+    "--calibrate/--no-calibrate",
+    default=True,
+    show_default=True,
+    help="Fit a 1-parameter Temperature calibrator on the validation split.",
+)
+@click.option(
+    "--epochs",
+    type=int,
+    default=None,
+    help="Override transformer_epochs (e.g. 1 for a smoke run).",
+)
+@click.option(
+    "--max-rows-per-intent",
+    type=int,
+    default=None,
+    help="Cap training rows per intent (smoke/HPO). Class balance preserved.",
+)
 def train_support_transformer(
     lang: str,
     dataset_path: Path | None,
     out_dir: Path | None,
     backbone: str | None,
     include_ood: bool,
+    seed: int,
+    calibrate: bool,
+    epochs: int | None,
+    max_rows_per_intent: int | None,
 ) -> None:
-    """Fine-tune an encoder (ModernGBERT / XLM-R) with CE + SupCon loss."""
+    """Fine-tune an encoder (XLM-R / ModernGBERT) with CE + SupCon loss."""
     from football_betting.support.trainer import (
         train_transformer_all,
         train_transformer_one_language,
@@ -556,6 +586,10 @@ def train_support_transformer(
             dataset_path=dataset_path,
             out_dir=out_dir,
             include_ood=include_ood,
+            seed=seed,
+            calibrate=calibrate,
+            epochs=epochs,
+            max_rows_per_intent=max_rows_per_intent,
         )
     else:
         train_transformer_one_language(
@@ -564,6 +598,10 @@ def train_support_transformer(
             out_dir=out_dir,
             backbone=backbone,
             include_ood=include_ood,
+            seed=seed,
+            calibrate=calibrate,
+            epochs=epochs,
+            max_rows_per_intent=max_rows_per_intent,
         )
 
 
