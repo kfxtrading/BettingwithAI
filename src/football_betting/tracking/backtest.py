@@ -34,6 +34,7 @@ from football_betting.config import (
 )
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, Match
+from football_betting.data.snapshot_service import merge_snapshots_into_matches
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.catboost_model import CatBoostPredictor
 from football_betting.predict.poisson import PoissonModel
@@ -98,6 +99,10 @@ class Backtester:
         # Load matches, split by season
         train_matches = load_league(league_key, seasons=list(self.cfg.train_seasons))
         test_matches = load_league(league_key, seasons=[self.cfg.test_season])
+
+        # Phase 4: overlay persisted T-minus opening-line snapshots so CLV
+        # becomes non-degenerate. Silent no-op when no snapshots exist.
+        test_matches = merge_snapshots_into_matches(test_matches, league_key)
 
         if len(train_matches) < self.cfg.min_train_games:
             raise ValueError(

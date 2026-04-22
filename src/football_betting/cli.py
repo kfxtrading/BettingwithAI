@@ -12,6 +12,7 @@ Commands:
     fb tune-ensemble     — Dirichlet-sampled weight tuning
     fb scrape            — Scrape Sofascore xG + lineups (v0.3)
     fb fetch-fixtures    — Pull today's fixtures + odds from The Odds API
+    fb snapshot-odds     — Capture pre-match opening lines (Phase 4 CLV)
     fb monitor           — Feature drift report (v0.3)
     fb export-onnx       — Export MLP to ONNX (v0.3)
     fb update-results    — Update prediction log
@@ -213,6 +214,90 @@ def fetch_fixtures(target_date: str | None, league: str, out: str | None) -> Non
         )
     console.print(table)
     console.log(f"[green]Wrote {len(fixtures)} fixtures -> {out_path}[/green]")
+
+
+# ───────────────────────── snapshot-odds (Phase 4 opening lines) ──────────
+
+@main.command("snapshot-odds")
+@click.option(
+    "--league", "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    default="all",
+)
+@click.option(
+    "--t-minus", "t_minus_hours",
+    type=int,
+    default=48,
+    help="Only capture fixtures whose kickoff is within T-<hours> from now.",
+)
+@click.option(
+    "--source",
+    type=click.Choice(["odds_api", "sofascore"], case_sensitive=False),
+    default="odds_api",
+    help="Pre-match odds source (sofascore requires SCRAPING_ENABLED=1).",
+)
+def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
+    """Capture pre-match opening-line snapshots for upcoming fixtures (Phase 4)."""
+    from datetime import date as date_cls
+
+    from football_betting.data.snapshot_service import capture_odds_snapshot
+    from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
+
+    source = source.lower()
+    keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+
+    if source == "sofascore":
+        client = SofascoreClient()
+        if not client.cfg.enabled:
+            console.print(
+                "[red]Sofascore scraping disabled.[/red]\n"
+                "Enable with: export SCRAPING_ENABLED=1"
+            )
+            raise click.Abort()
+        console.print(
+            "[yellow]Sofascore opening-snapshot capture is not yet wired. "
+            "Falling back to odds_api.[/yellow]"
+        )
+        source = "odds_api"
+
+    odds_client = OddsApiClient()
+    today = date_cls.today()
+    total = 0
+    for key in keys:
+        try:
+            fx_list = odds_client.fetch_for_date(key, today)
+        except OddsApiError as exc:
+            console.print(f"[red]Odds API error for {key}: {exc}[/red]")
+            continue
+        fixtures: list[Fixture] = []
+        for fo in fx_list:
+            payload = fo.to_fixture_dict()
+            try:
+                fixtures.append(Fixture(**{
+                    "date": payload["date"],
+                    "league": payload["league"],
+                    "home_team": payload["home_team"],
+                    "away_team": payload["away_team"],
+                    "kickoff_time": payload.get("kickoff_time"),
+                    "odds": MatchOdds(
+                        home=payload["odds"]["home"],
+                        draw=payload["odds"]["draw"],
+                        away=payload["odds"]["away"],
+                        bookmaker="odds_api_opening",
+                    ),
+                    "kickoff_datetime_utc": fo.kickoff_utc,
+                }))
+            except Exception as exc:  # pragma: no cover
+                console.log(f"[yellow]Skip fixture {fo.home_team} vs {fo.away_team}: {exc}[/yellow]")
+        captured = capture_odds_snapshot(
+            key, fixtures, t_minus_hours=t_minus_hours, source=source
+        )
+        total += len(captured)
+        console.log(
+            f"[green]{key}: captured {len(captured)} opening snapshots "
+            f"(T-{t_minus_hours}h window)[/green]"
+        )
+    console.log(f"[green]Total opening snapshots persisted: {total}[/green]")
 
 
 # ───────────────────────── train ─────────────────────────

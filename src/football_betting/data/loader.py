@@ -84,6 +84,31 @@ def _extract_odds(row: pd.Series) -> MatchOdds | None:
     return None
 
 
+def _extract_opening_odds(row: pd.Series, closing: MatchOdds | None) -> MatchOdds | None:
+    """Phase 4 best-effort opening proxy.
+
+    football-data.co.uk ships closing (PSH/PSD/PSA) *and* an earlier Bet365
+    snapshot (B365H/D/A). We treat Bet365 as the opening line when it differs
+    from the closing line chosen by ``_extract_odds``; otherwise the bookmaker
+    is identical and no movement can be derived → return ``None``.
+    """
+    h_col, d_col, a_col = "B365H", "B365D", "B365A"
+    if h_col not in row or pd.isna(row[h_col]) or row[h_col] <= 1.0:
+        return None
+    try:
+        opening = MatchOdds(
+            home=float(row[h_col]),
+            draw=float(row[d_col]),
+            away=float(row[a_col]),
+            bookmaker="Bet365_opening",
+        )
+    except (ValueError, KeyError):
+        return None
+    if closing is not None and closing.bookmaker == "Bet365":
+        return None
+    return opening
+
+
 def _infer_season(filename: str) -> str:
     """Extract '2025-26' from 'E0_2526.csv'."""
     stem = Path(filename).stem
@@ -105,6 +130,7 @@ def load_csv(path: Path, league_key: str) -> list[Match]:
 
     for _, row in df.iterrows():
         try:
+            closing = _extract_odds(row)
             match = Match(
                 date=row[COL_DATE],
                 league=league_key,
@@ -121,7 +147,8 @@ def load_csv(path: Path, league_key: str) -> list[Match]:
                 away_shots_on_target=(
                     int(row[COL_AST]) if COL_AST in row and pd.notna(row[COL_AST]) else None
                 ),
-                odds=_extract_odds(row),
+                odds=closing,
+                opening_odds=_extract_opening_odds(row, closing),
                 kickoff_datetime_utc=_extract_kickoff(row, league_key),
             )
             matches.append(match)
