@@ -215,6 +215,9 @@ class CatBoostConfig:
     random_seed: int = 42
     early_stopping_rounds: int = 100
     verbose: int = 100
+    # Time-decay sample weighting: newest season gets 1.0, older seasons get
+    # decay**Δ. Set to None to disable weighting.
+    time_decay: float | None = 0.85
 
 
 # ───────────────────────── MLP (v0.3) ─────────────────────────

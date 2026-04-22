@@ -22,6 +22,7 @@ from football_betting.config import CATBOOST_CFG, LEAGUES, MODELS_DIR, CatBoostC
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.calibration import ProbabilityCalibrator
+from football_betting.predict.weights import season_decay_weights
 from football_betting.rating.pi_ratings import PiRatings
 
 console = Console()
@@ -53,15 +54,19 @@ class CatBoostPredictor:
         self,
         matches: list[Match],
         warmup_games: int = 100,
-    ) -> tuple[pd.DataFrame, np.ndarray]:
+    ) -> tuple[pd.DataFrame, np.ndarray, list[str]]:
         """
         Walk matches chronologically; extract features *before* each match,
         then update trackers. First `warmup_games` skipped.
+
+        Returns (features_df, labels, seasons) — ``seasons[i]`` is the season
+        string for row ``i`` (used for time-decay weighting).
         """
         self.feature_builder.reset()
 
         rows: list[dict[str, float]] = []
         labels: list[int] = []
+        seasons: list[str] = []
         matches_sorted = sorted(matches, key=lambda m: m.date)
 
         for idx, match in enumerate(matches_sorted):
@@ -79,13 +84,14 @@ class CatBoostPredictor:
                 )
                 rows.append(feats)
                 labels.append(OUTCOME_TO_INT[match.result])
+                seasons.append(match.season)
 
             # Update after feature extraction (no leakage)
             self.feature_builder.update_with_match(match)
 
         df = pd.DataFrame(rows)
         self.feature_names = list(df.columns)
-        return df, np.array(labels)
+        return df, np.array(labels), seasons
 
     def fit(
         self,
@@ -95,7 +101,7 @@ class CatBoostPredictor:
         calibrate: bool = True,
     ) -> dict[str, Any]:
         """Train + optionally calibrate."""
-        X, y = self.build_training_data(matches, warmup_games=warmup_games)
+        X, y, seasons = self.build_training_data(matches, warmup_games=warmup_games)
 
         if len(X) < 200:
             raise ValueError(f"Too few samples: {len(X)}. Need >=200.")
@@ -103,11 +109,27 @@ class CatBoostPredictor:
         split = int(len(X) * (1 - val_fraction))
         X_train, X_val = X.iloc[:split], X.iloc[split:]
         y_train, y_val = y[:split], y[split:]
+        seasons_train = seasons[:split]
+
+        # Time-decay sample weights (newer seasons get higher weight)
+        sample_weight = None
+        if self.cfg.time_decay is not None and seasons_train:
+            ref_season = max(seasons_train, key=lambda s: s.split("-", 1)[0])
+            sample_weight = season_decay_weights(
+                seasons_train, ref_season=ref_season, decay=self.cfg.time_decay
+            )
+            console.log(
+                f"Time-decay weights: decay={self.cfg.time_decay}, "
+                f"ref={ref_season}, min={sample_weight.min():.3f}, "
+                f"max={sample_weight.max():.3f}"
+            )
 
         console.log(f"Training: {len(X_train)} samples, validation: {len(X_val)}")
         console.log(f"Features: {len(self.feature_names)}")
 
-        train_pool = Pool(X_train, y_train, feature_names=self.feature_names)
+        train_pool = Pool(
+            X_train, y_train, feature_names=self.feature_names, weight=sample_weight
+        )
         val_pool = Pool(X_val, y_val, feature_names=self.feature_names)
 
         self.model = CatBoostClassifier(
