@@ -133,6 +133,15 @@ def _parse_lines(raw: str, n: int) -> list[str]:
         # Drop obvious meta-comments.
         if s.lower().startswith(("here are", "paraphrase", "variant", "note:")):
             continue
+        # Scrub characters that break Python's universal-newlines file reader
+        # when we re-read the output JSONL: \r, \n, U+2028, U+2029, NEL, and
+        # C0/C1 control bytes. Replace with a single space, collapse runs.
+        s = re.sub(
+            r"[\r\n\u0085\u2028\u2029\x00-\x08\x0b\x0c\x0e-\x1f]+",
+            " ",
+            s,
+        ).strip()
+        s = re.sub(r"\s{2,}", " ", s)
         if len(s) < 3 or len(s) > 400:
             continue
         out.append(s)

@@ -437,7 +437,15 @@ def augment_dataset(
                         break  # one full sweep per augmenter
 
             for row in produced_rows:
-                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                # Defensive validation: never write a row we cannot round-trip.
+                # Protects downstream against weird LLM output (embedded control
+                # chars, U+2028/U+2029 line separators, JSON-like strings etc.).
+                try:
+                    payload = json.dumps(row, ensure_ascii=False)
+                    json.loads(payload)  # round-trip check
+                except (TypeError, ValueError):
+                    continue
+                f.write(payload + "\n")
                 stats.n_output_rows += 1
                 stats.per_language[lang] = stats.per_language.get(lang, 0) + 1
                 stats.per_source[str(row["source"])] = (
@@ -454,14 +462,23 @@ def augment_dataset(
             # Not bucketized; skip — overall counts covered by per_language.
             _ = count
     # Re-read output for precise per-intent counts (cheap: output is already on disk).
+    # newline="" disables universal-newlines so \r inside strings cannot split lines;
+    # malformed lines are tolerated and counted, not fatal.
     per_il: dict[str, int] = defaultdict(int)
-    with out.open("r", encoding="utf-8") as f:
+    n_bad_lines = 0
+    with out.open("r", encoding="utf-8", newline="") as f:
         for line in f:
-            line = line.strip()
-            if not line:
+            line = line.rstrip("\r\n")
+            if not line.strip():
                 continue
-            r = json.loads(line)
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                n_bad_lines += 1
+                continue
             per_il[f"{r.get('id')}|{r.get('lang')}"] += 1
+    if n_bad_lines:
+        print(f"[augment] warning: skipped {n_bad_lines} malformed lines in {out}")
     if per_il:
         counts = list(per_il.values())
         stats.variants_per_intent_lang = {
