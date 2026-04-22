@@ -26,6 +26,7 @@ data/raw/*.csv
 data/processed/*.parquet
 data/predictions/*.json
 data/snapshots/*.json
+!data/snapshots/today.json
 data/sofascore/*.sqlite
 data/sofascore/*.json
 data/weather/*.sqlite
