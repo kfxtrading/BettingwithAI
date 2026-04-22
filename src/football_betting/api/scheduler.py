@@ -29,7 +29,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from football_betting.api.services import build_predictions_for_fixtures
 from football_betting.api.snapshots import load_today, snapshot_is_stale, write_today
-from football_betting.config import DATA_DIR, ODDS_API_CFG
+from football_betting.config import DATA_DIR, LEAGUES, ODDS_API_CFG
 from football_betting.data.models import MatchOdds
 from football_betting.data.odds_snapshots import append_snapshot as append_odds_snapshot
 from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
@@ -200,14 +200,71 @@ def _live_settle_interval_min() -> int:
         return 2
 
 
+def _live_settle_interval_active_sec() -> int:
+    """Short poll cadence used while at least one match is in the live window."""
+    raw = os.environ.get("LIVE_SETTLE_INTERVAL_ACTIVE_SEC", "30")
+    try:
+        return max(10, int(raw))
+    except ValueError:
+        logger.warning(
+            "[scheduler] Invalid LIVE_SETTLE_INTERVAL_ACTIVE_SEC=%r, defaulting to 30.", raw,
+        )
+        return 30
+
+
+# A match is considered in its "live display window" from shortly before
+# kickoff (to surface the 0-0 initial state on the UI) until ~150 min after
+# kickoff (regulation + injury + half-time). Matches outside this window
+# never drive the fast poll cadence and are not force-polled.
+_LIVE_WINDOW_BEFORE_MIN = 5
+_LIVE_WINDOW_AFTER_MIN = 150
+
+
+def _parse_iso_utc(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _live_display_league_codes() -> set[str]:
+    """League *codes* of matches currently within the live display window.
+
+    Read from today.json (already on disk — no Odds-API call). Returned as
+    Odds-API sport_keys so they can be merged with ``pending_league_codes``.
+    """
+    payload = load_today()
+    if payload is None or not payload.predictions:
+        return set()
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(minutes=_LIVE_WINDOW_AFTER_MIN)
+    window_end = now + timedelta(minutes=_LIVE_WINDOW_BEFORE_MIN)
+    codes: set[str] = set()
+    for p in payload.predictions:
+        ko = _parse_iso_utc(p.kickoff_utc)
+        if ko is None:
+            continue
+        if window_start <= ko <= window_end:
+            cfg = LEAGUES.get(p.league.upper())
+            if cfg is not None:
+                codes.add(cfg.code)
+    return codes
+
+
 def _settle_live_blocking() -> None:
-    """Hit Odds-API /scores for leagues with pending bets and re-grade."""
+    """Hit Odds-API /scores for leagues with pending bets or live matches and re-grade."""
     if not ODDS_API_CFG.api_key:
         return  # quiet — daily loop already warned at startup
     try:
         from football_betting.evaluation.pipeline import settle_live
 
-        added, settled = settle_live()
+        force = _live_display_league_codes()
+        added, settled = settle_live(force_leagues=force)
         if added or settled:
             logger.info(
                 "[live-settle] +%d live results, %d bet(s) newly settled.",
@@ -220,6 +277,14 @@ def _settle_live_blocking() -> None:
                 invalidate_performance_cache()
             except Exception:
                 logger.exception("[live-settle] cache clear failed")
+            # Kick Next.js ISR so cached SSR pages reflect the new score
+            # immediately instead of waiting for the next revalidate window.
+            try:
+                from football_betting.api.revalidate import revalidate_snapshot_paths
+
+                revalidate_snapshot_paths(["/[locale]"])
+            except Exception:
+                logger.exception("[live-settle] web revalidation failed")
     except Exception:  # noqa: BLE001
         logger.exception("[live-settle] iteration failed")
 
@@ -233,10 +298,17 @@ async def _live_settle_loop() -> None:
     if interval_min <= 0:
         logger.info("[live-settle] disabled (LIVE_SETTLE_INTERVAL_MIN=0)")
         return
-    logger.info("[live-settle] polling /scores every %d min", interval_min)
-    interval_s = interval_min * 60
+    active_s = _live_settle_interval_active_sec()
+    idle_s = interval_min * 60
+    logger.info(
+        "[live-settle] polling /scores every %ds while matches are live, "
+        "every %ds otherwise",
+        active_s, idle_s,
+    )
     while True:
-        await asyncio.sleep(interval_s)
+        has_live = bool(_live_display_league_codes())
+        sleep_s = active_s if has_live else idle_s
+        await asyncio.sleep(sleep_s)
         try:
             await settle_live_once()
         except Exception:  # noqa: BLE001

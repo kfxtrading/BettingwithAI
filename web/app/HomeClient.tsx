@@ -87,9 +87,11 @@ export function HomeClient({
       if (!data) return 60_000;
       if (isSnapshotStale(data)) return 60_000;
       const hasLive = data.predictions.some((p) => p.is_live);
-      return hasLive ? 45_000 : false;
+      return hasLive ? 20_000 : false;
     },
-    refetchIntervalInBackground: false,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const stale = isSnapshotStale(todayQuery.data);

@@ -61,10 +61,15 @@ class LiveScoreRow:
 
 # ───────────────────────── Persistence ─────────────────────────
 
+# path+size+mtime keyed cache for _load_rows(); keeps hot-path enrichment
+# fast so raising poll frequency doesn't linearly amplify disk I/O per
+# request. Including path and size guards against low-resolution mtimes
+# (e.g. Windows) and path re-points during tests.
+_ROWS_CACHE: list[LiveScoreRow] | None = None
+_ROWS_CACHE_KEY: tuple[str, int, float] | None = None
 
-def _load_rows() -> list[LiveScoreRow]:
-    if not LIVE_SCORES_FILE.exists():
-        return []
+
+def _parse_rows() -> list[LiveScoreRow]:
     rows: list[LiveScoreRow] = []
     with LIVE_SCORES_FILE.open("r", encoding="utf-8") as fh:
         for line in fh:
@@ -78,13 +83,44 @@ def _load_rows() -> list[LiveScoreRow]:
     return rows
 
 
+def _cache_key() -> tuple[str, int, float] | None:
+    try:
+        st = LIVE_SCORES_FILE.stat()
+    except OSError:
+        return None
+    return (str(LIVE_SCORES_FILE), st.st_size, st.st_mtime)
+
+
+def _load_rows() -> list[LiveScoreRow]:
+    """Return cached rows; reparse only when the file's identity changed."""
+    global _ROWS_CACHE, _ROWS_CACHE_KEY
+    if not LIVE_SCORES_FILE.exists():
+        _ROWS_CACHE = []
+        _ROWS_CACHE_KEY = None
+        return []
+    key = _cache_key()
+    if key is None:
+        return _parse_rows()
+    if _ROWS_CACHE is not None and key == _ROWS_CACHE_KEY:
+        return _ROWS_CACHE
+    rows = _parse_rows()
+    _ROWS_CACHE = rows
+    _ROWS_CACHE_KEY = key
+    return rows
+
+
 def _write_rows(rows: Iterable[LiveScoreRow]) -> None:
+    global _ROWS_CACHE, _ROWS_CACHE_KEY
     LIVE_SCORES_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = LIVE_SCORES_FILE.with_suffix(".tmp")
+    materialised = list(rows)
     with tmp.open("w", encoding="utf-8") as fh:
-        for r in rows:
+        for r in materialised:
             fh.write(json.dumps(asdict(r), ensure_ascii=False) + "\n")
     tmp.replace(LIVE_SCORES_FILE)
+    # Prime the cache so the next read is a hit without a reparse.
+    _ROWS_CACHE = materialised
+    _ROWS_CACHE_KEY = _cache_key()
 
 
 def load_live_results_for_code(

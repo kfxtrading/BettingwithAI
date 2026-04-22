@@ -38,28 +38,46 @@ def capture_today_snapshot() -> str:
     return str(path)
 
 
-def settle_live(days_from: int = 3) -> tuple[int, int]:
+def settle_live(
+    days_from: int = 3,
+    *,
+    force_leagues: set[str] | frozenset[str] | None = None,
+) -> tuple[int, int]:
     """Poll Odds-API `/scores` for leagues with pending bets, re-grade.
 
     Returns (n_new_live_rows, n_bets_settled_delta).
-    Cheap to call — skips the HTTP round-trip entirely when no bet is
-    pending.
+
+    Polls the union of:
+      * ``pending_league_codes()`` — leagues with still-pending bets that need
+        authoritative final-score grading, and
+      * ``force_leagues`` — extra league *codes* whose matches must surface
+        fresh live scores in the UI even when no bet is pending yet.
+
+    ``regrade_all()`` only runs when there is at least one pending bet; pure
+    display-driven polls skip the (expensive) regrade pass.
     """
     from football_betting.evaluation.live_results import (
         pending_league_codes,
         poll_and_store_scores,
     )
 
-    codes = pending_league_codes()
+    pending = pending_league_codes()
+    forced = set(force_leagues) if force_leagues else set()
+    codes = pending | forced
     if not codes:
-        logger.debug("[live] No pending bets — skipping Odds-API poll")
+        logger.debug("[live] No pending bets and no forced leagues — skipping Odds-API poll")
         return (0, 0)
 
-    before_pending = len([g for g in _load_current_graded() if g.status == "pending"])
+    before_pending = (
+        len([g for g in _load_current_graded() if g.status == "pending"]) if pending else 0
+    )
     added = poll_and_store_scores(codes, days_from=days_from)
-    regrade_all()
-    after_pending = len([g for g in _load_current_graded() if g.status == "pending"])
-    settled = max(0, before_pending - after_pending)
+    if pending:
+        regrade_all()
+        after_pending = len([g for g in _load_current_graded() if g.status == "pending"])
+        settled = max(0, before_pending - after_pending)
+    else:
+        settled = 0
     if settled or added:
         logger.info("[live] Settled %d bets (added %d live rows)", settled, added)
     return (added, settled)
