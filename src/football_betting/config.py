@@ -351,6 +351,7 @@ class BettingConfig:
     max_stake_pct: float = 0.05
     min_odds: float = 1.30
     max_odds: float = 15.0
+    devig_method: Literal["multiplicative", "power", "shin"] = "power"
 
 
 @dataclass(frozen=True, slots=True)

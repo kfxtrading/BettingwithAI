@@ -93,7 +93,7 @@ def find_value_bets(
         return []
 
     oh, od, oa = fixture.odds.home, fixture.odds.draw, fixture.odds.away
-    mh, md, ma = remove_margin(oh, od, oa)
+    mh, md, ma = remove_margin(oh, od, oa, method=cfg.devig_method)
 
     candidates: list[tuple[Outcome, float, float, float]] = [
         ("H", prediction.prob_home, mh, oh),
