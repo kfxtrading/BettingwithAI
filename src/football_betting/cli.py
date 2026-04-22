@@ -1066,20 +1066,77 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
     is_flag=True,
     help="Phase 7: level-2 stacking meta-learner (CatBoost+Poisson L1 OOF → LR meta)",
 )
+@click.option(
+    "--folds-auto",
+    "folds_auto",
+    is_flag=True,
+    help="Filter the Phase 6 walk-forward schedule to folds whose train+test seasons have CSVs on disk.",
+)
+@click.option(
+    "--sliding/--expanding",
+    "sliding",
+    default=False,
+    help="Walk-forward window mode. Sliding keeps only the trailing --window-matches from each fold's train set.",
+)
+@click.option(
+    "--window-matches",
+    type=click.IntRange(100, 10_000),
+    default=500,
+    show_default=True,
+    help="Trailing window size for --sliding walk-forward.",
+)
 def backtest(
-    league: str, bankroll: float, no_ensemble: bool, walk_forward: bool, stacking: bool
+    league: str,
+    bankroll: float,
+    no_ensemble: bool,
+    walk_forward: bool,
+    stacking: bool,
+    folds_auto: bool,
+    sliding: bool,
+    window_matches: int,
 ) -> None:
     """Walk-forward backtest (single season or Phase 6 multi-fold)."""
     league = league.upper()
 
     if walk_forward:
-        from football_betting.tracking.backtest import walk_forward_backtest
+        from football_betting.tracking.backtest import (
+            DEFAULT_WALK_FORWARD_FOLDS,
+            walk_forward_backtest,
+        )
+
+        folds = None
+        if folds_auto:
+            league_code = LEAGUES[league].code
+            available_seasons = {
+                p.stem.split("_", 1)[1] for p in (DATA_DIR / "raw").glob(f"{league_code}_*.csv")
+            }
+            # football-data suffix is YYYY without dash, e.g. 2122 for 2021-22.
+            def _fd(season: str) -> str:
+                return season[2:4] + season[-2:]
+
+            folds = tuple(
+                (train, test)
+                for train, test in DEFAULT_WALK_FORWARD_FOLDS
+                if _fd(test) in available_seasons
+                and all(_fd(s) in available_seasons for s in train)
+            )
+            if not folds:
+                console.print(
+                    f"[red]No walk-forward folds have complete CSV coverage for {league}.[/red]"
+                )
+                raise click.Abort()
+            console.print(
+                f"[green]--folds-auto: {len(folds)}/{len(DEFAULT_WALK_FORWARD_FOLDS)} folds retained.[/green]"
+            )
 
         summary = walk_forward_backtest(
             league,
+            folds=folds,
             bankroll=bankroll,
             use_ensemble=not no_ensemble,
             use_stacking=stacking,
+            mode="sliding" if sliding else "expanding",
+            window_matches=window_matches,
         )
         console.rule(f"[bold green]Walk-Forward — {LEAGUES[league].name}[/bold green]")
         console.print(f"  Folds: {len(summary.folds)}")
