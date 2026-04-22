@@ -1,4 +1,5 @@
 """Central configuration — v0.3."""
+
 from __future__ import annotations
 
 import os
@@ -27,7 +28,7 @@ def _load_dotenv(path: Path) -> None:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             if line.startswith("export "):
-                line = line[len("export "):].lstrip()
+                line = line[len("export ") :].lstrip()
             key, _, value = line.partition("=")
             key = key.strip()
             if not key or key in os.environ:
@@ -54,14 +55,22 @@ SUPPORT_DATA_DIR = DATA_DIR / "support_faq"
 SUPPORT_MODELS_DIR = MODELS_DIR / "support"
 
 for d in (
-    RAW_DIR, PROCESSED_DIR, PREDICTIONS_DIR,
-    BACKTEST_DIR, SOFASCORE_DIR, MONITORING_DIR, SNAPSHOT_DIR, WEATHER_DIR, MODELS_DIR,
+    RAW_DIR,
+    PROCESSED_DIR,
+    PREDICTIONS_DIR,
+    BACKTEST_DIR,
+    SOFASCORE_DIR,
+    MONITORING_DIR,
+    SNAPSHOT_DIR,
+    WEATHER_DIR,
+    MODELS_DIR,
     SUPPORT_MODELS_DIR,
 ):
     d.mkdir(parents=True, exist_ok=True)
 
 
 # ───────────────────────── League Configs ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class LeagueConfig:
@@ -74,9 +83,7 @@ class LeagueConfig:
     sot_conv_rate: float = 0.32
     sofascore_tournament_id: int | None = None  # for Sofascore scraping
     sofascore_season_ids: dict[str, int] = field(default_factory=dict)
-    download_url_template: str = (
-        "https://www.football-data.co.uk/mmz4281/{season}/{code}.csv"
-    )
+    download_url_template: str = "https://www.football-data.co.uk/mmz4281/{season}/{code}.csv"
 
     def url(self, season: str) -> str:
         return self.download_url_template.format(season=season, code=self.code)
@@ -85,29 +92,60 @@ class LeagueConfig:
 # Sofascore tournament IDs (verified from sofascore.com URL paths)
 LEAGUES: dict[str, LeagueConfig] = {
     "PL": LeagueConfig(
-        "PL", "E0", "Premier League", 1.45, 0.38, 0.110, 0.33,
+        "PL",
+        "E0",
+        "Premier League",
+        1.45,
+        0.38,
+        0.110,
+        0.33,
         sofascore_tournament_id=17,
     ),
     "CH": LeagueConfig(
-        "CH", "E1", "EFL Championship", 1.40, 0.38, 0.102, 0.31,
+        "CH",
+        "E1",
+        "EFL Championship",
+        1.40,
+        0.38,
+        0.102,
+        0.31,
         sofascore_tournament_id=18,
     ),
     "BL": LeagueConfig(
-        "BL", "D1", "Bundesliga", 1.50, 0.40, 0.108, 0.32,
+        "BL",
+        "D1",
+        "Bundesliga",
+        1.50,
+        0.40,
+        0.108,
+        0.32,
         sofascore_tournament_id=35,
     ),
     "SA": LeagueConfig(
-        "SA", "I1", "Serie A", 1.35, 0.33, 0.100, 0.30,
+        "SA",
+        "I1",
+        "Serie A",
+        1.35,
+        0.33,
+        0.100,
+        0.30,
         sofascore_tournament_id=23,
     ),
     "LL": LeagueConfig(
-        "LL", "SP1", "La Liga", 1.30, 0.32, 0.098, 0.30,
+        "LL",
+        "SP1",
+        "La Liga",
+        1.30,
+        0.32,
+        0.098,
+        0.30,
         sofascore_tournament_id=8,
     ),
 }
 
 
 # ───────────────────────── Pi-Ratings ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class PiRatingsConfig:
@@ -118,6 +156,7 @@ class PiRatingsConfig:
 
 
 # ───────────────────────── Feature Configs ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class FormConfig:
@@ -213,6 +252,7 @@ class FeatureConfig:
 
 # ───────────────────────── CatBoost ─────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class CatBoostConfig:
     iterations: int = 1500
@@ -230,9 +270,16 @@ class CatBoostConfig:
     # GPU training (v0.4). Opt-in — default stays CPU for bit-reproducibility.
     use_gpu: bool = False
     gpu_devices: str = "0"
+    # v0.4: CPU throughput tuning. ``thread_count=None`` keeps CatBoost's
+    # auto-detection; ``grow_policy="Lossguide"`` + ``max_bin=254`` give a
+    # moderate speedup over the default ``SymmetricTree`` on CPU.
+    thread_count: int | None = None
+    grow_policy: Literal["SymmetricTree", "Lossguide", "Depthwise"] = "SymmetricTree"
+    max_bin: int = 254
 
 
 # ───────────────────────── MLP (v0.3) ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class MLPConfig:
@@ -256,14 +303,31 @@ class MLPConfig:
 
 @dataclass(frozen=True, slots=True)
 class SequenceConfig:
-    """v0.4: GRU+Attention sequence model over last-N matches per team."""
+    """v0.4: 1D-CNN + Transformer sequence model over last-N matches per team.
+
+    Replaces the earlier GRU+Attention head. The CNN captures local temporal
+    patterns (2–3 match streaks), then a small Transformer encoder models
+    longer-range dependencies across the ``window_t`` match history.
+
+    The ``gru_*`` / ``bidirectional`` fields are kept for config-file
+    backwards-compat but are no longer read by the active network.
+    """
 
     enabled: bool = False
     window_t: int = 10
     n_features: int = 14
+    # Legacy (unused by 1D-CNN+Transformer — retained for deserialization) ---
     gru_hidden: int = 64
     gru_layers: int = 2
     bidirectional: bool = True
+    # 1D-CNN + Transformer hyperparams ---------------------------------------
+    conv_channels: int = 64
+    conv_kernel: int = 3
+    tx_layers: int = 2
+    tx_heads: int = 4
+    tx_ffn_factor: int = 2
+    head_hidden: int = 128
+    # Shared training hyperparams --------------------------------------------
     dropout: float = 0.2
     learning_rate: float = 5e-4
     batch_size: int = 128
@@ -271,6 +335,30 @@ class SequenceConfig:
     weight_decay: float = 1e-4
     use_kelly_loss: bool = False
     kelly_lambda: float = 0.3
+    random_seed: int = 42
+
+
+@dataclass(frozen=True, slots=True)
+class TabTransformerConfig:
+    """v0.4: FT-Transformer head over tabular features (1x2 classifier).
+
+    Drop-in successor to the simple MLP head. ``d_token`` is the per-feature
+    embedding width; the encoder runs ``n_blocks`` multi-head attention layers
+    before the [CLS] token is routed through a 3-class linear head.
+    """
+
+    d_token: int = 96
+    n_heads: int = 8
+    n_blocks: int = 3
+    ffn_factor: int = 2
+    dropout: float = 0.2
+    learning_rate: float = 3e-4
+    weight_decay: float = 1e-4
+    batch_size: int = 256
+    epochs: int = 120
+    warmup_fraction: float = 0.08
+    early_stopping_patience: int = 15
+    label_smoothing: float = 0.02
     random_seed: int = 42
 
 
@@ -290,6 +378,7 @@ class StackingConfig:
 
 
 # ───────────────────────── Sofascore (v0.3) ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class SofascoreConfig:
@@ -318,14 +407,15 @@ class SofascoreConfig:
 
 # ───────────────────────── Weather (v0.4) ─────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class WeatherConfig:
     """Open-Meteo weather feature configuration (v0.4 — Phase 1+2)."""
 
     enabled: bool = True
-    use_match_day_weather: bool = True   # Familie A — active in this phase
-    use_weather_shock: bool = False      # Familie B — Phase 3
-    use_simons_signal: bool = False      # Familie C — Phase 3
+    use_match_day_weather: bool = True  # Familie A — active in this phase
+    use_weather_shock: bool = False  # Familie B — Phase 3
+    use_simons_signal: bool = False  # Familie C — Phase 3
 
     # ±hours around kickoff to average hourly observations
     kickoff_window_hours: int = 3
@@ -349,6 +439,7 @@ class WeatherConfig:
 
 
 # ───────────────────────── The Odds API ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class OddsApiConfig:
@@ -379,6 +470,7 @@ class OddsApiConfig:
 
 # ───────────────────────── Calibration ─────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class CalibrationConfig:
     method: str = "isotonic"
@@ -386,6 +478,7 @@ class CalibrationConfig:
 
 
 # ───────────────────────── Monitoring (v0.3) ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class MonitoringConfig:
@@ -398,6 +491,7 @@ class MonitoringConfig:
 
 
 # ───────────────────────── Betting ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class BettingConfig:
@@ -430,6 +524,7 @@ POINT_DEDUCTIONS: dict[tuple[str, str], int] = {
 
 # ───────────────────────── Backtesting / Ensemble ─────────────────────────
 
+
 @dataclass(frozen=True, slots=True)
 class BacktestConfig:
     train_seasons: tuple[str, ...] = ("2021-22", "2022-23", "2023-24")
@@ -440,15 +535,24 @@ class BacktestConfig:
 
 @dataclass(frozen=True, slots=True)
 class EnsembleTuneConfig:
-    """v0.3: now also supports 3-way Dirichlet sampling."""
+    """Dirichlet sampler config for k-way ensemble weight tuning.
+
+    ``dirichlet_alpha`` is a prior over the *active* ensemble members, applied
+    in order (CatBoost, Poisson, MLP/TabTransformer, Sequence). The tuner
+    truncates to the number of active members at runtime, so supplying a
+    4-tuple here is safe even when the sequence model is disabled.
+    """
 
     catboost_weights: tuple[float, ...] = (0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
-    dirichlet_samples: int = 500  # for 3-way tuning
-    dirichlet_alpha: tuple[float, float, float] = (2.0, 1.0, 1.5)  # CB, Poisson, MLP prior
+    dirichlet_samples: int = 500
+    # CB, Poisson, MLP/TabTx, Sequence — CatBoost dominates prior, sequence gets
+    # moderate prior weight given its stronger capacity vs. the tabular MLP.
+    dirichlet_alpha: tuple[float, ...] = (2.0, 1.0, 1.8, 1.5)
     metric: str = "rps"
 
 
 # ───────────────────────── Support Intent Classifier ─────────────────────────
+
 
 @dataclass(frozen=True, slots=True)
 class SupportConfig:
@@ -469,13 +573,13 @@ class SupportConfig:
 
     # Cross-encoder reranker (BAAI/bge-reranker-base)
     reranker_model_name: str = "BAAI/bge-reranker-base"
-    reranker_retrieve_n: int = 20        # candidate rows from bi-encoder
+    reranker_retrieve_n: int = 20  # candidate rows from bi-encoder
     reranker_batch_size: int = 32
 
     # Class bundling (hierarchical coarse→fine classification)
-    cluster_count: int = 80              # ~268 / 3.4 intents per cluster
+    cluster_count: int = 80  # ~268 / 3.4 intents per cluster
     cluster_filename_template: str = "support_clusters_{lang}.npz"
-    cluster_top_c: int = 8               # keep top-C clusters at inference time
+    cluster_top_c: int = 8  # keep top-C clusters at inference time
     cluster_metrics_filename: str = "support_intent_cluster_metrics.json"
 
     # Split
@@ -512,13 +616,13 @@ class SupportConfig:
     # Hierarchical (Pachinko) classifier — chapter → intent
     hierarchical_model_filename_template: str = "support_hier_{lang}.joblib"
     hierarchical_metrics_filename: str = "support_intent_hier_metrics.json"
-    topic_top_c: int = 3                 # expand leaf heads for top-C chapters
-    topic_min_mass: float = 0.90         # stop expanding once cumulative P reaches this
+    topic_top_c: int = 3  # expand leaf heads for top-C chapters
+    topic_min_mass: float = 0.90  # stop expanding once cumulative P reaches this
 
     # Out-Of-Domain handling
     ood_label: str = "__ood__"
     ood_chapter: str = "__ood__"
-    ood_topic_threshold: float = 0.5     # P(__ood__) ≥ → reject
+    ood_topic_threshold: float = 0.5  # P(__ood__) ≥ → reject
     ood_seed_filename_template: str = "ood_seed_{lang}.jsonl"
 
     # Disambiguation gates (used by API in M4)
@@ -532,11 +636,13 @@ class SupportConfig:
     augment_random_seed: int = 1337
 
     # Built-in noise augmenter (no external deps).
-    noise_aug_char_p: float = 0.06         # prob. that a char inside a "noised" word is perturbed
-    noise_aug_word_p: float = 0.15         # prob. that a word is selected for typo noise
-    noise_punct_drop_p: float = 0.5        # prob. of dropping all punctuation in a sentence
-    noise_lowercase_p: float = 0.6         # prob. of lowercasing the sentence
-    noise_max_variants_per_source: int = 6  # hard cap on noise variants spawned from one source utterance
+    noise_aug_char_p: float = 0.06  # prob. that a char inside a "noised" word is perturbed
+    noise_aug_word_p: float = 0.15  # prob. that a word is selected for typo noise
+    noise_punct_drop_p: float = 0.5  # prob. of dropping all punctuation in a sentence
+    noise_lowercase_p: float = 0.6  # prob. of lowercasing the sentence
+    noise_max_variants_per_source: int = (
+        6  # hard cap on noise variants spawned from one source utterance
+    )
 
     # Backtranslation (optional; requires transformers + sentencepiece).
     # Pivot language list per source: order matters (first is highest-quality).
@@ -590,6 +696,7 @@ CATBOOST_CFG = CatBoostConfig()
 MLP_CFG = MLPConfig()
 SEQUENCE_CFG = SequenceConfig()
 STACKING_CFG = StackingConfig()
+TAB_TRANSFORMER_CFG = TabTransformerConfig()
 SOFASCORE_CFG = SofascoreConfig()
 WEATHER_CFG = WeatherConfig()
 ODDS_API_CFG = OddsApiConfig()

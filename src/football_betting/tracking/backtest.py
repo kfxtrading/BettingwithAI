@@ -12,6 +12,7 @@ Outputs:
 * Financial simulation: if value bets were placed, bankroll curve
 * CSV + JSON dumps for further analysis
 """
+
 from __future__ import annotations
 
 import json
@@ -87,7 +88,13 @@ class BacktestResult:
 
 @dataclass(slots=True)
 class Backtester:
-    """Walk-forward backtester."""
+    """Walk-forward backtester.
+
+    ``training_window_matches`` (Phase 4 sliding mode): when set, the
+    trailing N matches of the train set are kept — older matches are
+    dropped before fitting. ``None`` (default) keeps the full training
+    window (expanding behaviour).
+    """
 
     cfg: BacktestConfig = field(default_factory=lambda: BACKTEST_CFG)
     bet_cfg: BettingConfig = field(default_factory=lambda: BETTING_CFG)
@@ -95,6 +102,7 @@ class Backtester:
     use_ensemble: bool = True
     use_stacking: bool = False
     stacking_cfg: StackingConfig = field(default_factory=lambda: STACKING_CFG)
+    training_window_matches: int | None = None
 
     # ───────────────────────── Core loop ─────────────────────────
 
@@ -112,8 +120,19 @@ class Backtester:
 
         if len(train_matches) < self.cfg.min_train_games:
             raise ValueError(
-                f"Too few training matches ({len(train_matches)} < "
-                f"{self.cfg.min_train_games})"
+                f"Too few training matches ({len(train_matches)} < {self.cfg.min_train_games})"
+            )
+
+        # Phase 4 sliding mode: restrict training to the most recent window.
+        if self.training_window_matches is not None:
+            if self.training_window_matches <= 0:
+                raise ValueError("training_window_matches must be positive")
+            train_matches = sorted(train_matches, key=lambda m: m.date)[
+                -self.training_window_matches :
+            ]
+            console.log(
+                f"[yellow]Sliding window: training on last "
+                f"{len(train_matches)} matches only[/yellow]"
             )
 
         console.log(f"Train: {len(train_matches)} matches ({self.cfg.train_seasons})")
@@ -136,16 +155,14 @@ class Backtester:
             inner_train = train_sorted[:split]
             stack_val_matches = train_sorted[split:]
             if inner_train and stack_val_matches:
-                assert max(m.date for m in inner_train) <= min(
-                    m.date for m in stack_val_matches
-                ), "Stacking leakage: inner_train/stack_val overlap"
+                assert max(m.date for m in inner_train) <= min(m.date for m in stack_val_matches), (
+                    "Stacking leakage: inner_train/stack_val overlap"
+                )
                 console.log(
                     f"Stacking inner-split: train={len(inner_train)} "
                     f"stack_val={len(stack_val_matches)}"
                 )
-            training_info = cb.fit(
-                inner_train, warmup_games=100, val_fraction=0.15, calibrate=True
-            )
+            training_info = cb.fit(inner_train, warmup_games=100, val_fraction=0.15, calibrate=True)
         else:
             training_info = cb.fit(
                 train_matches, warmup_games=100, val_fraction=0.15, calibrate=True
@@ -160,9 +177,8 @@ class Backtester:
         poisson = PoissonModel(pi_ratings=feature_builder.pi_ratings)
         # Lazy import to break circular dep
         from football_betting.predict.ensemble import EnsembleModel
-        model = (
-            EnsembleModel(catboost=cb, poisson=poisson) if self.use_ensemble else cb
-        )
+
+        model = EnsembleModel(catboost=cb, poisson=poisson) if self.use_ensemble else cb
 
         # Phase 7: Meta-learner fit on OOF probs over stack_val
         if self.use_stacking and stack_val_matches:
@@ -170,19 +186,16 @@ class Backtester:
                 StackingEnsemble,
                 build_meta_row,
             )
+
             meta_rows: list[np.ndarray] = []
             meta_labels: list[int] = []
             for sm in stack_val_matches:
                 fx = self._fixture_from_match(sm)
                 cb_pred = cb.predict(fx)
                 po_pred = poisson.predict(fx)
-                odds_t = (
-                    (sm.odds.home, sm.odds.draw, sm.odds.away) if sm.odds else None
-                )
+                odds_t = (sm.odds.home, sm.odds.draw, sm.odds.away) if sm.odds else None
                 meta_rows.append(
-                    build_meta_row(
-                        cb_pred.as_tuple(), po_pred.as_tuple(), None, None, odds_t
-                    )
+                    build_meta_row(cb_pred.as_tuple(), po_pred.as_tuple(), None, None, odds_t)
                 )
                 meta_labels.append({"H": 0, "D": 1, "A": 2}[sm.result])
                 feature_builder.update_with_match(sm)
@@ -237,9 +250,7 @@ class Backtester:
                     # Pick highest-edge bet only (avoid betting both sides)
                     best = max(value_bets, key=lambda b: b.edge)
                     stake = best.kelly_stake
-                    profit = (
-                        stake * (best.odds - 1) if best.outcome == m.result else -stake
-                    )
+                    profit = stake * (best.odds - 1) if best.outcome == m.result else -stake
                     bankroll += profit
 
                     # CLV pipeline: bet_odds_at_placement vs closing_odds.
@@ -296,17 +307,20 @@ class Backtester:
             stakes = [float(r["stake"]) for r in bet_records]
             profits = [float(r["profit"]) for r in bet_records]
             returns = [
-                float(r["stake"]) + float(r["profit"]) if r["won"] else 0.0
-                for r in bet_records
+                float(r["stake"]) + float(r["profit"]) if r["won"] else 0.0 for r in bet_records
             ]
             curve = bankroll_curve(self.initial_bankroll, stakes, profits)
             dd = max_drawdown(curve)
-            per_bet_returns = [p / s if s > 0 else 0.0 for p, s in zip(profits, stakes, strict=True)]
+            per_bet_returns = [
+                p / s if s > 0 else 0.0 for p, s in zip(profits, stakes, strict=True)
+            ]
             bet_odds_at_placement = [
-                r.get("bet_odds_at_placement") for r in bet_records  # type: ignore[misc]
+                r.get("bet_odds_at_placement")
+                for r in bet_records  # type: ignore[misc]
             ]
             closing_odds_list = [
-                r.get("closing_odds") for r in bet_records  # type: ignore[misc]
+                r.get("closing_odds")
+                for r in bet_records  # type: ignore[misc]
             ]
             clv_stats = clv_summary(bet_odds_at_placement, closing_odds_list)
             bet_metrics = {
@@ -402,6 +416,8 @@ def walk_forward_backtest(
     bankroll: float = 1000.0,
     use_ensemble: bool = True,
     use_stacking: bool = False,
+    mode: str = "expanding",
+    window_matches: int = 500,
 ) -> WalkForwardSummary:
     """
     Run a chronological multi-fold walk-forward backtest.
@@ -410,9 +426,26 @@ def walk_forward_backtest(
     through the corresponding test season with the standard Backtester.
     No train/test leakage is possible because :class:`BacktestConfig` is
     rebuilt per fold and ``min(test_date) > max(train_date)`` is asserted.
+
+    Parameters
+    ----------
+    mode
+        ``"expanding"`` (default) — use the full ``train_seasons`` window.
+        ``"sliding"`` — keep only the trailing ``window_matches`` matches
+        of each fold's train set. Captures regime shifts (rule changes,
+        pandemic effects, VAR introduction) at the cost of less data.
+    window_matches
+        Trailing window size when ``mode="sliding"``. Ignored otherwise.
     """
+    if mode not in ("expanding", "sliding"):
+        raise ValueError(f"mode must be 'expanding' or 'sliding', got {mode!r}")
+    if mode == "sliding" and window_matches <= 0:
+        raise ValueError("window_matches must be positive in sliding mode")
+
     folds = folds or DEFAULT_WALK_FORWARD_FOLDS
     _validate_folds(folds)
+
+    training_window = window_matches if mode == "sliding" else None
 
     results: list[BacktestResult] = []
     for train_seasons, test_season in folds:
@@ -428,9 +461,11 @@ def walk_forward_backtest(
             initial_bankroll=bankroll,
             use_ensemble=use_ensemble,
             use_stacking=use_stacking,
+            training_window_matches=training_window,
         )
         console.rule(
-            f"[bold magenta]Fold: train={list(train_seasons)} test={test_season}[/bold magenta]"
+            f"[bold magenta]Fold: train={list(train_seasons)} test={test_season} "
+            f"mode={mode}[/bold magenta]"
         )
         result = bt.run(league_key)
         results.append(result)

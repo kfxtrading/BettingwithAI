@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.4.0 — Phase 3–5 ML Pipeline Modernization
+
+### 🚀 New Features
+
+**1D-CNN + Transformer Sequence Head (`predict/sequence_model.py`)**
+- Replaces the legacy GRU + attention branch
+- Per-team encoder: `Conv1d(F→64,k=3)×2 + GELU → learnable positional embedding → TransformerEncoder(d=64, heads=4, layers=2, norm_first=True) → masked mean-pool + LayerNorm`
+- Safe fallback for fully-padded cold-start rows, DirectML compatible via `resolve_device`
+- 7 new unit tests covering shape, softmax, padding invariance, determinism
+
+**4-Way Ensemble + Generalised Dirichlet Tuner (`predict/ensemble.py`)**
+- `EnsembleModel` now supports CatBoost + Poisson + MLP/TabTransformer + Sequence (any subset)
+- Vectorised Dirichlet weight sampling via `np.tensordot`
+- New `brier_logloss_blended` objective — minimises equally-weighted z-score blend of Brier + LogLoss
+- `EnsembleTuneConfig.dirichlet_alpha` extended to 4-tuple with runtime truncation to active members
+
+**Parquet Feature Snapshot Store (`tracking/feature_snapshot.py`)**
+- Monthly-partitioned Parquet files under `data/processed/feature_snapshots/{league}/{yyyy-mm}.parquet`
+- Long-format schema is forward-compatible as the feature set grows
+- `as_of` cutoff-aware loads for reproducible walk-forward backtests
+- New dep: `pyarrow>=15.0`
+
+**Sliding Walk-Forward Backtest (`tracking/backtest.py`)**
+- `Backtester.training_window_matches` caps the trailing training window
+- `walk_forward_backtest(mode="sliding", window_matches=500)` for rolling retrains
+
+**Bayesian Fractional Kelly (`betting/bayesian_kelly.py`)**
+- Variance-aware shrinkage: `stake = fractional_kelly × 1 / (1 + λ · Var(p))`
+- Accepts posterior-sample arrays (e.g. from MC-Dropout)
+- Helper `mc_dropout_probabilities(model, predict_fn, n_passes=50)` for Torch models
+
+**Monte-Carlo Bankroll Stress-Test (`tracking/monte_carlo.py` + `fb stress-test` CLI)**
+- 10 k Bernoulli rollouts per bet-history with reproducible seed
+- Reports P05/P50/P95 final bankroll, mean + P95 max drawdown, risk-of-ruin, CAGR mean + P05
+- New CLI: `fb stress-test --league BL --runs 10000 --bankroll 1000`
+
+### ✅ Testing
+
+- 41 new / updated tests across `test_sequence_model`, `test_ensemble_tuning`, `test_feature_snapshot`, `test_walk_forward_sliding`, `test_bayesian_kelly`, `test_monte_carlo` — all green.
+
 ## v0.3.1 — 21. April 2026
 
 ### 🚀 New Features

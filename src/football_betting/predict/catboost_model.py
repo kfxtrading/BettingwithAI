@@ -6,6 +6,7 @@ v0.2 upgrades:
 * Optional probability calibration via ProbabilityCalibrator
 * Backward-compatible — accepts legacy PiRatings-only init
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -18,7 +19,7 @@ import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from rich.console import Console
 
-from football_betting.config import CATBOOST_CFG, LEAGUES, MODELS_DIR, CatBoostConfig
+from football_betting.config import CATBOOST_CFG, MODELS_DIR, CatBoostConfig
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.calibration import ProbabilityCalibrator
@@ -127,9 +128,7 @@ class CatBoostPredictor:
         console.log(f"Training: {len(X_train)} samples, validation: {len(X_val)}")
         console.log(f"Features: {len(self.feature_names)}")
 
-        train_pool = Pool(
-            X_train, y_train, feature_names=self.feature_names, weight=sample_weight
-        )
+        train_pool = Pool(X_train, y_train, feature_names=self.feature_names, weight=sample_weight)
         val_pool = Pool(X_val, y_val, feature_names=self.feature_names)
 
         cb_kwargs: dict[str, Any] = dict(
@@ -144,17 +143,24 @@ class CatBoostPredictor:
             verbose=self.cfg.verbose,
             classes_count=3,
         )
+        if self.cfg.thread_count is not None:
+            cb_kwargs["thread_count"] = self.cfg.thread_count
+        if self.cfg.grow_policy != "SymmetricTree":
+            cb_kwargs["grow_policy"] = self.cfg.grow_policy
+        if self.cfg.max_bin != 254:
+            cb_kwargs["max_bin"] = self.cfg.max_bin
         if self.cfg.use_gpu:
             from football_betting.predict.gpu_utils import detect_gpu
+
             if detect_gpu():
                 cb_kwargs["task_type"] = "GPU"
                 cb_kwargs["devices"] = self.cfg.gpu_devices
                 cb_kwargs["bootstrap_type"] = "Bayesian"
-                console.log(
-                    f"[cyan]CatBoost GPU enabled (devices={self.cfg.gpu_devices})[/cyan]"
-                )
+                console.log(f"[cyan]CatBoost GPU enabled (devices={self.cfg.gpu_devices})[/cyan]")
             else:
-                console.log("[yellow]CatBoost GPU requested but no CUDA — falling back to CPU[/yellow]")
+                console.log(
+                    "[yellow]CatBoost GPU requested but no CUDA — falling back to CPU[/yellow]"
+                )
         self.model = CatBoostClassifier(**cb_kwargs)
         self.model.fit(train_pool, eval_set=val_pool)
 

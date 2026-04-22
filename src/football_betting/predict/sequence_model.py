@@ -1,11 +1,32 @@
-"""GRU+Attention sequence model over team match-history (v0.4).
+"""1D-CNN + Transformer sequence model over team match-history (v0.4).
 
-Input:  (B, 2, T, F_seq) — home+away team histories
-Output: logits (B, 3) for H/D/A
+Architecture (per team branch, shared weights):
+    ``(B, T, F_seq) → Conv1d(F_seq → C, k=3) → GELU → Conv1d(C → C, k=3) → GELU
+    → (B, T, C) → + learnable positional embedding
+    → TransformerEncoder(d=C, heads=tx_heads, layers=tx_layers, pre-norm)
+    → masked mean-pool over valid timesteps → (B, C)``
+
+Both team branches are concatenated, dropout-gated, and fed through a
+2-layer MLP head producing ``(B, 3)`` H/D/A logits.
+
+Rationale vs. the earlier GRU+Attention head:
+    * Conv1d stacks expose *local* temporal patterns (win-streaks,
+      regression-to-mean after losses) that a GRU has to learn over many
+      timesteps.
+    * Transformer self-attention replaces the single-head attention
+      pool → multi-head dependencies across the 10-match window.
+    * Uses ``resolve_device`` so DirectML (AMD/Intel) works out of the
+      box, not CUDA-only.
+
+API is unchanged: ``SequencePredictor.fit / predict / predict_logits /
+save / load`` keep the signatures the ensemble code already consumes.
 """
+
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -15,6 +36,7 @@ from football_betting.config import SEQUENCE_CFG, SequenceConfig
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.form import FormTracker
 from football_betting.predict.sequence_features import (
+    N_SEQ_FEATURES,
     build_dataset,
     fixture_tensors,
 )
@@ -30,50 +52,95 @@ def _import_torch() -> Any:
     import torch.nn as nn
     import torch.optim as optim
     from torch.utils.data import DataLoader, TensorDataset
+
     return torch, nn, optim, DataLoader, TensorDataset
 
 
 def _build_network(cfg: SequenceConfig) -> Any:
     torch, nn, *_ = _import_torch()
 
+    C = cfg.conv_channels
+    T = cfg.window_t
+
+    class _TeamEncoder(nn.Module):
+        """Conv1d×2 → learnable PE → TransformerEncoder. Shared across teams."""
+
+        def __init__(self) -> None:
+            super().__init__()
+            pad = cfg.conv_kernel // 2
+            self.conv1 = nn.Conv1d(N_SEQ_FEATURES, C, kernel_size=cfg.conv_kernel, padding=pad)
+            self.conv2 = nn.Conv1d(C, C, kernel_size=cfg.conv_kernel, padding=pad)
+            self.act = nn.GELU()
+            self.pos_embed = nn.Parameter(torch.zeros(1, T, C))
+            nn.init.trunc_normal_(self.pos_embed, std=0.02)
+            self.dropout = nn.Dropout(cfg.dropout)
+
+            encoder_layer = nn.TransformerEncoderLayer(
+                d_model=C,
+                nhead=cfg.tx_heads,
+                dim_feedforward=C * cfg.tx_ffn_factor,
+                dropout=cfg.dropout,
+                activation="gelu",
+                batch_first=True,
+                norm_first=True,  # pre-norm → stable on DML/CPU
+            )
+            self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=cfg.tx_layers)
+            self.norm = nn.LayerNorm(C)
+
+        def forward(self, seq: Any, mask: Any) -> Any:
+            # seq: (B, T, F_seq) → (B, F_seq, T) for Conv1d
+            x = seq.transpose(1, 2)
+            x = self.act(self.conv1(x))
+            x = self.act(self.conv2(x))
+            x = x.transpose(1, 2)  # → (B, T, C)
+            x = x + self.pos_embed
+            x = self.dropout(x)
+
+            # key_padding_mask: True where padding → ignored by attention
+            key_padding = mask < 0.5
+            # If a row is entirely padded the transformer produces NaNs for
+            # that row. Guard by swapping its mask to a single "valid" slot
+            # (the last one) and zero out afterwards via ``any_valid``.
+            any_valid = (~key_padding).any(dim=1)
+            safe_kp = key_padding.clone()
+            safe_kp[~any_valid, -1] = False
+
+            x = self.encoder(x, src_key_padding_mask=safe_kp)  # (B, T, C)
+            # Masked mean-pool over valid timesteps
+            valid_f = (~key_padding).float().unsqueeze(-1)  # (B, T, 1)
+            denom = valid_f.sum(dim=1).clamp_min(1.0)
+            pooled = (x * valid_f).sum(dim=1) / denom
+            pooled = self.norm(pooled)
+            # cold-start: zero out rows that had no valid timestep
+            pooled = pooled * any_valid.float().unsqueeze(-1)
+            return pooled
+
     class _SeqNet(nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.gru = nn.GRU(
-                input_size=N_SEQ_FEATURES,
-                hidden_size=cfg.gru_hidden,
-                num_layers=cfg.gru_layers,
-                batch_first=True,
-                bidirectional=cfg.bidirectional,
-                dropout=cfg.dropout if cfg.gru_layers > 1 else 0.0,
-            )
-            out_dim = cfg.gru_hidden * (2 if cfg.bidirectional else 1)
-            self.attn = nn.Linear(out_dim, 1)
+            # Separate encoders per team branch → more capacity without weight
+            # sharing quirks (branches see home/away asymmetry via `is_home`).
+            self.home_encoder = _TeamEncoder()
+            self.away_encoder = _TeamEncoder()
             self.dropout = nn.Dropout(cfg.dropout)
             self.head = nn.Sequential(
-                nn.Linear(out_dim * 2, 128),
-                nn.ReLU(),
+                nn.Linear(2 * C, cfg.head_hidden),
+                nn.GELU(),
                 nn.Dropout(cfg.dropout),
-                nn.Linear(128, 64),
-                nn.ReLU(),
+                nn.Linear(cfg.head_hidden, 64),
+                nn.GELU(),
                 nn.Linear(64, 3),
             )
 
-        def _encode(self, seq: Any, mask: Any) -> Any:
-            h, _ = self.gru(seq)  # (B, T, H*dir)
-            scores = self.attn(h).squeeze(-1)  # (B, T)
-            # mask padding (mask==0 → -inf)
-            scores = scores.masked_fill(mask < 0.5, float("-inf"))
-            # if ALL timesteps masked (cold start), fall back to zero vector
-            any_valid = (mask.sum(dim=1) > 0).unsqueeze(-1)
-            weights = torch.softmax(scores, dim=1).unsqueeze(-1)
-            weights = torch.nan_to_num(weights, nan=0.0)
-            pooled = (h * weights).sum(dim=1)
-            return pooled * any_valid.float()
-
-        def forward(self, home_seq: Any, home_mask: Any, away_seq: Any, away_mask: Any) -> Any:
-            h_h = self._encode(home_seq, home_mask)
-            h_a = self._encode(away_seq, away_mask)
+        def forward(
+            self,
+            home_seq: Any,
+            home_mask: Any,
+            away_seq: Any,
+            away_mask: Any,
+        ) -> Any:
+            h_h = self.home_encoder(home_seq, home_mask)
+            h_a = self.away_encoder(away_seq, away_mask)
             return self.head(self.dropout(torch.cat([h_h, h_a], dim=-1)))
 
     return _SeqNet()
@@ -81,7 +148,7 @@ def _build_network(cfg: SequenceConfig) -> Any:
 
 @dataclass(slots=True)
 class SequencePredictor:
-    """GRU+Attention ensemble member."""
+    """1D-CNN + Transformer ensemble member over 10-match team histories."""
 
     form_tracker: FormTracker = field(default_factory=FormTracker)
     pi_ratings: PiRatings = field(default_factory=PiRatings)
@@ -105,8 +172,11 @@ class SequencePredictor:
         self.pi_ratings = PiRatings()
 
         H, HM, A, AM, y, odds = build_dataset(  # noqa: N806
-            matches, self.form_tracker, self.pi_ratings,
-            window_t=self.cfg.window_t, warmup_games=warmup_games,
+            matches,
+            self.form_tracker,
+            self.pi_ratings,
+            window_t=self.cfg.window_t,
+            warmup_games=warmup_games,
         )
         if len(y) < 200:
             raise ValueError(f"Too few sequence samples: {len(y)}")
@@ -115,7 +185,11 @@ class SequencePredictor:
         tr = slice(0, split)
         va = slice(split, len(y))
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        from football_betting.predict.gpu_utils import resolve_device
+
+        device_pref = os.environ.get("FB_TORCH_DEVICE", "auto")
+        device, backend = resolve_device(device_pref)  # type: ignore[arg-type]
+        console.log(f"[cyan]SequenceModel training on {backend} ({device})[/cyan]")
         self._device = device
         self.model = _build_network(self.cfg).to(device)
 
@@ -128,6 +202,7 @@ class SequencePredictor:
 
         if self.cfg.use_kelly_loss:
             from football_betting.predict.losses import CombinedLoss
+
             combined: Any = CombinedLoss(lam=self.cfg.kelly_lambda)
         else:
             combined = None
@@ -136,14 +211,20 @@ class SequencePredictor:
             return torch.tensor(t, dtype=dtype, device=device)
 
         train_ds = TensorDataset(
-            _to(H[tr], torch.float32), _to(HM[tr], torch.float32),
-            _to(A[tr], torch.float32), _to(AM[tr], torch.float32),
-            _to(y[tr], torch.long), _to(odds[tr], torch.float32),
+            _to(H[tr], torch.float32),
+            _to(HM[tr], torch.float32),
+            _to(A[tr], torch.float32),
+            _to(AM[tr], torch.float32),
+            _to(y[tr], torch.long),
+            _to(odds[tr], torch.float32),
         )
         val_ds = TensorDataset(
-            _to(H[va], torch.float32), _to(HM[va], torch.float32),
-            _to(A[va], torch.float32), _to(AM[va], torch.float32),
-            _to(y[va], torch.long), _to(odds[va], torch.float32),
+            _to(H[va], torch.float32),
+            _to(HM[va], torch.float32),
+            _to(A[va], torch.float32),
+            _to(AM[va], torch.float32),
+            _to(y[va], torch.long),
+            _to(odds[va], torch.float32),
         )
         train_loader = DataLoader(train_ds, batch_size=self.cfg.batch_size, shuffle=True)
         val_loader = DataLoader(val_ds, batch_size=self.cfg.batch_size)
@@ -180,7 +261,7 @@ class SequencePredictor:
 
             if vloss < best_val:
                 best_val = vloss
-                best_state = {k: v.clone() for k, v in self.model.state_dict().items()}
+                best_state = {k: v.detach().clone() for k, v in self.model.state_dict().items()}
 
             if epoch % 5 == 0:
                 console.log(f"SeqModel epoch {epoch}: train={tloss:.4f} val={vloss:.4f}")
@@ -188,7 +269,12 @@ class SequencePredictor:
         if best_state is not None:
             self.model.load_state_dict(best_state)
 
-        return {"n_train": split, "n_val": len(y) - split, "best_val_loss": best_val}
+        return {
+            "n_train": split,
+            "n_val": len(y) - split,
+            "best_val_loss": best_val,
+            "backend": backend,
+        }
 
     # ───────────────────────── Inference ─────────────────────────
 
@@ -197,8 +283,11 @@ class SequencePredictor:
         if self.model is None:
             raise RuntimeError("SequenceModel not trained / loaded.")
         hs, hm, as_, am = fixture_tensors(
-            fixture.home_team, fixture.away_team,
-            self.form_tracker, self.pi_ratings, self.cfg.window_t,
+            fixture.home_team,
+            fixture.away_team,
+            self.form_tracker,
+            self.pi_ratings,
+            self.cfg.window_t,
         )
         device = self._device or torch.device("cpu")
         self.model.eval()
@@ -212,7 +301,7 @@ class SequencePredictor:
             probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
         return Prediction(
             fixture=fixture,
-            model_name="SequenceGRU",
+            model_name="Sequence1DCNN+Tx",
             prob_home=float(probs[0]),
             prob_draw=float(probs[1]),
             prob_away=float(probs[2]),
@@ -224,8 +313,11 @@ class SequencePredictor:
         if self.model is None:
             raise RuntimeError("SequenceModel not trained / loaded.")
         hs, hm, as_, am = fixture_tensors(
-            fixture.home_team, fixture.away_team,
-            self.form_tracker, self.pi_ratings, self.cfg.window_t,
+            fixture.home_team,
+            fixture.away_team,
+            self.form_tracker,
+            self.pi_ratings,
+            self.cfg.window_t,
         )
         device = self._device or torch.device("cpu")
         self.model.eval()
@@ -244,7 +336,8 @@ class SequencePredictor:
         torch, *_ = _import_torch()
         if self.model is None:
             raise RuntimeError("No model to save.")
-        torch.save(self.model.state_dict(), path)
+        cpu_state = {k: v.detach().cpu() for k, v in self.model.state_dict().items()}
+        torch.save(cpu_state, path)
 
     def load(self, path: Path) -> None:
         torch, *_ = _import_torch()

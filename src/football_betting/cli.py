@@ -21,6 +21,7 @@ Commands:
     fb snapshot          — Generate JSON snapshot for the web UI
     fb serve             — Run the FastAPI server for the web UI
 """
+
 from __future__ import annotations
 
 import json
@@ -48,6 +49,7 @@ from football_betting.predict.catboost_model import CatBoostPredictor
 from football_betting.predict.ensemble import EnsembleModel
 from football_betting.predict.mlp_model import MLPPredictor
 from football_betting.predict.poisson import PoissonModel
+from football_betting.predict.tabular_transformer import TabTransformerPredictor
 from football_betting.rating.pi_ratings import PiRatings
 from football_betting.scraping.sofascore import SofascoreClient
 from football_betting.tracking.backtest import Backtester
@@ -65,10 +67,20 @@ def main() -> None:
 
 # ───────────────────────── download ─────────────────────────
 
+
 @main.command()
-@click.option("--league", "-l", type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False), default="all")
-@click.option("--seasons", "-s", multiple=True,
-              default=("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    default="all",
+)
+@click.option(
+    "--seasons",
+    "-s",
+    multiple=True,
+    default=("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"),
+)
 @click.option("--force", is_flag=True)
 def download(league: str, seasons: tuple[str, ...], force: bool) -> None:
     """Download football-data.co.uk historical CSVs."""
@@ -78,8 +90,11 @@ def download(league: str, seasons: tuple[str, ...], force: bool) -> None:
 
 # ───────────────────────── rate ─────────────────────────
 
+
 @main.command()
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
 @click.option("--top", "-n", default=10)
 def rate(league: str, top: int) -> None:
     """Show pi-ratings top-N."""
@@ -101,24 +116,30 @@ def rate(league: str, top: int) -> None:
 
 # ───────────────────────── scrape (v0.3) ─────────────────────────
 
+
 @main.command()
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
 @click.option("--seasons", "-s", multiple=True, default=("2024-25", "2025-26"))
 @click.option("--with-stats/--no-stats", default=True, help="Also fetch xG + lineups per match")
 @click.option("--max-matches", default=None, type=int, help="Limit for testing")
-def scrape(league: str, seasons: tuple[str, ...], with_stats: bool, max_matches: int | None) -> None:
+def scrape(
+    league: str, seasons: tuple[str, ...], with_stats: bool, max_matches: int | None
+) -> None:
     """Scrape Sofascore data for xG + lineups (v0.3)."""
     league = league.upper()
     client = SofascoreClient()
 
     if not client.cfg.enabled:
         console.print(
-            "[red]Sofascore scraping disabled.[/red]\n"
-            "Enable with: export SCRAPING_ENABLED=1"
+            "[red]Sofascore scraping disabled.[/red]\nEnable with: export SCRAPING_ENABLED=1"
         )
         raise click.Abort()
 
-    console.log(f"[yellow]Note: Waiting {client.cfg.request_delay_seconds}s between requests[/yellow]")
+    console.log(
+        f"[yellow]Note: Waiting {client.cfg.request_delay_seconds}s between requests[/yellow]"
+    )
 
     for season in seasons:
         console.rule(f"[bold cyan]Scraping {LEAGUES[league].name} — {season}[/bold cyan]")
@@ -149,26 +170,29 @@ def scrape(league: str, seasons: tuple[str, ...], with_stats: bool, max_matches:
     # Show cache stats
     stats = client.cache.stats()
     console.print(
-        f"[dim]Cache: {stats['entries']} entries, "
-        f"{stats['total_bytes'] / 1024 / 1024:.1f} MB[/dim]"
+        f"[dim]Cache: {stats['entries']} entries, {stats['total_bytes'] / 1024 / 1024:.1f} MB[/dim]"
     )
 
 
 # ───────────────────────── fetch-fixtures (Odds API) ─────────────────────────
 
+
 @main.command("fetch-fixtures")
 @click.option(
-    "--date", "target_date",
+    "--date",
+    "target_date",
     default=None,
     help="ISO date (YYYY-MM-DD) — defaults to today in the server timezone.",
 )
 @click.option(
-    "--league", "-l",
+    "--league",
+    "-l",
     type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
     default="all",
 )
 @click.option(
-    "--out", "-o",
+    "--out",
+    "-o",
     type=click.Path(),
     default=None,
     help="Output path (default: data/fixtures_<date>.json).",
@@ -202,12 +226,15 @@ def fetch_fixtures(target_date: str | None, league: str, out: str | None) -> Non
     out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     table = Table(title=f"Fixtures — {day.isoformat()}")
-    table.add_column("League"); table.add_column("Kickoff")
-    table.add_column("Match"); table.add_column("Odds (H/D/A)", justify="right")
+    table.add_column("League")
+    table.add_column("Kickoff")
+    table.add_column("Match")
+    table.add_column("Odds (H/D/A)", justify="right")
     table.add_column("Books", justify="right")
     for f in sorted(fixtures, key=lambda x: (x.league, x.kickoff_local)):
         table.add_row(
-            f.league, f.kickoff_local,
+            f.league,
+            f.kickoff_local,
             f"{f.home_team} vs {f.away_team}",
             f"{f.odds_home:.2f} / {f.odds_draw:.2f} / {f.odds_away:.2f}",
             str(f.n_bookmakers),
@@ -218,14 +245,17 @@ def fetch_fixtures(target_date: str | None, league: str, out: str | None) -> Non
 
 # ───────────────────────── snapshot-odds (Phase 4 opening lines) ──────────
 
+
 @main.command("snapshot-odds")
 @click.option(
-    "--league", "-l",
+    "--league",
+    "-l",
     type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
     default="all",
 )
 @click.option(
-    "--t-minus", "t_minus_hours",
+    "--t-minus",
+    "t_minus_hours",
     type=int,
     default=48,
     help="Only capture fixtures whose kickoff is within T-<hours> from now.",
@@ -250,8 +280,7 @@ def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
         client = SofascoreClient()
         if not client.cfg.enabled:
             console.print(
-                "[red]Sofascore scraping disabled.[/red]\n"
-                "Enable with: export SCRAPING_ENABLED=1"
+                "[red]Sofascore scraping disabled.[/red]\nEnable with: export SCRAPING_ENABLED=1"
             )
             raise click.Abort()
         console.print(
@@ -273,25 +302,29 @@ def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
         for fo in fx_list:
             payload = fo.to_fixture_dict()
             try:
-                fixtures.append(Fixture(**{
-                    "date": payload["date"],
-                    "league": payload["league"],
-                    "home_team": payload["home_team"],
-                    "away_team": payload["away_team"],
-                    "kickoff_time": payload.get("kickoff_time"),
-                    "odds": MatchOdds(
-                        home=payload["odds"]["home"],
-                        draw=payload["odds"]["draw"],
-                        away=payload["odds"]["away"],
-                        bookmaker="odds_api_opening",
-                    ),
-                    "kickoff_datetime_utc": fo.kickoff_utc,
-                }))
+                fixtures.append(
+                    Fixture(
+                        **{
+                            "date": payload["date"],
+                            "league": payload["league"],
+                            "home_team": payload["home_team"],
+                            "away_team": payload["away_team"],
+                            "kickoff_time": payload.get("kickoff_time"),
+                            "odds": MatchOdds(
+                                home=payload["odds"]["home"],
+                                draw=payload["odds"]["draw"],
+                                away=payload["odds"]["away"],
+                                bookmaker="odds_api_opening",
+                            ),
+                            "kickoff_datetime_utc": fo.kickoff_utc,
+                        }
+                    )
+                )
             except Exception as exc:  # pragma: no cover
-                console.log(f"[yellow]Skip fixture {fo.home_team} vs {fo.away_team}: {exc}[/yellow]")
-        captured = capture_odds_snapshot(
-            key, fixtures, t_minus_hours=t_minus_hours, source=source
-        )
+                console.log(
+                    f"[yellow]Skip fixture {fo.home_team} vs {fo.away_team}: {exc}[/yellow]"
+                )
+        captured = capture_odds_snapshot(key, fixtures, t_minus_hours=t_minus_hours, source=source)
         total += len(captured)
         console.log(
             f"[green]{key}: captured {len(captured)} opening snapshots "
@@ -302,16 +335,24 @@ def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
 
 # ───────────────────────── train ─────────────────────────
 
+
 @main.command()
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
-@click.option("--seasons", "-s", multiple=True,
-              default=("2021-22", "2022-23", "2023-24", "2024-25"))
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
+@click.option(
+    "--seasons", "-s", multiple=True, default=("2021-22", "2022-23", "2023-24", "2024-25")
+)
 @click.option("--warmup", default=100)
 @click.option("--calibrate/--no-calibrate", default=True)
-@click.option("--use-sofascore/--no-sofascore", default=True,
-              help="Ingest pre-scraped Sofascore data if present")
-def train(league: str, seasons: tuple[str, ...], warmup: int, calibrate: bool,
-          use_sofascore: bool) -> None:
+@click.option(
+    "--use-sofascore/--no-sofascore",
+    default=True,
+    help="Ingest pre-scraped Sofascore data if present",
+)
+def train(
+    league: str, seasons: tuple[str, ...], warmup: int, calibrate: bool, use_sofascore: bool
+) -> None:
     """Train CatBoost + calibrator."""
     league = league.upper()
     matches = load_league(league, seasons=list(seasons))
@@ -352,10 +393,14 @@ def train(league: str, seasons: tuple[str, ...], warmup: int, calibrate: bool,
 
 # ───────────────────────── train-mlp (v0.3) ─────────────────────────
 
+
 @main.command("train-mlp")
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
-@click.option("--seasons", "-s", multiple=True,
-              default=("2021-22", "2022-23", "2023-24", "2024-25"))
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
+@click.option(
+    "--seasons", "-s", multiple=True, default=("2021-22", "2022-23", "2023-24", "2024-25")
+)
 @click.option("--warmup", default=100)
 def train_mlp(league: str, seasons: tuple[str, ...], warmup: int) -> None:
     """Train PyTorch MLP classifier (v0.3)."""
@@ -379,7 +424,59 @@ def train_mlp(league: str, seasons: tuple[str, ...], warmup: int) -> None:
     console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
 
 
+# ───────────────────────── train-tab (v0.4) ─────────────────────────
+
+
+@main.command("train-tab")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(list(LEAGUES.keys()), case_sensitive=False),
+    required=True,
+)
+@click.option(
+    "--seasons",
+    "-s",
+    multiple=True,
+    default=("2021-22", "2022-23", "2023-24", "2024-25"),
+)
+@click.option("--warmup", default=100, show_default=True)
+@click.option(
+    "--device",
+    type=click.Choice(["auto", "cuda", "dml", "cpu"], case_sensitive=False),
+    default="auto",
+    show_default=True,
+    help="Torch backend: auto → CUDA → DirectML (AMD/Intel) → CPU.",
+)
+def train_tab(league: str, seasons: tuple[str, ...], warmup: int, device: str) -> None:
+    """Train FT-Transformer tabular classifier (v0.4, GPU-friendly)."""
+    import os as _os
+
+    league = league.upper()
+    _os.environ["FB_TORCH_DEVICE"] = device.lower()
+
+    matches = load_league(league, seasons=list(seasons))
+
+    fb = FeatureBuilder()
+    for season in seasons:
+        sf_data = SofascoreClient.load_matches(league, season)
+        if sf_data:
+            fb.stage_sofascore_batch(sf_data)
+
+    tab = TabTransformerPredictor(feature_builder=fb)
+    console.log(f"[cyan]Training FT-Transformer for {LEAGUES[league].name}…[/cyan]")
+    result = tab.fit(matches, warmup_games=warmup)
+
+    path = MODELS_DIR / f"tabtransformer_{league}.pt"
+    tab.save(path)
+    console.log(f"[green]TabTransformer saved: {path}[/green]")
+    console.print(f"  n_train={result['n_train']}, n_val={result['n_val']}")
+    console.print(f"  n_features={result['n_features']}, backend={result['backend']}")
+    console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
+
+
 # ───────────────────────── train-support (v0.3.1) ─────────────────────────
+
 
 @main.command("train-support")
 @click.option(
@@ -410,15 +507,14 @@ def train_support(lang: str, dataset_path: Path | None, out_dir: Path | None) ->
     else:
         lg = lang.lower()
         if lg not in SUPPORT_CFG.languages:
-            raise click.BadParameter(
-                f"lang must be one of {('all', *SUPPORT_CFG.languages)}"
-            )
+            raise click.BadParameter(f"lang must be one of {('all', *SUPPORT_CFG.languages)}")
         langs = [lg]
 
     train_all(langs=langs, dataset_path=dataset_path, out_dir=out_dir)
 
 
 # ─────────────────── train-support-hier (v0.3.2 — Pachinko) ───────────────────
+
 
 @main.command("train-support-hier")
 @click.option(
@@ -460,9 +556,7 @@ def train_support_hier(
     else:
         lg = lang.lower()
         if lg not in SUPPORT_CFG.languages:
-            raise click.BadParameter(
-                f"lang must be one of {('all', *SUPPORT_CFG.languages)}"
-            )
+            raise click.BadParameter(f"lang must be one of {('all', *SUPPORT_CFG.languages)}")
         langs = [lg]
 
     train_hierarchical_all(
@@ -474,6 +568,7 @@ def train_support_hier(
 
 
 # ─────────────────── augment-support (v0.3.3 - Data x3.3) ───────────────────
+
 
 @main.command("augment-support")
 @click.option(
@@ -589,6 +684,7 @@ def augment_support(
 
 # ─────────────────── train-support-transformer (v0.3.4 - M3) ───────────────────
 
+
 @main.command("train-support-transformer")
 @click.option(
     "--lang",
@@ -616,7 +712,7 @@ def augment_support(
     type=str,
     default=None,
     help="Override HF backbone (default: XLM-R base for all languages — "
-         "ModernGBERT's backward pass is not DirectML-compatible on W7700).",
+    "ModernGBERT's backward pass is not DirectML-compatible on W7700).",
 )
 @click.option(
     "--include-ood/--no-ood",
@@ -737,8 +833,11 @@ def export_support_onnx(lang: str, model_dir: Path | None, int8: bool) -> None:
 
 # ───────────────────────── export-onnx (v0.3) ─────────────────────────
 
+
 @main.command("export-onnx")
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
 def export_onnx(league: str) -> None:
     """Export trained MLP to ONNX format."""
     league = league.upper()
@@ -756,6 +855,7 @@ def export_onnx(league: str) -> None:
 
 
 # ───────────────────────── predict ─────────────────────────
+
 
 @main.command()
 @click.option("--fixtures", "-f", required=True, type=click.Path(exists=True))
@@ -816,8 +916,10 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
         for fd in league_fixtures:
             odds = MatchOdds(**fd["odds"]) if "odds" in fd else None
             fixture = Fixture(
-                date=fd["date"], league=league_key,
-                home_team=fd["home_team"], away_team=fd["away_team"],
+                date=fd["date"],
+                league=league_key,
+                home_team=fd["home_team"],
+                away_team=fd["away_team"],
                 odds=odds,
                 season=fd.get("season"),
             )
@@ -840,10 +942,14 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
 
             if save and tracker is not None:
                 rec = PredictionRecord(
-                    date=fixture.date.isoformat(), league=league_key,
-                    home_team=fixture.home_team, away_team=fixture.away_team,
+                    date=fixture.date.isoformat(),
+                    league=league_key,
+                    home_team=fixture.home_team,
+                    away_team=fixture.away_team,
                     model_name=pred.model_name,
-                    prob_home=pred.prob_home, prob_draw=pred.prob_draw, prob_away=pred.prob_away,
+                    prob_home=pred.prob_home,
+                    prob_draw=pred.prob_draw,
+                    prob_away=pred.prob_away,
                     odds_home=odds.home if odds else None,
                     odds_draw=odds.draw if odds else None,
                     odds_away=odds.away if odds else None,
@@ -861,16 +967,24 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
     if all_bets:
         ranked = rank_value_bets(all_bets)
         table = Table()
-        table.add_column("#", justify="right"); table.add_column("Match")
-        table.add_column("Bet"); table.add_column("Odds", justify="right")
-        table.add_column("Model", justify="right"); table.add_column("Edge", justify="right")
-        table.add_column("Stake", justify="right"); table.add_column("Conf.")
+        table.add_column("#", justify="right")
+        table.add_column("Match")
+        table.add_column("Bet")
+        table.add_column("Odds", justify="right")
+        table.add_column("Model", justify="right")
+        table.add_column("Edge", justify="right")
+        table.add_column("Stake", justify="right")
+        table.add_column("Conf.")
         for i, b in enumerate(ranked, 1):
             table.add_row(
-                str(i), f"{b.home_team} vs {b.away_team}",
-                b.bet_label, f"{b.odds:.2f}",
-                f"{b.model_prob * 100:.1f}%", f"{b.edge_pct:+.1f}%",
-                f"{b.kelly_stake:.2f}", b.confidence,
+                str(i),
+                f"{b.home_team} vs {b.away_team}",
+                b.bet_label,
+                f"{b.odds:.2f}",
+                f"{b.model_prob * 100:.1f}%",
+                f"{b.edge_pct:+.1f}%",
+                f"{b.kelly_stake:.2f}",
+                b.confidence,
             )
         console.print(table)
     else:
@@ -882,21 +996,33 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
 
 # ───────────────────────── backtest ─────────────────────────
 
+
 @main.command()
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
 @click.option("--bankroll", default=1000.0)
 @click.option("--no-ensemble", is_flag=True)
-@click.option("--walk-forward", "walk_forward", is_flag=True,
-              help="Run the Phase 6 multi-fold walk-forward schedule")
-@click.option("--stacking", is_flag=True,
-              help="Phase 7: level-2 stacking meta-learner (CatBoost+Poisson L1 OOF → LR meta)")
-def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool,
-             stacking: bool) -> None:
+@click.option(
+    "--walk-forward",
+    "walk_forward",
+    is_flag=True,
+    help="Run the Phase 6 multi-fold walk-forward schedule",
+)
+@click.option(
+    "--stacking",
+    is_flag=True,
+    help="Phase 7: level-2 stacking meta-learner (CatBoost+Poisson L1 OOF → LR meta)",
+)
+def backtest(
+    league: str, bankroll: float, no_ensemble: bool, walk_forward: bool, stacking: bool
+) -> None:
     """Walk-forward backtest (single season or Phase 6 multi-fold)."""
     league = league.upper()
 
     if walk_forward:
         from football_betting.tracking.backtest import walk_forward_backtest
+
         summary = walk_forward_backtest(
             league,
             bankroll=bankroll,
@@ -944,7 +1070,8 @@ def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool
     console.print(f"  Max drawdown: {result.max_drawdown['max_drawdown_pct'] * 100:.1f}%")
 
     table = Table(title="Metrics")
-    table.add_column("Metric"); table.add_column("Value", justify="right")
+    table.add_column("Metric")
+    table.add_column("Value", justify="right")
     for k, v in {**result.metrics, **result.bet_metrics}.items():
         table.add_row(k, f"{v:.4f}" if isinstance(v, float) else str(v))
     console.print(table)
@@ -954,8 +1081,11 @@ def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool
 
 # ───────────────────────── tune-ensemble ─────────────────────────
 
+
 @main.command("tune-ensemble")
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
 @click.option("--val-season", default="2024-25")
 @click.option(
     "--objective",
@@ -963,8 +1093,12 @@ def backtest(league: str, bankroll: float, no_ensemble: bool, walk_forward: bool
     default="rps",
     help="Tuning objective (Phase 6). 'clv'/'blended' require opening-line snapshots.",
 )
-@click.option("--blend", default=0.5, show_default=True,
-              help="Weight of RPS in 'blended' objective (0 = CLV only, 1 = RPS only).")
+@click.option(
+    "--blend",
+    default=0.5,
+    show_default=True,
+    help="Weight of RPS in 'blended' objective (0 = CLV only, 1 = RPS only).",
+)
 def tune_ensemble(league: str, val_season: str, objective: str, blend: float) -> None:
     """Dirichlet-sampled ensemble weight tuning (RPS / CLV / blended)."""
     from football_betting.data.snapshot_service import merge_snapshots_into_matches
@@ -1000,23 +1134,25 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
     bet_odds_triples: list[tuple[float, float, float] | None] = []
     close_odds_triples: list[tuple[float, float, float] | None] = []
     for m in sorted(val_matches, key=lambda m: m.date):
-        fixtures.append(Fixture(
-            date=m.date, league=m.league,
-            home_team=m.home_team, away_team=m.away_team, odds=m.odds,
-        ))
+        fixtures.append(
+            Fixture(
+                date=m.date,
+                league=m.league,
+                home_team=m.home_team,
+                away_team=m.away_team,
+                odds=m.odds,
+            )
+        )
         actuals.append(m.result)
         closing = m.odds
         opening = getattr(m, "opening_odds", None) or closing
-        bet_odds_triples.append(
-            (opening.home, opening.draw, opening.away) if opening else None
-        )
-        close_odds_triples.append(
-            (closing.home, closing.draw, closing.away) if closing else None
-        )
+        bet_odds_triples.append((opening.home, opening.draw, opening.away) if opening else None)
+        close_odds_triples.append((closing.home, closing.draw, closing.away) if closing else None)
 
     if objective in ("clv", "blended"):
         result = ensemble.tune_dirichlet(
-            fixtures, actuals,
+            fixtures,
+            actuals,
             bet_odds=bet_odds_triples,
             closing_odds=close_odds_triples,
             objective=objective,  # type: ignore[arg-type]
@@ -1024,7 +1160,9 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
         )
     elif objective in ("log_loss", "brier"):
         result = ensemble.tune_dirichlet(
-            fixtures, actuals, objective=objective,  # type: ignore[arg-type]
+            fixtures,
+            actuals,
+            objective=objective,  # type: ignore[arg-type]
         )
     else:
         result = ensemble.tune_weights(fixtures, actuals)
@@ -1034,8 +1172,7 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
     console.print(f"  Poisson:  {result['best_w_poisson']:.3f}")
     if mlp is not None:
         console.print(f"  MLP:      {result['best_w_mlp']:.3f}")
-    skip = {"best_w_catboost", "best_w_poisson", "best_w_mlp",
-            "n_samples_tried", "objective"}
+    skip = {"best_w_catboost", "best_w_poisson", "best_w_mlp", "n_samples_tried", "objective"}
     for k, v in result.items():
         if k in skip:
             continue
@@ -1047,8 +1184,11 @@ def tune_ensemble(league: str, val_season: str, objective: str, blend: float) ->
 
 # ───────────────────────── monitor (v0.3) ─────────────────────────
 
+
 @main.command()
-@click.option("--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True)
+@click.option(
+    "--league", "-l", type=click.Choice(list(LEAGUES.keys()), case_sensitive=False), required=True
+)
 @click.option("--recent-days", default=30, help="Production window in days")
 def monitor(league: str, recent_days: int) -> None:
     """Feature drift detection (v0.3)."""
@@ -1057,13 +1197,16 @@ def monitor(league: str, recent_days: int) -> None:
 
     # Split by date: most recent `recent_days` = production; rest = training
     from datetime import date, timedelta
+
     cutoff = date.today() - timedelta(days=recent_days)
     train_matches = [m for m in matches if m.date < cutoff]
     prod_matches = [m for m in matches if m.date >= cutoff]
 
     if len(prod_matches) < 10:
-        console.print(f"[yellow]Too few production matches ({len(prod_matches)}) "
-                      f"in last {recent_days} days.[/yellow]")
+        console.print(
+            f"[yellow]Too few production matches ({len(prod_matches)}) "
+            f"in last {recent_days} days.[/yellow]"
+        )
         return
 
     console.log(f"Training window: {len(train_matches)} matches")
@@ -1077,7 +1220,10 @@ def monitor(league: str, recent_days: int) -> None:
         train_fb.update_with_match(m)
     for m in sorted_train[-200:]:
         feats = train_fb.build_features(
-            m.home_team, m.away_team, m.league, m.date,
+            m.home_team,
+            m.away_team,
+            m.league,
+            m.date,
             odds_home=m.odds.home if m.odds else None,
             odds_draw=m.odds.draw if m.odds else None,
             odds_away=m.odds.away if m.odds else None,
@@ -1089,7 +1235,10 @@ def monitor(league: str, recent_days: int) -> None:
     prod_rows = []
     for m in sorted(prod_matches, key=lambda m: m.date):
         feats = train_fb.build_features(
-            m.home_team, m.away_team, m.league, m.date,
+            m.home_team,
+            m.away_team,
+            m.league,
+            m.date,
             odds_home=m.odds.home if m.odds else None,
             odds_draw=m.odds.draw if m.odds else None,
             odds_away=m.odds.away if m.odds else None,
@@ -1117,6 +1266,7 @@ def monitor(league: str, recent_days: int) -> None:
 
 # ───────────────────────── update-results ─────────────────────────
 
+
 @main.command("update-results")
 @click.option("--results-file", "-r", required=True, type=click.Path(exists=True))
 def update_results(results_file: str) -> None:
@@ -1128,9 +1278,11 @@ def update_results(results_file: str) -> None:
     updated = 0
     for r in results:
         if tracker.update_result(
-            home_team=r["home_team"], away_team=r["away_team"],
+            home_team=r["home_team"],
+            away_team=r["away_team"],
             match_date=r["date"],
-            home_goals=r["home_goals"], away_goals=r["away_goals"],
+            home_goals=r["home_goals"],
+            away_goals=r["away_goals"],
         ):
             updated += 1
     tracker.save()
@@ -1138,6 +1290,7 @@ def update_results(results_file: str) -> None:
 
 
 # ───────────────────────── stats ─────────────────────────
+
 
 @main.command()
 def stats() -> None:
@@ -1159,6 +1312,7 @@ def stats() -> None:
 
 # ───────────────────────── update-performance ─────────────────────────
 
+
 @main.command("update-performance")
 @click.option(
     "--tracking-start",
@@ -1179,6 +1333,7 @@ def update_performance(tracking_start: str | None) -> None:
 
 
 # ───────────────────────── settle-live ─────────────────────────
+
 
 @main.command("settle-live")
 @click.option(
@@ -1203,6 +1358,7 @@ def settle_live_cmd(days_from: int) -> None:
 
 
 # ───────────────────────── snapshot (web UI) ─────────────────────────
+
 
 @main.command()
 @click.option(
@@ -1263,13 +1419,15 @@ def snapshot(fixtures: str | None, bankroll: float, staking_strategy: str | None
 
 @main.command("resolve-sofascore-ids")
 @click.option(
-    "--snapshot", "snapshot_path",
+    "--snapshot",
+    "snapshot_path",
     type=click.Path(exists=True),
     default=None,
     help="Path to today.json (defaults to data/snapshots/today.json).",
 )
 @click.option(
-    "--force", is_flag=True,
+    "--force",
+    is_flag=True,
     help="Re-resolve slugs that already have an override entry.",
 )
 def resolve_sofascore_ids(snapshot_path: str | None, force: bool) -> None:
@@ -1344,18 +1502,22 @@ def resolve_sofascore_ids(snapshot_path: str | None, force: bool) -> None:
 
 @main.command("weather-stadiums")
 @click.option(
-    "--league", "-l",
+    "--league",
+    "-l",
     type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
     default="all",
     help="Resolve stadiums for one league or all.",
 )
 @click.option(
-    "--seasons", "-s", multiple=True,
+    "--seasons",
+    "-s",
+    multiple=True,
     default=("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"),
     help="Seasons to scan for the team universe.",
 )
 @click.option(
-    "--out", "-o",
+    "--out",
+    "-o",
     type=click.Path(),
     default=str(DATA_DIR / "stadiums.json"),
     help="Output JSON path.",
@@ -1417,7 +1579,9 @@ def weather_stadiums(league: str, seasons: tuple[str, ...], out: str, force: boo
                     "country": result.country,
                     "league": league_key,
                 }
-                console.log(f"  {team} → {result.name}, {result.country} ({result.lat:.3f}, {result.lon:.3f})")
+                console.log(
+                    f"  {team} → {result.name}, {result.country} ({result.lat:.3f}, {result.lon:.3f})"
+                )
             progress.advance(task)
 
     out_path.write_text(json.dumps(resolved, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -1425,10 +1589,13 @@ def weather_stadiums(league: str, seasons: tuple[str, ...], out: str, force: boo
     console.log(f"  resolved: {sum(1 for v in resolved.values() if v)}")
     console.log(f"  unresolved: {len(failed)}")
     if failed:
-        console.log(f"[yellow]Unresolved: {', '.join(failed[:10])}{'...' if len(failed) > 10 else ''}[/yellow]")
+        console.log(
+            f"[yellow]Unresolved: {', '.join(failed[:10])}{'...' if len(failed) > 10 else ''}[/yellow]"
+        )
 
 
 # ───────────────────────── serve (web UI) ─────────────────────────
+
 
 @main.command("sofascore-find")
 @click.argument("league")
@@ -1452,9 +1619,7 @@ def sofascore_find(league: str, home: str, away: str, day: str) -> None:
     client = SofascoreClient()
     cfg = LEAGUES.get(league.upper())
     if cfg is None or cfg.sofascore_tournament_id is None:
-        raise click.ClickException(
-            f"League {league} has no sofascore_tournament_id configured."
-        )
+        raise click.ClickException(f"League {league} has no sofascore_tournament_id configured.")
     tid = cfg.sofascore_tournament_id
     h_norm = _normalise_team_name(home)
     a_norm = _normalise_team_name(away)
@@ -1478,12 +1643,15 @@ def sofascore_find(league: str, home: str, away: str, day: str) -> None:
             ev_away = str((ev.get("awayTeam") or {}).get("name", ""))
             hn = _normalise_team_name(ev_home)
             an = _normalise_team_name(ev_away)
-            ok = "yes" if (
-                _name_matches(hn, h_norm) and _name_matches(an, a_norm)
-            ) else ""
+            ok = "yes" if (_name_matches(hn, h_norm) and _name_matches(an, a_norm)) else ""
             table.add_row(
-                target_d.isoformat(), str(ev.get("id", "")),
-                ev_home, ev_away, hn, an, ok,
+                target_d.isoformat(),
+                str(ev.get("id", "")),
+                ev_home,
+                ev_away,
+                hn,
+                an,
+                ok,
             )
     console.print(table)
     resolved = client.find_event_id(league.upper(), home, away, target)
@@ -1500,7 +1668,7 @@ def serve(host: str, port: int, reload: bool) -> None:
         import uvicorn
     except ImportError as exc:  # pragma: no cover - guidance only
         raise click.ClickException(
-            "uvicorn is not installed. Run: pip install -e \".[api]\""
+            'uvicorn is not installed. Run: pip install -e ".[api]"'
         ) from exc
 
     console.log(f"[cyan]Serving Betting with AI on http://{host}:{port}[/cyan]")
@@ -1511,6 +1679,112 @@ def serve(host: str, port: int, reload: bool) -> None:
         reload=reload,
         log_level="info",
     )
+
+
+# ───────────────────────── stress-test (Phase 5) ─────────────────────────
+
+
+@main.command("stress-test")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(list(LEAGUES.keys()), case_sensitive=False),
+    default="BL",
+    show_default=True,
+)
+@click.option(
+    "--bets-file",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="JSONL of bets (stake, odds, prob). Defaults to data/graded_bets.jsonl.",
+)
+@click.option(
+    "--runs",
+    type=click.IntRange(100, 1_000_000),
+    default=10_000,
+    show_default=True,
+    help="Monte-Carlo paths.",
+)
+@click.option("--bankroll", type=float, default=1000.0, show_default=True)
+@click.option(
+    "--ruin-fraction",
+    type=float,
+    default=0.1,
+    show_default=True,
+    help="Bankroll floor as fraction of initial.",
+)
+@click.option("--seed", type=int, default=42, show_default=True)
+def stress_test(
+    league: str,
+    bets_file: Path | None,
+    runs: int,
+    bankroll: float,
+    ruin_fraction: float,
+    seed: int,
+) -> None:
+    """Monte-Carlo bankroll stress test (Phase 5).
+
+    Reads a bet history (graded_bets.jsonl by default), simulates N
+    independent outcome sequences and reports drawdown + ruin risk.
+    """
+    import numpy as np
+
+    from football_betting.tracking.monte_carlo import simulate_bankroll_paths
+
+    path = bets_file or (DATA_DIR / "graded_bets.jsonl")
+    if not path.exists():
+        console.print(f"[red]Bets file not found: {path}[/red]")
+        raise click.Abort()
+
+    league_uc = league.upper()
+    stakes: list[float] = []
+    odds: list[float] = []
+    probs: list[float] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        rec = json.loads(line)
+        if rec.get("league", "").upper() != league_uc:
+            continue
+        try:
+            s = float(rec.get("stake", 0.0))
+            o = float(rec.get("odds", 0.0))
+            p = float(rec.get("prob", rec.get("model_prob", 0.0)))
+        except (TypeError, ValueError):
+            continue
+        if s > 0.0 and o > 1.0 and 0.0 < p < 1.0:
+            stakes.append(s)
+            odds.append(o)
+            probs.append(p)
+
+    if not stakes:
+        console.print(f"[yellow]No eligible bets for {league_uc} in {path}[/yellow]")
+        raise click.Abort()
+
+    res = simulate_bankroll_paths(
+        np.asarray(stakes),
+        np.asarray(odds),
+        np.asarray(probs),
+        initial_bankroll=bankroll,
+        n_paths=runs,
+        ruin_threshold_fraction=ruin_fraction,
+        seed=seed,
+    )
+
+    table = Table(title=f"Bankroll Stress Test — {league_uc} ({len(stakes)} bets, {runs} paths)")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="magenta", justify="right")
+    table.add_row("Initial bankroll", f"{res.initial_bankroll:.2f}")
+    table.add_row("Final bankroll mean", f"{res.final_bankroll_mean:.2f}")
+    table.add_row("Final bankroll median", f"{res.final_bankroll_median:.2f}")
+    table.add_row("Final bankroll P05", f"{res.final_bankroll_p05:.2f}")
+    table.add_row("Final bankroll P95", f"{res.final_bankroll_p95:.2f}")
+    table.add_row("Max drawdown mean", f"{res.max_drawdown_mean:.2%}")
+    table.add_row("Max drawdown P95", f"{res.max_drawdown_p95:.2%}")
+    table.add_row("Risk of ruin", f"{res.risk_of_ruin:.2%}")
+    table.add_row("CAGR mean", f"{res.cagr_mean:.2%}")
+    table.add_row("CAGR P05", f"{res.cagr_p05:.2%}")
+    console.print(table)
 
 
 if __name__ == "__main__":
