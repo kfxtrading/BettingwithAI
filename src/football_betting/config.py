@@ -8,6 +8,36 @@ from pathlib import Path
 # ───────────────────────── Paths ─────────────────────────
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def _load_dotenv(path: Path) -> None:
+    """Minimal .env loader (no external dep).
+
+    Populates ``os.environ`` with ``KEY=VALUE`` pairs from ``path`` unless
+    the variable is already set. Quotes, blank lines and ``#`` comments
+    are stripped. Silently ignored if the file does not exist.
+    """
+    if not path.is_file():
+        return
+    try:
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            if line.startswith("export "):
+                line = line[len("export "):].lstrip()
+            key, _, value = line.partition("=")
+            key = key.strip()
+            if not key or key in os.environ:
+                continue
+            value = value.strip().strip('"').strip("'")
+            os.environ[key] = value
+    except OSError:
+        return
+
+
+_load_dotenv(PROJECT_ROOT / ".env")
+
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"

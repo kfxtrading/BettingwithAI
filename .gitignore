@@ -64,6 +64,10 @@ web/next-env.d.ts.bak
 web/tsconfig.tsbuildinfo
 data/graded_bets.jsonl
 
+# Environment files (contain API keys — never commit)
+.env
+.env.local
+
 # Local agent / smoke-test artifacts
 .zen/node_modules/
 .zen/package-lock.json

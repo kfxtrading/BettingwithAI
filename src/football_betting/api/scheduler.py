@@ -118,6 +118,63 @@ async def refresh_snapshot_once() -> None:
     await asyncio.to_thread(_refresh_blocking)
 
 
+# Delay between a refresh and the automatic follow-up verification that
+# today.json actually contains predictions for the current date. If the
+# first attempt produced an empty snapshot (e.g. Odds-API hiccup, no
+# fixtures returned), the verifier re-triggers the refresh. Configurable
+# via env var SNAPSHOT_VERIFY_DELAY_MIN (default 30).
+def _verify_delay_min() -> int:
+    raw = os.environ.get("SNAPSHOT_VERIFY_DELAY_MIN", "30")
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        logger.warning(
+            "[scheduler] Invalid SNAPSHOT_VERIFY_DELAY_MIN=%r, defaulting to 30.", raw,
+        )
+        return 30
+
+
+def _has_predictions_for_today() -> bool:
+    """True iff today.json is present, dated today (UTC) and has predictions."""
+    payload = load_today()
+    if payload is None or not payload.predictions:
+        return False
+    generated = payload.generated_at
+    if generated.tzinfo is None:
+        generated = generated.replace(tzinfo=timezone.utc)
+    return generated.date() >= datetime.now(timezone.utc).date()
+
+
+async def _verify_and_retry_after_delay() -> None:
+    delay_min = _verify_delay_min()
+    if delay_min <= 0:
+        return
+    await asyncio.sleep(delay_min * 60)
+    if _has_predictions_for_today():
+        logger.info(
+            "[scheduler] Post-refresh verify (+%d min): today.json OK.", delay_min,
+        )
+        return
+    logger.warning(
+        "[scheduler] Post-refresh verify (+%d min): no predictions for today "
+        "— re-triggering refresh.",
+        delay_min,
+    )
+    try:
+        await refresh_snapshot_once()
+    except Exception:  # noqa: BLE001 — verifier must stay quiet
+        logger.exception("[scheduler] Retry refresh failed.")
+
+
+async def _refresh_with_verify() -> None:
+    """Run a refresh and schedule a one-shot verification retry."""
+    try:
+        await refresh_snapshot_once()
+    except Exception:  # noqa: BLE001
+        logger.exception("[scheduler] Refresh iteration failed.")
+    asyncio.create_task(_verify_and_retry_after_delay())
+
+
 async def _daily_loop() -> None:
     hour = _refresh_hour_utc()
     while True:
@@ -131,10 +188,7 @@ async def _daily_loop() -> None:
             next_run.isoformat(timespec="minutes"), wait_s / 3600,
         )
         await asyncio.sleep(wait_s)
-        try:
-            await refresh_snapshot_once()
-        except Exception:  # noqa: BLE001 — loop must stay alive
-            logger.exception("[scheduler] Refresh iteration failed.")
+        await _refresh_with_verify()
 
 
 def _live_settle_interval_min() -> int:
@@ -303,7 +357,7 @@ async def start(run_initial_if_stale: bool = True) -> None:
         logger.info(
             "[scheduler] Snapshot missing or stale — refreshing now (background)."
         )
-        asyncio.create_task(refresh_snapshot_once())
+        asyncio.create_task(_refresh_with_verify())
     asyncio.create_task(_daily_loop())
     asyncio.create_task(_live_settle_loop())
     asyncio.create_task(_prekickoff_loop())
