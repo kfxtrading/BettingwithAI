@@ -891,7 +891,7 @@ export const en: Dictionary = {
     'Data-driven football predictions and value bets for the Premier League, Bundesliga, Serie A, La Liga and EFL Championship. Powered by NOMEN — our hybrid machine-learning model for predicting match outcomes, goals and betting value, with transparent performance tracking.',
   'home.heading': "Today's betting analyses for the Top 5 leagues.",
   'home.subheading':
-    'Calibrated probabilities for Home, Draw, Away — plus value bets where the model disagrees with the market.',
+    'Calibrated probabilities based on our trained AI assistant – NOMEN.',
   'home.loading': 'Loading predictions…',
   'home.section.valueBets.title': 'Value Bets',
   'home.section.valueBets.caption':

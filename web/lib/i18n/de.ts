@@ -8,7 +8,7 @@ export const de: Dictionary = {
     'Datengetriebene Fußball-Prognosen und Value Bets für Premier League, Bundesliga, Serie A, La Liga und EFL Championship. Angetrieben von NOMEN – unserem hybriden Machine-Learning-Modell zur Vorhersage von Spielausgängen, Toren und Wettwerten, mit transparentem Performance-Tracking.',
   'home.heading': 'Heutige Wett-Analysen für die Top\u20115\u2011Ligen.',
   'home.subheading':
-    'Kalibrierte Wahrscheinlichkeiten für Heim, Unentschieden, Auswärts — plus Value Bets, wo das Modell dem Markt widerspricht.',
+    'Kalibrierte Wahrscheinlichkeiten basierend auf unserem trainierten KI-Assistenten – NOMEN.',
   'home.loading': 'Prognosen werden geladen…',
   'home.section.valueBets.title': 'Value Bets',
   'home.section.valueBets.caption':

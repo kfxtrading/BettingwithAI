@@ -9,7 +9,7 @@ export const fr: Dictionary = {
   'home.heading':
     "Analyses de paris du jour pour les cinq grands championnats.",
   'home.subheading':
-    "Probabilités calibrées pour Victoire domicile, Match nul, Victoire extérieur — plus les value bets lorsque le modèle s'écarte du marché.",
+    'Probabilités calibrées basées sur notre assistant IA entraîné – NOMEN.',
   'home.loading': 'Chargement des prédictions…',
   'home.section.valueBets.title': 'Value Bets',
   'home.section.valueBets.caption':
