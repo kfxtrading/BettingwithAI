@@ -436,11 +436,11 @@ def build_predictions_for_fixtures(
         # ``load_opening_odds()`` with closing-line data and collapse CLV to
         # noise. They are still available via ``market_tracker`` for mm_*
         # features below, since we still reload the full history.
-        from datetime import datetime as _dt, timezone as _tz
+        from datetime import datetime as _dt
 
         from football_betting.config import BETTING_CFG as _BCFG
 
-        _now_utc = _dt.now(_tz.utc)
+        _now_utc = _dt.now(UTC)
         _min_lead_h = float(getattr(_BCFG, "snapshot_min_lead_hours", 6.0))
         for fd in league_fixtures:
             if not fd.get("odds"):
@@ -457,7 +457,7 @@ def build_predictions_for_fixtures(
                     kickoff_dt = None
             if kickoff_dt is not None:
                 if kickoff_dt.tzinfo is None:
-                    kickoff_dt = kickoff_dt.replace(tzinfo=_tz.utc)
+                    kickoff_dt = kickoff_dt.replace(tzinfo=UTC)
                 lead_h = (kickoff_dt - _now_utc).total_seconds() / 3600.0
                 if lead_h < _min_lead_h:
                     logger.debug(

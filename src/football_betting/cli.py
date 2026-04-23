@@ -25,6 +25,7 @@ Commands:
 from __future__ import annotations
 
 import json
+from datetime import UTC
 from pathlib import Path
 
 import click
@@ -1085,6 +1086,12 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
     show_default=True,
     help="Trailing window size for --sliding walk-forward.",
 )
+@click.option(
+    "--calibration-method",
+    type=click.Choice(["auto", "isotonic", "sigmoid"], case_sensitive=False),
+    default=None,
+    help="Override the CatBoost calibration method (default: auto).",
+)
 def backtest(
     league: str,
     bankroll: float,
@@ -1094,6 +1101,7 @@ def backtest(
     folds_auto: bool,
     sliding: bool,
     window_matches: int,
+    calibration_method: str | None,
 ) -> None:
     """Walk-forward backtest (single season or Phase 6 multi-fold)."""
     league = league.upper()
@@ -1170,6 +1178,7 @@ def backtest(
         initial_bankroll=bankroll,
         use_ensemble=not no_ensemble,
         use_stacking=stacking,
+        calibration_method=calibration_method,
     )
     result = bt.run(league)
 
@@ -1277,7 +1286,19 @@ def sweep_cushion(league: str, cushions: str, bankroll: float, no_ensemble: bool
     default=False,
     help="Audit CatBoost head in isolation (bypass ensemble blending).",
 )
-def calibration_audit(league: str, n_bins: int, bankroll: float, cb_only: bool) -> None:
+@click.option(
+    "--calibration-method",
+    type=click.Choice(["auto", "isotonic", "sigmoid"], case_sensitive=False),
+    default=None,
+    help="Override the CatBoost calibration method (default: auto).",
+)
+def calibration_audit(
+    league: str,
+    n_bins: int,
+    bankroll: float,
+    cb_only: bool,
+    calibration_method: str | None,
+) -> None:
     """ECE + reliability bins on the standard backtest holdout.
 
     Runs the model through the holdout season and reports Expected
@@ -1293,7 +1314,11 @@ def calibration_audit(league: str, n_bins: int, bankroll: float, cb_only: bool) 
     )
 
     league = league.upper()
-    bt = Backtester(initial_bankroll=bankroll, use_ensemble=not cb_only)
+    bt = Backtester(
+        initial_bankroll=bankroll,
+        use_ensemble=not cb_only,
+        calibration_method=calibration_method,
+    )
     result = bt.run(league)
 
     rows = [r for r in result.rows if "prob_home" in r and "actual" in r]
@@ -1370,7 +1395,8 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
     closing line, and CLV measurement degenerates to noise.
     """
     import statistics
-    from datetime import date as date_cls, datetime, timezone
+    from datetime import date as date_cls
+    from datetime import datetime
 
     from football_betting.data.loader import load_league
     from football_betting.data.odds_snapshots import _iter_records
@@ -1409,7 +1435,7 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
                 continue
             ko = m.kickoff_datetime_utc
             if ko.tzinfo is None:
-                ko = ko.replace(tzinfo=timezone.utc)
+                ko = ko.replace(tzinfo=UTC)
             kickoff_by_key[(m.date.isoformat(), m.home_team, m.away_team)] = ko
 
         fixtures: dict[tuple[str, str, str], list[datetime]] = {}
@@ -1418,7 +1444,7 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
                 key = (rec["date"], rec["home"], rec["away"])
                 ts = datetime.fromisoformat(rec["timestamp"])
                 if ts.tzinfo is None:
-                    ts = ts.replace(tzinfo=timezone.utc)
+                    ts = ts.replace(tzinfo=UTC)
             except (KeyError, ValueError):
                 continue
             fixtures.setdefault(key, []).append(ts)
@@ -1432,7 +1458,7 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
             if ko is None:
                 try:
                     ko = datetime.fromisoformat(key[0]).replace(
-                        hour=18, tzinfo=timezone.utc
+                        hour=18, tzinfo=UTC
                     )
                 except ValueError:
                     continue

@@ -33,6 +33,7 @@ from football_betting.config import (
     STACKING_CFG,
     BacktestConfig,
     BettingConfig,
+    CalibrationConfig,
     StackingConfig,
 )
 from football_betting.data.loader import load_league
@@ -103,6 +104,10 @@ class Backtester:
     use_stacking: bool = False
     stacking_cfg: StackingConfig = field(default_factory=lambda: STACKING_CFG)
     training_window_matches: int | None = None
+    #: Optional override of the CatBoost calibration method
+    #: (``"auto"`` | ``"isotonic"`` | ``"sigmoid"``). When ``None`` the
+    #: default from :class:`CalibrationConfig` is used.
+    calibration_method: str | None = None
 
     # ───────────────────────── Core loop ─────────────────────────
 
@@ -144,7 +149,15 @@ class Backtester:
         # model at train-time as well as inference — required for the
         # weather features to be present in the CatBoost feature schema.
         feature_builder = FeatureBuilder(weather_tracker=WeatherTracker())
-        cb = CatBoostPredictor(feature_builder=feature_builder)
+        calibration_cfg = (
+            CalibrationConfig(method=self.calibration_method)
+            if self.calibration_method is not None
+            else None
+        )
+        cb = CatBoostPredictor(
+            feature_builder=feature_builder,
+            calibration_cfg=calibration_cfg,
+        )
 
         # Phase 7: Stacking uses chronological inner split of train_matches
         stacking = None

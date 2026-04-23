@@ -11,10 +11,10 @@ Reference:
     Zadrozny & Elkan (2002), "Transforming Classifier Scores into
     Accurate Multiclass Probability Estimates"
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
 
 import numpy as np
 from sklearn.isotonic import IsotonicRegression
@@ -174,6 +174,7 @@ def _fit_auto_calibrator(
 
 
 # ───────────────────────── Reliability diagrams ─────────────────────────
+
 
 def expected_calibration_error(
     probs: np.ndarray,

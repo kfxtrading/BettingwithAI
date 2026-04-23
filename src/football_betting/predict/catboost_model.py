@@ -19,7 +19,7 @@ import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from rich.console import Console
 
-from football_betting.config import CATBOOST_CFG, MODELS_DIR, CatBoostConfig
+from football_betting.config import CATBOOST_CFG, MODELS_DIR, CalibrationConfig, CatBoostConfig
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.calibration import ProbabilityCalibrator
@@ -41,6 +41,11 @@ class CatBoostPredictor:
     model: CatBoostClassifier | None = None
     feature_names: list[str] = field(default_factory=list)
     calibrator: ProbabilityCalibrator | None = None
+    #: Optional override of the calibration config (``method`` etc.). When
+    #: ``None`` the :class:`ProbabilityCalibrator` default (``method="auto"``)
+    #: is used. Set e.g. ``CalibrationConfig(method="sigmoid")`` to pin Platt
+    #: scaling for leagues where isotonic over-fits the extremes.
+    calibration_cfg: CalibrationConfig | None = None
 
     # ───────────────────────── Back-compat ─────────────────────────
 
@@ -168,7 +173,14 @@ class CatBoostPredictor:
 
         # Fit calibrator on validation predictions
         if calibrate:
-            self.calibrator = ProbabilityCalibrator()
+            if self.calibration_cfg is not None:
+                self.calibrator = ProbabilityCalibrator(cfg=self.calibration_cfg)
+                console.log(
+                    f"[cyan]Calibrator method overridden: "
+                    f"{self.calibration_cfg.method}[/cyan]"
+                )
+            else:
+                self.calibrator = ProbabilityCalibrator()
             self.calibrator.fit(val_preds, y_val)
             console.log("[green]Calibrator fitted on validation set[/green]")
 
