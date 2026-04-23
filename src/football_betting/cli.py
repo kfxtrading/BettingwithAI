@@ -1343,6 +1343,177 @@ def calibration_audit(league: str, n_bins: int, bankroll: float, cb_only: bool) 
     console.print(table)
 
 
+# ───────────────────────── snapshot-freshness-audit ─────────────────────────
+
+
+@main.command("snapshot-freshness-audit")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    default="all",
+    show_default=True,
+)
+@click.option(
+    "--min-lead-hours",
+    type=int,
+    default=24,
+    show_default=True,
+    help="Lead time (kickoff - capture) below which a snapshot is not 'opening'.",
+)
+def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
+    """Audit whether persisted odds snapshots actually capture opening lines.
+
+    For CLV to be a meaningful signal, ``bet_odds_at_placement`` must be
+    recorded significantly before kickoff — ideally T-24h to T-48h. If the
+    median lead time is near zero the 'opening' line is effectively the
+    closing line, and CLV measurement degenerates to noise.
+    """
+    import statistics
+    from datetime import date as date_cls, datetime, timezone
+
+    from football_betting.data.loader import load_league
+    from football_betting.data.odds_snapshots import _iter_records
+
+    leagues = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+
+    console.rule("[bold cyan]Snapshot freshness audit[/bold cyan]")
+    overall_ok = True
+
+    summary = Table(title="Per-league freshness")
+    summary.add_column("League")
+    summary.add_column("rows", justify="right")
+    summary.add_column("fixtures", justify="right")
+    summary.add_column("≥2 snap", justify="right")
+    summary.add_column("median lead (h)", justify="right")
+    summary.add_column("p90 lead (h)", justify="right")
+    summary.add_column("fresh %", justify="right")
+    summary.add_column("verdict")
+
+    for lg in leagues:
+        rows = list(_iter_records(lg))
+        if not rows:
+            summary.add_row(lg, "0", "-", "-", "-", "-", "-", "[red]NO DATA[/red]")
+            overall_ok = False
+            continue
+
+        # Build kickoff lookup from CSV-loaded Match objects.
+        try:
+            matches = load_league(lg)
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[red]{lg}: could not load matches: {exc}[/red]")
+            continue
+        kickoff_by_key: dict[tuple[str, str, str], datetime] = {}
+        for m in matches:
+            if m.kickoff_datetime_utc is None:
+                continue
+            ko = m.kickoff_datetime_utc
+            if ko.tzinfo is None:
+                ko = ko.replace(tzinfo=timezone.utc)
+            kickoff_by_key[(m.date.isoformat(), m.home_team, m.away_team)] = ko
+
+        fixtures: dict[tuple[str, str, str], list[datetime]] = {}
+        for rec in rows:
+            try:
+                key = (rec["date"], rec["home"], rec["away"])
+                ts = datetime.fromisoformat(rec["timestamp"])
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+            except (KeyError, ValueError):
+                continue
+            fixtures.setdefault(key, []).append(ts)
+
+        # Lead time = kickoff - earliest capture. Fall back to 18:00 UTC on
+        # match date when real kickoff is unavailable (CSVs lag live fixtures).
+        leads: list[float] = []
+        for key, stamps in fixtures.items():
+            earliest = min(stamps)
+            ko = kickoff_by_key.get(key)
+            if ko is None:
+                try:
+                    ko = datetime.fromisoformat(key[0]).replace(
+                        hour=18, tzinfo=timezone.utc
+                    )
+                except ValueError:
+                    continue
+            leads.append((ko - earliest).total_seconds() / 3600.0)
+
+        n_fix = len(fixtures)
+        n_multi = sum(1 for v in fixtures.values() if len(v) >= 2)
+        if leads:
+            median_lead = statistics.median(leads)
+            p90_lead = statistics.quantiles(leads, n=10)[-1] if len(leads) >= 10 else max(leads)
+            n_fresh = sum(1 for h in leads if h >= min_lead_hours)
+            fresh_pct = 100.0 * n_fresh / len(leads)
+        else:
+            median_lead = p90_lead = fresh_pct = 0.0
+
+        if median_lead >= min_lead_hours:
+            verdict = "[green]OK[/green]"
+        elif median_lead >= 1.0:
+            verdict = "[yellow]TOO LATE[/yellow]"
+            overall_ok = False
+        else:
+            verdict = "[red]CLOSING-ONLY[/red]"
+            overall_ok = False
+
+        summary.add_row(
+            lg,
+            str(len(rows)),
+            str(n_fix),
+            str(n_multi),
+            f"{median_lead:+.2f}",
+            f"{p90_lead:+.2f}",
+            f"{fresh_pct:.0f}%",
+            verdict,
+        )
+
+    console.print(summary)
+
+    # Training-data degeneracy: how many historical matches have
+    # opening_odds == odds (i.e. CLV == 0 by construction)?
+    deg_table = Table(title="CSV opening-vs-closing degeneracy (training data)")
+    deg_table.add_column("League")
+    deg_table.add_column("matches", justify="right")
+    deg_table.add_column("with opening", justify="right")
+    deg_table.add_column("degenerate", justify="right")
+    deg_table.add_column("non-degenerate %", justify="right")
+
+    for lg in leagues:
+        try:
+            matches = load_league(lg)
+        except Exception:  # noqa: BLE001
+            continue
+        n_total = len(matches)
+        n_with_op = sum(1 for m in matches if m.opening_odds is not None)
+        n_degen = 0
+        n_nondeg = 0
+        for m in matches:
+            if m.opening_odds is None or m.odds is None:
+                continue
+            same = (
+                m.opening_odds.home == m.odds.home
+                and m.opening_odds.draw == m.odds.draw
+                and m.opening_odds.away == m.odds.away
+            )
+            if same:
+                n_degen += 1
+            else:
+                n_nondeg += 1
+        nd_pct = 100.0 * n_nondeg / n_with_op if n_with_op else 0.0
+        deg_table.add_row(lg, str(n_total), str(n_with_op), str(n_degen), f"{nd_pct:.1f}%")
+
+    console.print(deg_table)
+
+    if not overall_ok:
+        console.print(
+            "\n[yellow]Action:[/yellow] run [bold]fb snapshot-odds[/bold] on a "
+            f"schedule that captures T-{min_lead_hours}h+ before kickoff "
+            "(e.g. cron daily at 06:00 UTC, not on matchday)."
+        )
+    _ = date_cls  # silence unused-import
+
+
 # ───────────────────────── tune-ensemble ─────────────────────────
 
 

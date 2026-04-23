@@ -429,21 +429,56 @@ def build_predictions_for_fixtures(
 
         # Persist current odds → reload full history into market tracker so
         # mm_* features reflect real drift across prediction runs.
+        #
+        # Lead-time guard: fixtures within
+        # ``BETTING_CFG.snapshot_min_lead_hours`` of kickoff are NOT persisted
+        # to the opening-line store. Near-kickoff captures would pollute
+        # ``load_opening_odds()`` with closing-line data and collapse CLV to
+        # noise. They are still available via ``market_tracker`` for mm_*
+        # features below, since we still reload the full history.
+        from datetime import datetime as _dt, timezone as _tz
+
+        from football_betting.config import BETTING_CFG as _BCFG
+
+        _now_utc = _dt.now(_tz.utc)
+        _min_lead_h = float(getattr(_BCFG, "snapshot_min_lead_hours", 6.0))
         for fd in league_fixtures:
-            if fd.get("odds"):
+            if not fd.get("odds"):
+                continue
+            # Respect lead-time guard when kickoff is known.
+            kickoff_raw = fd.get("kickoff_time") or fd.get("kickoff_datetime_utc")
+            kickoff_dt: _dt | None = None
+            if isinstance(kickoff_raw, _dt):
+                kickoff_dt = kickoff_raw
+            elif isinstance(kickoff_raw, str):
                 try:
-                    append_odds_snapshot(
-                        league_key,
-                        fd["home_team"],
-                        fd["away_team"],
-                        str(fd["date"]),
-                        MatchOdds(**fd["odds"]),
+                    kickoff_dt = _dt.fromisoformat(kickoff_raw.replace("Z", "+00:00"))
+                except ValueError:
+                    kickoff_dt = None
+            if kickoff_dt is not None:
+                if kickoff_dt.tzinfo is None:
+                    kickoff_dt = kickoff_dt.replace(tzinfo=_tz.utc)
+                lead_h = (kickoff_dt - _now_utc).total_seconds() / 3600.0
+                if lead_h < _min_lead_h:
+                    logger.debug(
+                        "[predict] Skipping opening-store append for %s vs %s "
+                        "(lead=%.2fh < %.1fh)",
+                        fd["home_team"], fd["away_team"], lead_h, _min_lead_h,
                     )
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.warning(
-                        "[predict] Failed to persist odds snapshot for %s vs %s: %s",
-                        fd["home_team"], fd["away_team"], exc,
-                    )
+                    continue
+            try:
+                append_odds_snapshot(
+                    league_key,
+                    fd["home_team"],
+                    fd["away_team"],
+                    str(fd["date"]),
+                    MatchOdds(**fd["odds"]),
+                )
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "[predict] Failed to persist odds snapshot for %s vs %s: %s",
+                    fd["home_team"], fd["away_team"], exc,
+                )
         odds_snaps_loaded = load_odds_snapshots(
             league_key, fb.market_tracker, only_future=True
         )

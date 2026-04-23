@@ -506,6 +506,12 @@ class BettingConfig:
     #: drifts by 1-2 % between selection and kick-off we still stay in the
     #: green. 0.0 (default) disables the guard to preserve legacy behaviour.
     min_ev_pct: float = 0.0
+    #: Minimum lead time (in hours before kickoff) required for an odds
+    #: capture to be persisted into the opening-line store. Near-kickoff
+    #: captures would pollute the store with closing-line data and collapse
+    #: CLV measurement to noise. Default 6h: anything within 6h of kickoff
+    #: is treated as "closing-ish" and skipped.
+    snapshot_min_lead_hours: float = 6.0
 
 
 @dataclass(frozen=True, slots=True)
