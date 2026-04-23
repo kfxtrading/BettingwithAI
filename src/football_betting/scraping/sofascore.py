@@ -16,11 +16,10 @@ import json
 import logging
 import random
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-
-from datetime import timezone
+from zoneinfo import ZoneInfo
 
 from curl_cffi import requests
 from rich.console import Console
@@ -492,6 +491,107 @@ class SofascoreClient:
                 len(candidates),
             )
         return None
+
+    # ───────────────────────── Fixture fallback (no odds) ─────────────────────────
+
+    def fetch_fixtures_for_date(
+        self, league_key: str, target_date: date
+    ) -> list[dict[str, Any]]:
+        """Upcoming fixtures for one league via the free scheduled-events widget.
+
+        Returns dicts in the same shape as ``FixtureOdds.to_fixture_dict()`` but
+        without the ``odds`` key — used as a zero-cost fallback for the daily
+        landing-page snapshot while The Odds API quota is exhausted.
+        """
+        from football_betting.scraping.team_names import normalize
+        from football_betting.utils.timezones import isoformat_utc, league_tz_name
+
+        cfg = LEAGUES.get(league_key)
+        if cfg is None or cfg.sofascore_tournament_id is None:
+            return []
+        tid = int(cfg.sofascore_tournament_id)
+
+        tz_name = league_tz_name(league_key)
+        local_tz = ZoneInfo(tz_name)
+        now_utc = datetime.now(timezone.utc)
+
+        # Sofascore returns events keyed by UTC date, but kickoffs near midnight
+        # can spill into a different local date — probe target ± 1 day.
+        seen_ids: set[int] = set()
+        fixtures: list[dict[str, Any]] = []
+        for delta in (-1, 0, 1):
+            probe_day = target_date + timedelta(days=delta)
+            try:
+                events = self.get_scheduled_events_for_date(probe_day, force=True)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "[sofascore] scheduled-events(%s) failed: %s", probe_day, exc
+                )
+                continue
+            for ev in events:
+                try:
+                    ev_id = int(ev.get("id") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if ev_id <= 0 or ev_id in seen_ids:
+                    continue
+                t_obj = ev.get("tournament") or {}
+                ut_obj = t_obj.get("uniqueTournament") or {}
+                try:
+                    ev_tid = int(ut_obj.get("id") or t_obj.get("id") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if ev_tid != tid:
+                    continue
+
+                start_ts = ev.get("startTimestamp")
+                try:
+                    kickoff_utc = datetime.fromtimestamp(int(start_ts), tz=timezone.utc)
+                except (TypeError, ValueError):
+                    continue
+                # Only include future (pre-match) fixtures — live/completed
+                # matches are the responsibility of the live-settle loop.
+                if kickoff_utc <= now_utc:
+                    continue
+
+                kickoff_local = kickoff_utc.astimezone(local_tz)
+                if kickoff_local.date() != target_date:
+                    continue
+
+                home_raw = str((ev.get("homeTeam") or {}).get("name") or "")
+                away_raw = str((ev.get("awayTeam") or {}).get("name") or "")
+                if not home_raw or not away_raw:
+                    continue
+
+                seen_ids.add(ev_id)
+                fixtures.append(
+                    {
+                        "date": kickoff_local.date().isoformat(),
+                        "league": league_key,
+                        "home_team": normalize(league_key, home_raw),
+                        "away_team": normalize(league_key, away_raw),
+                        "kickoff_time": kickoff_local.strftime("%H:%M"),
+                        "league_timezone": tz_name,
+                        "kickoff_utc": isoformat_utc(kickoff_utc),
+                    }
+                )
+        return fixtures
+
+    def fetch_all_leagues_fixtures_for_date(
+        self,
+        target_date: date,
+        leagues: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Iterate every configured league and collect Sofascore fixtures."""
+        keys = leagues or [
+            key for key, cfg in LEAGUES.items() if cfg.sofascore_tournament_id is not None
+        ]
+        out: list[dict[str, Any]] = []
+        for key in keys:
+            if key not in LEAGUES:
+                continue
+            out.extend(self.fetch_fixtures_for_date(key, target_date))
+        return out
 
 
 _TRAILING_CLUB_TOKENS = (

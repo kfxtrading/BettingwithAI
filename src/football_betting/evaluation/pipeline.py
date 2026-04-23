@@ -42,6 +42,7 @@ def settle_live(
     days_from: int = 3,
     *,
     force_leagues: set[str] | frozenset[str] | None = None,
+    use_sofascore: bool = False,
 ) -> tuple[int, int]:
     """Poll Odds-API `/scores` for leagues with pending bets, re-grade.
 
@@ -55,23 +56,31 @@ def settle_live(
 
     ``regrade_all()`` only runs when there is at least one pending bet; pure
     display-driven polls skip the (expensive) regrade pass.
+
+    When ``use_sofascore`` is True the free Sofascore widget is used
+    instead of The Odds API — intended as a fallback while the Odds-API
+    monthly quota is exhausted.
     """
     from football_betting.evaluation.live_results import (
         pending_league_codes,
         poll_and_store_scores,
+        poll_sofascore_scores,
     )
 
     pending = pending_league_codes()
     forced = set(force_leagues) if force_leagues else set()
     codes = pending | forced
     if not codes:
-        logger.debug("[live] No pending bets and no forced leagues — skipping Odds-API poll")
+        logger.debug("[live] No pending bets and no forced leagues — skipping live poll")
         return (0, 0)
 
     before_pending = (
         len([g for g in _load_current_graded() if g.status == "pending"]) if pending else 0
     )
-    added = poll_and_store_scores(codes, days_from=days_from)
+    if use_sofascore:
+        added = poll_sofascore_scores(codes)
+    else:
+        added = poll_and_store_scores(codes, days_from=days_from)
     if pending:
         regrade_all()
         after_pending = len([g for g in _load_current_graded() if g.status == "pending"])

@@ -100,45 +100,93 @@ def _refresh_hour_utc() -> int:
     return max(0, min(23, h))
 
 
-def _refresh_blocking() -> None:
-    """Sync refresh — call via asyncio.to_thread so it doesn't block the loop."""
-    if not ODDS_API_CFG.api_key:
-        logger.warning("[scheduler] ODDS_API_KEY not set — snapshot refresh skipped.")
-        return
-    if _quota_blocked():
-        logger.info("[scheduler] Snapshot refresh skipped — quota backoff active.")
-        return
+def _fetch_fixtures_from_sofascore(
+    today: date, tomorrow: date
+) -> tuple[list[dict], date | None]:
+    """Free fallback: pull fixtures (no odds) from the Sofascore widget.
 
-    client = OddsApiClient()
-    today = date.today()
-    tomorrow = today + timedelta(days=1)
+    Used when the Odds API is missing/exhausted so the landing-page snapshot
+    still has predictions. Odds-dependent value bets will be empty.
+    """
     try:
-        fixtures = client.fetch_all_leagues_for_date(today)
-        target_date = today
+        from football_betting.scraping.sofascore import SofascoreClient
+    except Exception:  # noqa: BLE001
+        logger.exception("[scheduler] Sofascore client unavailable")
+        return ([], None)
+
+    sofa = SofascoreClient()
+    try:
+        fixtures = sofa.fetch_all_leagues_fixtures_for_date(today)
+        target = today
         if not fixtures:
             logger.info(
-                "[scheduler] No fixtures for %s — trying %s.",
+                "[scheduler] Sofascore: no fixtures for %s — trying %s.",
                 today.isoformat(), tomorrow.isoformat(),
             )
-            fixtures = client.fetch_all_leagues_for_date(tomorrow)
-            target_date = tomorrow
-    except OddsApiQuotaError as exc:
-        logger.error("[scheduler] %s", exc)
-        _note_quota_exhausted("scheduler")
-        return
-    except OddsApiError as exc:
-        logger.error("[scheduler] Odds API call failed: %s", exc)
+            fixtures = sofa.fetch_all_leagues_fixtures_for_date(tomorrow)
+            target = tomorrow
+    except Exception:  # noqa: BLE001
+        logger.exception("[scheduler] Sofascore fixture fetch failed")
+        return ([], None)
+    return (fixtures, target if fixtures else None)
+
+
+def _refresh_blocking() -> None:
+    """Sync refresh — call via asyncio.to_thread so it doesn't block the loop."""
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+
+    payload: list[dict] = []
+    target_date: date | None = None
+    source_tag = "odds-api"
+
+    if not ODDS_API_CFG.api_key:
+        logger.info(
+            "[scheduler] ODDS_API_KEY not set — using Sofascore widget for fixtures."
+        )
+    elif _quota_blocked():
+        logger.info(
+            "[scheduler] Quota backoff active — using Sofascore widget for fixtures."
+        )
+    else:
+        client = OddsApiClient()
+        try:
+            fixtures = client.fetch_all_leagues_for_date(today)
+            target_date = today
+            if not fixtures:
+                logger.info(
+                    "[scheduler] No Odds-API fixtures for %s — trying %s.",
+                    today.isoformat(), tomorrow.isoformat(),
+                )
+                fixtures = client.fetch_all_leagues_for_date(tomorrow)
+                target_date = tomorrow
+            payload = [f.to_fixture_dict() for f in fixtures]
+        except OddsApiQuotaError as exc:
+            logger.error("[scheduler] %s", exc)
+            _note_quota_exhausted("scheduler")
+            payload = []
+            target_date = None
+        except OddsApiError as exc:
+            logger.error("[scheduler] Odds API call failed: %s", exc)
+            return
+
+    if not payload:
+        payload, target_date = _fetch_fixtures_from_sofascore(today, tomorrow)
+        source_tag = "sofascore"
+
+    if not payload or target_date is None:
+        logger.warning(
+            "[scheduler] No fixtures from any source for %s or %s.",
+            today.isoformat(), tomorrow.isoformat(),
+        )
         return
 
-    if not fixtures:
-        logger.warning("[scheduler] Odds API returned no pre-match fixtures for %s or %s.",
-                       today.isoformat(), tomorrow.isoformat())
-        return
-
-    payload = [f.to_fixture_dict() for f in fixtures]
     fixtures_path = DATA_DIR / f"fixtures_{target_date.isoformat()}.json"
     fixtures_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    logger.info("[scheduler] Wrote %d fixtures -> %s", len(fixtures), fixtures_path.name)
+    logger.info(
+        "[scheduler] (%s) Wrote %d fixtures -> %s",
+        source_tag, len(payload), fixtures_path.name,
+    )
 
     snapshot = build_predictions_for_fixtures(payload)
     write_today(snapshot)
