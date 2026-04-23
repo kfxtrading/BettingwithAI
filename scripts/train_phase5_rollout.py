@@ -1,8 +1,8 @@
-"""Phase 5: fine-tune EN/ES/FR/IT (DE already trained).
+"""Phase 5 / v3: fine-tune all 5 languages on dataset_augmented_v3.jsonl.
 
-Uses ``train_transformer_all`` with an explicit language subset so the
-already-trained DE model is not overwritten. On failure of a single
-language the aggregator continues with the next one.
+The v3 dataset (LLM-paraphrase augmentation via Ollama qwen2.5:7b-instruct)
+adds ~44k diverse paraphrases on top of v2's noise-only variants. We re-train
+all locales (DE included) so every language benefits from the new data.
 """
 from __future__ import annotations
 
@@ -16,11 +16,11 @@ from football_betting.support.trainer import train_transformer_all
 
 
 def main() -> int:
-    langs = ["en", "es", "fr", "it"]
-    print(f"[phase5] training languages: {langs}")
+    langs = ["de", "en", "es", "fr", "it"]
+    print(f"[v3-rollout] training languages: {langs}")
     report = train_transformer_all(langs=langs, seed=42)
     n_ok = sum(1 for s in report.get("per_language", []) if s.get("metrics"))
-    print(f"[phase5] done: {n_ok}/{len(langs)} languages trained successfully")
+    print(f"[v3-rollout] done: {n_ok}/{len(langs)} languages trained successfully")
     for stats in report.get("per_language", []):
         lg = stats.get("lang", "?")
         m = stats.get("metrics", {}) or {}

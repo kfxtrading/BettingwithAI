@@ -487,7 +487,9 @@ def train_transformer_one_language(
 
     seed_info = seed_all(seed)
 
-    ds_path = dataset_path or (SUPPORT_DATA_DIR / SUPPORT_CFG.augmented_v2_filename)
+    ds_path = dataset_path or (SUPPORT_DATA_DIR / SUPPORT_CFG.augmented_v3_filename)
+    if not ds_path.exists():
+        ds_path = SUPPORT_DATA_DIR / SUPPORT_CFG.augmented_v2_filename
     if not ds_path.exists():
         ds_path = SUPPORT_DATA_DIR / SUPPORT_CFG.dataset_filename
     out = out_dir or SUPPORT_MODELS_DIR

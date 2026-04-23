@@ -18,6 +18,7 @@ as ``dataset_augmented.jsonl``), computes the per-intent deficit, and fills
 it layer-by-layer until the target is reached. Output is a JSONL file with
 preserved schema plus ``source`` tags of the form ``augment_v2:<layer>``.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,9 +26,10 @@ import random
 import re
 import string
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from football_betting.config import SUPPORT_CFG, SUPPORT_DATA_DIR, SupportConfig
 
@@ -51,26 +53,65 @@ _LANG_NAMES: dict[str, str] = {
 # model — good enough for simulating realistic fat-finger typos.
 
 _QWERTZ_NEIGHBOURS: dict[str, str] = {
-    "q": "wa", "w": "qeasd", "e": "wrsdf", "r": "etdfg", "t": "rzfgh",
-    "z": "tughj", "u": "zihjk", "i": "uojkl", "o": "iplkö", "p": "oüöl",
-    "a": "qwsyx", "s": "awedxyc", "d": "serfxcv", "f": "drtgcvb",
-    "g": "ftzhvbn", "h": "gzujbnm", "j": "huiknm", "k": "jiol,m",
+    "q": "wa",
+    "w": "qeasd",
+    "e": "wrsdf",
+    "r": "etdfg",
+    "t": "rzfgh",
+    "z": "tughj",
+    "u": "zihjk",
+    "i": "uojkl",
+    "o": "iplkö",
+    "p": "oüöl",
+    "a": "qwsyx",
+    "s": "awedxyc",
+    "d": "serfxcv",
+    "f": "drtgcvb",
+    "g": "ftzhvbn",
+    "h": "gzujbnm",
+    "j": "huiknm",
+    "k": "jiol,m",
     "l": "köp.",
     "y": "asx",  # German QWERTZ (y is where English has z)
-    "x": "yasdc", "c": "xdfv", "v": "cfgb", "b": "vghn", "n": "bhjm",
+    "x": "yasdc",
+    "c": "xdfv",
+    "v": "cfgb",
+    "b": "vghn",
+    "n": "bhjm",
     "m": "njk,",
-    "ä": "öl", "ö": "pä", "ü": "ioö",
+    "ä": "öl",
+    "ö": "pä",
+    "ü": "ioö",
     "ß": "p",
 }
 
 _QWERTY_NEIGHBOURS: dict[str, str] = {
-    "q": "wa", "w": "qeasd", "e": "wrsdf", "r": "etdfg", "t": "ryfgh",
-    "y": "tughj", "u": "yihjk", "i": "uojkl", "o": "ipkl", "p": "ol",
-    "a": "qwszx", "s": "awedxz", "d": "serfxcv", "f": "drtgcvb",
-    "g": "ftyhvbn", "h": "gyujbnm", "j": "huiknm", "k": "jiolm,",
+    "q": "wa",
+    "w": "qeasd",
+    "e": "wrsdf",
+    "r": "etdfg",
+    "t": "ryfgh",
+    "y": "tughj",
+    "u": "yihjk",
+    "i": "uojkl",
+    "o": "ipkl",
+    "p": "ol",
+    "a": "qwszx",
+    "s": "awedxz",
+    "d": "serfxcv",
+    "f": "drtgcvb",
+    "g": "ftyhvbn",
+    "h": "gyujbnm",
+    "j": "huiknm",
+    "k": "jiolm,",
     "l": "kop.",
-    "z": "asx", "x": "zasdc", "c": "xdfv", "v": "cfgb", "b": "vghn",
-    "n": "bhjm", "m": "njk,",
+    "z": "asx",
+    "x": "zasdc",
+    "c": "xdfv",
+    "v": "cfgb",
+    "b": "vghn",
+    "n": "bhjm",
+    "m": "njk,",
 }
 
 _NEIGHBOURS_BY_LANG: dict[str, dict[str, str]] = {
@@ -336,7 +377,9 @@ def _group_by_intent_lang(
     return buckets
 
 
-def _build_variant_row(template: dict[str, object], new_question: str, layer: str) -> dict[str, object]:
+def _build_variant_row(
+    template: dict[str, object], new_question: str, layer: str
+) -> dict[str, object]:
     copy = dict(template)
     copy["question"] = new_question
     copy["source"] = f"augment_v2:{layer}"

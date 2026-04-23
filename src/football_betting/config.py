@@ -640,6 +640,9 @@ class SupportConfig:
     augment_target_per_intent: int = 80
     augment_random_seed: int = 1337
 
+    # LLM-paraphrase augmentation (v3) — qwen2.5:7b-instruct via Ollama
+    augmented_v3_filename: str = "dataset_augmented_v3.jsonl"
+
     # Built-in noise augmenter (no external deps).
     noise_aug_char_p: float = 0.06  # prob. that a char inside a "noised" word is perturbed
     noise_aug_word_p: float = 0.15  # prob. that a word is selected for typo noise
