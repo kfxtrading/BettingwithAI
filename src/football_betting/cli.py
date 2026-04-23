@@ -25,6 +25,7 @@ Commands:
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import UTC
 from pathlib import Path
 
@@ -34,37 +35,72 @@ from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
 
-from football_betting.betting.value import find_value_bets, rank_value_bets
 from football_betting.config import BETTING_CFG, DATA_DIR, LEAGUES, MODELS_DIR, BettingConfig
 from football_betting.data.downloader import download_all
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, MatchOdds
-from football_betting.data.odds_snapshots import (
-    append_snapshot as append_odds_snapshot,
-)
-from football_betting.data.odds_snapshots import (
-    load_into_tracker as load_odds_snapshots,
-)
 from football_betting.features.builder import FeatureBuilder
-from football_betting.features.weather import WeatherTracker
+from football_betting.predict.runtime import (
+    LeagueModelProfile,
+    make_feature_builder as make_runtime_feature_builder,
+    mlp_config_for_purpose,
+    resolve_model_profile,
+    save_model_profile,
+    sequence_config_for_purpose,
+)
 
 
 def _make_feature_builder(purpose: str = "1x2") -> FeatureBuilder:
-    """Construct FeatureBuilder with WeatherTracker wired in (v0.4 Phase 1).
+    """Construct the shared runtime FeatureBuilder for one model purpose."""
+    return make_runtime_feature_builder(purpose=purpose)  # type: ignore[arg-type]
 
-    When ``purpose="value"`` the value-bet feature blocklist (``market_*``
-    and ``mm_*``) is applied so the value specialist cannot learn the
-    market consensus directly.
-    """
-    from football_betting.config import VALUE_MODEL_CFG
 
-    if purpose == "value":
-        return FeatureBuilder(
-            weather_tracker=WeatherTracker(),
-            feature_blocklist_prefixes=VALUE_MODEL_CFG.feature_blocklist_prefixes,
-            feature_blocklist_exact=VALUE_MODEL_CFG.feature_blocklist_exact,
+def _calibration_method_for_predictor(predictor: CatBoostPredictor) -> str | None:
+    if predictor.calibrator is None:
+        return None
+    cfg = getattr(predictor.calibrator, "cfg", None)
+    method = getattr(cfg, "method", None)
+    return str(method) if method is not None else None
+
+
+def _persist_profile(
+    league: str,
+    purpose: str,
+    *,
+    model_kind: str,
+    active_members: tuple[str, ...],
+    calibration_method: str | None = None,
+    weight_objective: str | None = None,
+    weight_blend: float | None = None,
+    stacking: bool | None = None,
+    betting: dict[str, object] | None = None,
+    preserve_members: bool = True,
+) -> None:
+    existing = resolve_model_profile(league, purpose=purpose)  # type: ignore[arg-type]
+    if existing is None:
+        profile = LeagueModelProfile(
+            league_key=league,
+            purpose=purpose,  # type: ignore[arg-type]
+            model_kind=model_kind,  # type: ignore[arg-type]
+            active_members=active_members,  # type: ignore[arg-type]
+            calibration_method=calibration_method,
+            weight_objective=weight_objective,
+            weight_blend=weight_blend,
+            stacking=bool(stacking),
+            betting=betting,
         )
-    return FeatureBuilder(weather_tracker=WeatherTracker())
+    else:
+        profile = replace(
+            existing,
+            model_kind=existing.model_kind if preserve_members else model_kind,  # type: ignore[arg-type]
+            active_members=existing.active_members if preserve_members else active_members,  # type: ignore[arg-type]
+            calibration_method=calibration_method or existing.calibration_method,
+            weight_objective=weight_objective if weight_objective is not None else existing.weight_objective,
+            weight_blend=weight_blend if weight_blend is not None else existing.weight_blend,
+            stacking=existing.stacking if stacking is None else stacking,
+            betting=betting if betting is not None else existing.betting,
+        )
+    save_model_profile(profile)
 
 
 from football_betting.predict.catboost_model import CatBoostPredictor
@@ -418,6 +454,14 @@ def train(
     model_path = MODELS_DIR / f"catboost_{league}{suffix}.cbm"
     predictor.save(model_path)
     console.log(f"[green]Model saved: {model_path}[/green]")
+    _persist_profile(
+        league,
+        purpose,
+        model_kind="catboost",
+        active_members=("catboost",),
+        calibration_method=_calibration_method_for_predictor(predictor),
+        preserve_members=True,
+    )
 
     console.print("\n[bold]Training summary[/bold]")
     console.print(f"  Samples: train={result['n_train']}, val={result['n_val']}")
@@ -451,9 +495,7 @@ def train(
 )
 def train_mlp(league: str, seasons: tuple[str, ...], warmup: int, purpose: str) -> None:
     """Train PyTorch MLP classifier (v0.3)."""
-    from dataclasses import replace
-
-    from football_betting.config import MLP_CFG, VALUE_MODEL_CFG, artifact_suffix
+    from football_betting.config import artifact_suffix
 
     league = league.upper()
     purpose = purpose.lower()
@@ -465,16 +507,11 @@ def train_mlp(league: str, seasons: tuple[str, ...], warmup: int, purpose: str) 
         if sf_data:
             fb.stage_sofascore_batch(sf_data)
 
-    cfg = MLP_CFG
-    if purpose == "value":
-        cfg = replace(
-            MLP_CFG,
-            use_kelly_loss=VALUE_MODEL_CFG.use_kelly_loss,
-            kelly_lambda=VALUE_MODEL_CFG.kelly_lambda,
-            kelly_f_cap=VALUE_MODEL_CFG.kelly_f_cap,
-        )
-
-    mlp = MLPPredictor(feature_builder=fb, cfg=cfg, purpose=purpose)  # type: ignore[arg-type]
+    mlp = MLPPredictor(
+        feature_builder=fb,
+        cfg=mlp_config_for_purpose(purpose),  # type: ignore[arg-type]
+        purpose=purpose,  # type: ignore[arg-type]
+    )
     console.log(f"[cyan]Training MLP for {LEAGUES[league].name} (purpose={purpose})…[/cyan]")
     result = mlp.fit(matches, warmup_games=warmup)
 
@@ -603,7 +640,10 @@ def train_sequence(
 
     matches = load_league(league, seasons=list(seasons))
 
-    seq = SequencePredictor(purpose=purpose)  # type: ignore[arg-type]
+    seq = SequencePredictor(
+        cfg=sequence_config_for_purpose(purpose),  # type: ignore[arg-type]
+        purpose=purpose,  # type: ignore[arg-type]
+    )
     console.log(
         f"[cyan]Training Sequence head for {LEAGUES[league].name} "
         f"(purpose={purpose})…[/cyan]"
@@ -1007,109 +1047,69 @@ def export_onnx(league: str) -> None:
 @click.option("--save/--no-save", default=True)
 def predict(fixtures: str, bankroll: float, save: bool) -> None:
     """Predict fixtures from a JSON file."""
-    fixtures_data = json.loads(Path(fixtures).read_text())
-    by_league: dict[str, list[dict]] = {}
-    for fd in fixtures_data:
-        by_league.setdefault(fd["league"], []).append(fd)
+    from football_betting.api.services import build_predictions_for_fixtures
+
+    fixtures_data = json.loads(Path(fixtures).read_text(encoding="utf-8"))
+    payload = build_predictions_for_fixtures(fixtures_data, bankroll=bankroll)
 
     tracker = ResultsTracker() if save else None
-    if tracker:
+    if tracker is not None:
         tracker.load()
 
-    all_bets = []
-    for league_key, league_fixtures in by_league.items():
-        console.rule(f"[bold cyan]{LEAGUES[league_key].name}[/bold cyan]")
-        matches = load_league(league_key)
-        fb = _make_feature_builder()
-        # Stage Sofascore BEFORE replay → consumed chronologically by fit_on_history
-        for season in {m.season for m in matches}:
-            sf_data = SofascoreClient.load_matches(league_key, season)
-            if sf_data:
-                fb.stage_sofascore_batch(sf_data)
-        fb.fit_on_history(matches)
+    best_bet_by_fixture: dict[tuple[str, str, str, str], object] = {}
+    for bet in payload.value_bets:
+        key = (bet.date, bet.league, bet.home_team, bet.away_team)
+        current = best_bet_by_fixture.get(key)
+        if current is None or bet.edge > current.edge:
+            best_bet_by_fixture[key] = bet
 
-        # Persist current odds + reload full history into market tracker
-        for fd in league_fixtures:
-            if fd.get("odds"):
-                try:
-                    append_odds_snapshot(
-                        league_key,
-                        fd["home_team"],
-                        fd["away_team"],
-                        str(fd["date"]),
-                        MatchOdds(**fd["odds"]),
-                    )
-                except Exception as exc:
-                    console.log(
-                        f"[yellow]Skip odds snapshot for "
-                        f"{fd['home_team']} vs {fd['away_team']}: {exc}[/yellow]"
-                    )
-        load_odds_snapshots(league_key, fb.market_tracker, only_future=True)
+    current_league: str | None = None
+    for pred in payload.predictions:
+        if pred.league != current_league:
+            current_league = pred.league
+            console.rule(f"[bold cyan]{pred.league_name}[/bold cyan]")
 
-        model_path = MODELS_DIR / f"catboost_{league_key}.cbm"
-        if model_path.exists():
-            cb = CatBoostPredictor.for_league(league_key, fb)
-            poisson = PoissonModel(pi_ratings=fb.pi_ratings)
-            mlp = MLPPredictor.for_league(league_key, fb)
-            model = EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
-            console.log(f"[green]Using Ensemble{' (with MLP)' if mlp else ''}[/green]")
+        console.print(f"\n⚽ [bold]{pred.home_team}[/bold] vs [bold]{pred.away_team}[/bold]")
+        console.print(
+            f"   Model: H={pred.prob_home * 100:.1f}% / "
+            f"D={pred.prob_draw * 100:.1f}% / A={pred.prob_away * 100:.1f}%"
+        )
+        if pred.odds is not None:
+            odds = MatchOdds(home=pred.odds.home, draw=pred.odds.draw, away=pred.odds.away)
+            console.print(
+                f"   Odds:  {odds.home:.2f} / {odds.draw:.2f} / {odds.away:.2f} "
+                f"(margin {odds.margin * 100:.1f}%)"
+            )
         else:
-            model = PoissonModel(pi_ratings=fb.pi_ratings)
-            console.log("[yellow]No CatBoost — using Poisson baseline[/yellow]")
+            odds = None
 
-        for fd in league_fixtures:
-            odds = MatchOdds(**fd["odds"]) if "odds" in fd else None
-            fixture = Fixture(
-                date=fd["date"],
-                league=league_key,
-                home_team=fd["home_team"],
-                away_team=fd["away_team"],
-                odds=odds,
-                season=fd.get("season"),
+        if tracker is not None:
+            key = (pred.date, pred.league, pred.home_team, pred.away_team)
+            best_bet = best_bet_by_fixture.get(key)
+            rec = PredictionRecord(
+                date=pred.date,
+                league=pred.league,
+                home_team=pred.home_team,
+                away_team=pred.away_team,
+                model_name=pred.model_name,
+                prob_home=pred.prob_home,
+                prob_draw=pred.prob_draw,
+                prob_away=pred.prob_away,
+                odds_home=odds.home if odds else None,
+                odds_draw=odds.draw if odds else None,
+                odds_away=odds.away if odds else None,
             )
-            pred = model.predict(fixture)
-            bets = find_value_bets(pred, bankroll)
-            all_bets.extend(bets)
-
-            console.print(
-                f"\n⚽ [bold]{fixture.home_team}[/bold] vs [bold]{fixture.away_team}[/bold]"
-            )
-            console.print(
-                f"   Model: H={pred.prob_home * 100:.1f}% / "
-                f"D={pred.prob_draw * 100:.1f}% / A={pred.prob_away * 100:.1f}%"
-            )
-            if odds:
-                console.print(
-                    f"   Odds:  {odds.home:.2f} / {odds.draw:.2f} / {odds.away:.2f} "
-                    f"(margin {odds.margin * 100:.1f}%)"
-                )
-
-            if save and tracker is not None:
-                rec = PredictionRecord(
-                    date=fixture.date.isoformat(),
-                    league=league_key,
-                    home_team=fixture.home_team,
-                    away_team=fixture.away_team,
-                    model_name=pred.model_name,
-                    prob_home=pred.prob_home,
-                    prob_draw=pred.prob_draw,
-                    prob_away=pred.prob_away,
-                    odds_home=odds.home if odds else None,
-                    odds_draw=odds.draw if odds else None,
-                    odds_away=odds.away if odds else None,
-                )
-                if bets:
-                    best = max(bets, key=lambda b: b.edge)
-                    rec.bet_outcome = best.outcome
-                    rec.bet_odds = best.odds
-                    rec.bet_stake = best.kelly_stake
-                    rec.bet_edge = best.edge
-                    rec.bet_status = "pending"
-                tracker.add(rec)
+            if best_bet is not None:
+                rec.bet_outcome = best_bet.outcome
+                rec.bet_odds = best_bet.odds
+                rec.bet_stake = best_bet.kelly_stake
+                rec.bet_edge = best_bet.edge
+                rec.bet_status = "pending"
+            tracker.add(rec)
 
     console.rule("[bold green]VALUE BETS[/bold green]")
-    if all_bets:
-        ranked = rank_value_bets(all_bets)
+    if payload.value_bets:
+        ranked = sorted(payload.value_bets, key=lambda bet: bet.edge, reverse=True)
         table = Table()
         table.add_column("#", justify="right")
         table.add_column("Match")
@@ -1119,22 +1119,22 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
         table.add_column("Edge", justify="right")
         table.add_column("Stake", justify="right")
         table.add_column("Conf.")
-        for i, b in enumerate(ranked, 1):
+        for i, bet in enumerate(ranked, 1):
             table.add_row(
                 str(i),
-                f"{b.home_team} vs {b.away_team}",
-                b.bet_label,
-                f"{b.odds:.2f}",
-                f"{b.model_prob * 100:.1f}%",
-                f"{b.edge_pct:+.1f}%",
-                f"{b.kelly_stake:.2f}",
-                b.confidence,
+                f"{bet.home_team} vs {bet.away_team}",
+                bet.bet_label,
+                f"{bet.odds:.2f}",
+                f"{bet.model_prob * 100:.1f}%",
+                f"{bet.edge_pct:+.1f}%",
+                f"{bet.kelly_stake:.2f}",
+                bet.confidence,
             )
         console.print(table)
     else:
         console.print("[yellow]No value bets identified.[/yellow]")
 
-    if save and tracker is not None:
+    if tracker is not None:
         tracker.save()
 
 
@@ -1754,7 +1754,10 @@ def tune_ensemble(
             build_dataset as seq_build_dataset,
         )
 
-        sequence = SequencePredictor(purpose=purpose)  # type: ignore[arg-type]
+        sequence = SequencePredictor(
+            cfg=sequence_config_for_purpose(purpose),  # type: ignore[arg-type]
+            purpose=purpose,  # type: ignore[arg-type]
+        )
         sequence.load(seq_path)
         # Replay history so form/pi trackers are current by val_season kickoff
         seq_build_dataset(
@@ -1830,6 +1833,7 @@ def tune_ensemble(
     }
     if save:
         weights_path = ensemble_weights_path(league, purpose=purpose)  # type: ignore[arg-type]
+        calibration_method = _calibration_method_for_predictor(cb)
         ensemble.save_weights(
             weights_path,
             metadata={
@@ -1839,6 +1843,7 @@ def tune_ensemble(
                 "objective": objective,
                 "blend": blend if objective == "blended" else None,
                 "active_members": result.get("active_members"),
+                "calibration_method": calibration_method,
                 "score_key": next(
                     (
                         k
@@ -1871,6 +1876,17 @@ def tune_ensemble(
                     None,
                 ),
             },
+        )
+        active_members = tuple(result.get("active_members", ("catboost", "poisson")))
+        _persist_profile(
+            league,
+            purpose,
+            model_kind="ensemble" if len(active_members) > 1 else "catboost",
+            active_members=active_members,
+            calibration_method=calibration_method,
+            weight_objective=objective,
+            weight_blend=blend if objective == "blended" else None,
+            preserve_members=False,
         )
         console.print(f"[green]Saved weights → {weights_path}[/green]")
 

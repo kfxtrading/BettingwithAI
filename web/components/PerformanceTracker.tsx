@@ -18,21 +18,11 @@ function tone(v: number): 'positive' | 'negative' | 'default' {
   return v > 0 ? 'positive' : v < 0 ? 'negative' : 'default';
 }
 
-// Snapshot from the latest internal 5-day backtest of the optimized
-// value-bet strategy (dual-model split, value-purpose ensemble across
-// PL / CH / BL / SA / LL). 50 bets, 1088.45 total stake, +419.92 P/L.
-// Max drawdown estimated from BL's -100.78 leg vs 1000 bankroll ≈ 10.1%.
-const OPTIMIZED_VALUE_BETS_SNAPSHOT: StrategyStats = {
-  n_bets: 50,
-  hit_rate: 0.36,
-  roi: 0.3858,
-  total_profit: 419.92,
-  total_stake: 1088.45,
-  max_drawdown_pct: 10.1,
-};
-
-// 1X2-most-likely predictions aren't part of the value-bet backtest, so
-// we leave the predictions group to resolve from live data (or empty).
+// The API merges the optimized-strategy baseline (internal 5-day backtest)
+// with live post-cutoff graded bets server-side — see
+// ``VALUE_SNAPSHOT_BASELINE`` / ``VALUE_SNAPSHOT_CUTOFF`` in
+// ``api/services.py``. Pre-cutoff legacy rows are filtered out.
+// The frontend therefore consumes ``summary.value_bets`` directly.
 
 function StrategyKpiGroup({
   title,
@@ -117,7 +107,7 @@ export function PerformanceTracker() {
         <div className="flex flex-col gap-6">
           <StrategyKpiGroup
             title={t('transparency.group.valueBets')}
-            stats={OPTIMIZED_VALUE_BETS_SNAPSHOT}
+            stats={s?.value_bets}
             labels={{
               bets: t('kpi.bets'),
               hitRate: t('kpi.hitRate'),

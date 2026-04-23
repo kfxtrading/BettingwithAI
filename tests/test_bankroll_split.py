@@ -42,6 +42,23 @@ def patch_graded(monkeypatch: pytest.MonkeyPatch):
         return t
 
     monkeypatch.setattr(services, "_load_tracker", _empty_tracker)
+
+    # Neutralise the optimised-value-bet baseline + cutoff so the legacy
+    # test assertions (which predate the dual-model snapshot) keep working.
+    from datetime import date as _date
+
+    monkeypatch.setattr(services, "VALUE_SNAPSHOT_CUTOFF", _date(1970, 1, 1))
+    monkeypatch.setattr(
+        services,
+        "VALUE_SNAPSHOT_BASELINE",
+        {
+            "n_bets": 0,
+            "wins": 0,
+            "total_stake": 0.0,
+            "total_profit": 0.0,
+            "max_drawdown_pct": 0.0,
+        },
+    )
     return _install
 
 
