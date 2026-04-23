@@ -1570,12 +1570,19 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
     show_default=True,
     help="Include 1D-CNN+Transformer sequence head in the ensemble (if trained).",
 )
+@click.option(
+    "--save/--no-save",
+    default=True,
+    show_default=True,
+    help="Persist tuned weights to models/ensemble_weights_<LEAGUE>.json.",
+)
 def tune_ensemble(
     league: str,
     val_season: str,
     objective: str,
     blend: float,
     use_sequence: bool,
+    save: bool,
 ) -> None:
     """Dirichlet-sampled ensemble weight tuning (RPS / CLV / blended / Brier+LogLoss)."""
     from football_betting.data.snapshot_service import merge_snapshots_into_matches
@@ -1689,6 +1696,33 @@ def tune_ensemble(
         "n_samples_tried",
         "objective",
     }
+    if save:
+        weights_path = MODELS_DIR / f"ensemble_weights_{league}.json"
+        ensemble.save_weights(
+            weights_path,
+            metadata={
+                "league": league,
+                "val_season": val_season,
+                "objective": objective,
+                "blend": blend if objective == "blended" else None,
+                "active_members": result.get("active_members"),
+                "score_key": next(
+                    (k for k in result if k.startswith("best_") and k not in {
+                        "best_w_catboost", "best_w_poisson", "best_w_mlp", "best_w_sequence",
+                    }),
+                    None,
+                ),
+                "score_value": next(
+                    (float(v) for k, v in result.items()
+                     if k.startswith("best_") and k not in {
+                        "best_w_catboost", "best_w_poisson", "best_w_mlp", "best_w_sequence",
+                    } and isinstance(v, (int, float))),
+                    None,
+                ),
+            },
+        )
+        console.print(f"[green]Saved weights → {weights_path}[/green]")
+
     for k, v in result.items():
         if k in skip:
             continue

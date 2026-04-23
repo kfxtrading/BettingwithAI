@@ -14,7 +14,9 @@ Phase 6: ``tune_dirichlet`` extends the objective from probabilistic-only
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -157,6 +159,37 @@ class EnsembleModel:
                 dtype=float,
             )
         return out
+
+    # ───────────────────────── Weight persistence ─────────────────────────
+
+    def save_weights(self, path: Path, *, metadata: dict[str, object] | None = None) -> None:
+        """Persist current simplex weights to JSON (e.g. models/ensemble_weights_BL.json)."""
+        payload: dict[str, object] = {
+            "w_catboost": float(self.w_catboost),
+            "w_poisson": float(self.w_poisson),
+            "w_mlp": float(self.w_mlp),
+            "w_sequence": float(self.w_sequence),
+        }
+        if metadata:
+            payload["metadata"] = metadata
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    def load_weights(self, path: Path) -> None:
+        """Load simplex weights from JSON, normalise, and zero-out missing members."""
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        self.w_catboost = float(data.get("w_catboost", 0.0))
+        self.w_poisson = float(data.get("w_poisson", 0.0))
+        self.w_mlp = float(data.get("w_mlp", 0.0)) if self.mlp is not None else 0.0
+        self.w_sequence = float(data.get("w_sequence", 0.0)) if self.sequence is not None else 0.0
+        total = self.w_catboost + self.w_poisson + self.w_mlp + self.w_sequence
+        if total <= 0:
+            raise ValueError(f"EnsembleModel.load_weights: degenerate weights in {path}")
+        self.w_catboost /= total
+        self.w_poisson /= total
+        self.w_mlp /= total
+        self.w_sequence /= total
 
     def _assign_weights(self, active: list[str], weights: np.ndarray) -> None:
         mapping = dict(zip(active, weights.tolist(), strict=True))
