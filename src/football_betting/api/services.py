@@ -51,7 +51,7 @@ from football_betting.api.snapshots import load_today, write_today
 from football_betting.betting.value import find_value_bets, rank_value_bets
 from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR
 from football_betting.data.loader import load_league
-from football_betting.data.models import Fixture, MatchOdds, Prediction
+from football_betting.data.models import Fixture, MatchOdds, Outcome, Prediction
 from football_betting.data.odds_snapshots import (
     append_snapshot as append_odds_snapshot,
 )
@@ -66,6 +66,7 @@ from football_betting.predict.runtime import (
 )
 from football_betting.rating.pi_ratings import PiRatings
 from football_betting.scraping.sofascore import SofascoreClient
+from football_betting.tracking.metrics import summary_stats
 from football_betting.tracking.tracker import ResultsTracker
 
 __all__ = [
@@ -1378,6 +1379,20 @@ def get_performance_summary() -> PerformanceSummary:
     vb_stats = _merge_value_stats_with_baseline(vb_stats_live)
     pr_stats = _strategy_stats_from_graded(pred_rows, pred_series)
 
+    # Probabilistic metrics (including F1 per class) computed from all settled
+    # predictions — independent of whether a bet was placed.
+    prob_preds: list[tuple[tuple[float, float, float], Outcome]] = []
+    for rec in tracker.records:
+        if rec.actual_outcome is None:
+            continue
+        prob_preds.append(
+            (
+                (float(rec.prob_home), float(rec.prob_draw), float(rec.prob_away)),
+                rec.actual_outcome,
+            )
+        )
+    prob_stats = summary_stats(prob_preds) if prob_preds else {}
+
     return PerformanceSummary(
         n_predictions=len(tracker.records),
         n_bets=int(stats.get("n_bets", 0)),
@@ -1385,8 +1400,14 @@ def get_performance_summary() -> PerformanceSummary:
         roi=round(stats.get("roi", 0.0), 4),
         total_profit=round(stats.get("total_profit", 0.0), 2),
         total_stake=round(stats.get("total_stake", 0.0), 2),
-        brier_mean=None,
-        rps_mean=None,
+        brier_mean=round(prob_stats["mean_brier"], 4) if "mean_brier" in prob_stats else None,
+        rps_mean=round(prob_stats["mean_rps"], 4) if "mean_rps" in prob_stats else None,
+        log_loss_mean=(
+            round(prob_stats["mean_log_loss"], 4) if "mean_log_loss" in prob_stats else None
+        ),
+        macro_f1=round(prob_stats["macro_f1"], 4) if "macro_f1" in prob_stats else None,
+        weighted_f1=round(prob_stats["weighted_f1"], 4) if "weighted_f1" in prob_stats else None,
+        f1_draw=round(prob_stats["f1_draw"], 4) if "f1_draw" in prob_stats else None,
         max_drawdown_pct=max_dd,
         per_league=sorted(per_league, key=lambda p: -p.n_bets),
         value_bets=vb_stats,

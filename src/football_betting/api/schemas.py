@@ -135,6 +135,10 @@ class PerformanceSummary(BaseModel):
     total_stake: float
     brier_mean: float | None = None
     rps_mean: float | None = None
+    log_loss_mean: float | None = None
+    macro_f1: float | None = None
+    weighted_f1: float | None = None
+    f1_draw: float | None = None
     max_drawdown_pct: float
     per_league: list[PerformancePerLeague] = Field(default_factory=list)
     value_bets: StrategyStats | None = None

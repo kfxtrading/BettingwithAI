@@ -58,6 +58,70 @@ def hit_rate(predictions: list[Outcome], actuals: list[Outcome]) -> float:
     return correct / len(predictions)
 
 
+# ───────────────────────── F1-Score (per-class + macro/weighted) ─────────────────────────
+
+def f1_scores_3way(
+    predictions: list[Outcome],
+    actuals: list[Outcome],
+) -> dict[str, float]:
+    """
+    Precision / Recall / F1 for 3-way 1x2 classification.
+
+    Returns per-class metrics plus ``macro_f1`` (unweighted mean) and
+    ``weighted_f1`` (support-weighted). Useful for rare-event evaluation
+    such as draws, where overall accuracy obscures class imbalance.
+    """
+    if len(predictions) != len(actuals):
+        raise ValueError("predictions and actuals must be same length")
+
+    classes: tuple[Outcome, ...] = ("H", "D", "A")
+    result: dict[str, float] = {}
+
+    if not predictions:
+        for cls in classes:
+            result[f"precision_{cls}"] = 0.0
+            result[f"recall_{cls}"] = 0.0
+            result[f"f1_{cls}"] = 0.0
+            result[f"support_{cls}"] = 0.0
+        result["macro_f1"] = 0.0
+        result["weighted_f1"] = 0.0
+        return result
+
+    f1_per_class: list[float] = []
+    support_per_class: list[int] = []
+
+    for cls in classes:
+        tp = sum(1 for p, a in zip(predictions, actuals, strict=True) if p == cls and a == cls)
+        fp = sum(1 for p, a in zip(predictions, actuals, strict=True) if p == cls and a != cls)
+        fn = sum(1 for p, a in zip(predictions, actuals, strict=True) if p != cls and a == cls)
+        support = tp + fn
+
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall) > 0
+            else 0.0
+        )
+
+        result[f"precision_{cls}"] = precision
+        result[f"recall_{cls}"] = recall
+        result[f"f1_{cls}"] = f1
+        result[f"support_{cls}"] = float(support)
+
+        f1_per_class.append(f1)
+        support_per_class.append(support)
+
+    total_support = sum(support_per_class)
+    result["macro_f1"] = float(np.mean(f1_per_class))
+    result["weighted_f1"] = (
+        float(np.sum(np.array(f1_per_class) * np.array(support_per_class)) / total_support)
+        if total_support > 0
+        else 0.0
+    )
+    return result
+
+
 # ───────────────────────── Financial metrics ─────────────────────────
 
 def clv(bet_odds: float, closing_odds: float) -> float:
@@ -190,6 +254,8 @@ def summary_stats(
     probs = np.asarray([p for p, _ in predictions], dtype=float)
     y_true = np.asarray([OUTCOME_IDX[a] for a in actuals], dtype=int)
 
+    f1_stats = f1_scores_3way(pred_outcomes, actuals)
+
     return {
         "n": len(predictions),
         "mean_rps": mean_rps(predictions),
@@ -197,4 +263,9 @@ def summary_stats(
         "mean_log_loss": float(np.mean([log_loss_3way(p, a) for p, a in predictions])),
         "ece": expected_calibration_error(probs, y_true),
         "hit_rate": hit_rate(pred_outcomes, actuals),
+        "macro_f1": f1_stats["macro_f1"],
+        "weighted_f1": f1_stats["weighted_f1"],
+        "f1_draw": f1_stats["f1_D"],
+        "precision_draw": f1_stats["precision_D"],
+        "recall_draw": f1_stats["recall_D"],
     }
