@@ -108,11 +108,22 @@ class OddsApiClient:
         except requests.RequestException as e:
             raise OddsApiError(f"HTTP error for {url}: {e}") from e
         if r.status_code == 401:
-            raise OddsApiError("Odds API rejected the key (HTTP 401).")
+            body = (r.text or "").strip()[:240]
+            lower = body.lower()
+            if "quota" in lower or "usage" in lower or "exceeded" in lower:
+                reason = "quota exhausted"
+            else:
+                reason = "invalid key"
+            raise OddsApiError(
+                f"Odds API HTTP 401 ({reason}) — body: {body or 'no body'}"
+            )
         if r.status_code == 429:
-            raise OddsApiError("Odds API quota exhausted (HTTP 429).")
+            body = (r.text or "").strip()[:240]
+            raise OddsApiError(
+                f"Odds API HTTP 429 (quota / rate limit) — body: {body or 'no body'}"
+            )
         if r.status_code != 200:
-            raise OddsApiError(f"Odds API HTTP {r.status_code}: {r.text[:200]}")
+            raise OddsApiError(f"Odds API HTTP {r.status_code}: {r.text[:240]}")
         return r.json()
 
     # ───────────────────────── High-level API ─────────────────────────
