@@ -723,8 +723,14 @@ def train_two_head_one_language(
     calibrate: bool = True,
     epochs: int | None = None,
     max_rows_per_intent: int | None = None,
+    cfg_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Fine-tune the two-head (chapter + intent) transformer for one language."""
+    """Fine-tune the two-head (chapter + intent) transformer for one language.
+
+    ``cfg_overrides`` applies :func:`dataclasses.replace` to :data:`SUPPORT_CFG`
+    (e.g. ``{"chapter_head_weight": 0.5, "transformer_learning_rate": 3e-5}``)
+    so HP sweeps don't need to mutate globals.
+    """
     from dataclasses import replace as dc_replace
 
     from football_betting.support.calibration import TemperatureCalibrator
@@ -783,6 +789,9 @@ def train_two_head_one_language(
     if epochs is not None and epochs > 0:
         cfg = dc_replace(cfg, transformer_epochs=epochs)
         console.log(f"[yellow]Override: transformer_epochs={epochs}[/yellow]")
+    if cfg_overrides:
+        cfg = dc_replace(cfg, **cfg_overrides)
+        console.log(f"[yellow]Override: {cfg_overrides}[/yellow]")
     console.log(
         f"Loss weights: intent_ce={cfg.ce_weight} "
         f"chapter_ce={cfg.chapter_head_weight} supcon={cfg.supcon_weight}"
