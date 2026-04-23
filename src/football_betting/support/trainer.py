@@ -707,3 +707,230 @@ def _git_sha() -> str | None:
         return out.decode("utf-8").strip() or None
     except Exception:  # noqa: BLE001 — git absent or non-repo
         return None
+
+
+# ───────────────────────── Two-head transformer backend ─────────────────────────
+
+
+def train_two_head_one_language(
+    lang: str,
+    dataset_path: Path | None = None,
+    out_dir: Path | None = None,
+    backbone: str | None = None,
+    *,
+    include_ood: bool = True,
+    seed: int = 42,
+    calibrate: bool = True,
+    epochs: int | None = None,
+    max_rows_per_intent: int | None = None,
+) -> dict[str, Any]:
+    """Fine-tune the two-head (chapter + intent) transformer for one language."""
+    from dataclasses import replace as dc_replace
+
+    from football_betting.support.calibration import TemperatureCalibrator
+    from football_betting.support.reproducibility import seed_all
+    from football_betting.support.transformer_model import resolve_backbone
+    from football_betting.support.two_head_transformer import (
+        TwoHeadTransformerIntentClassifier,
+        _derive_chapter,
+    )
+
+    seed_info = seed_all(seed)
+
+    ds_path = dataset_path or (SUPPORT_DATA_DIR / SUPPORT_CFG.augmented_v3_filename)
+    if not ds_path.exists():
+        ds_path = SUPPORT_DATA_DIR / SUPPORT_CFG.augmented_v2_filename
+    if not ds_path.exists():
+        ds_path = SUPPORT_DATA_DIR / SUPPORT_CFG.dataset_filename
+    out = out_dir or SUPPORT_MODELS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+
+    console.rule(f"[bold magenta]Support two-head transformer - {lang}[/bold magenta]")
+
+    rows = load_dataset(path=ds_path, lang=lang, include_ood=include_ood)
+    if not rows:
+        raise RuntimeError(f"No rows for language '{lang}' in {ds_path}")
+
+    if max_rows_per_intent is not None and max_rows_per_intent > 0:
+        rows = _subsample_per_intent(rows, max_rows_per_intent, seed=seed)
+        console.log(
+            f"[yellow]Subsampled to <={max_rows_per_intent} rows/intent "
+            f"-> {len(rows)} total (smoke mode)[/yellow]"
+        )
+
+    split = stratified_split(rows)
+    console.log(
+        f"Loaded {len(rows)} rows | train={split.n_train} val={split.n_val} "
+        f"intents={split.n_classes} (ood={include_ood}) seed={seed}"
+    )
+
+    # Derive chapter labels from meta (with id-prefix fallback for robustness).
+    chap_train = [
+        _derive_chapter(str(i), m.get("chapter"))
+        for i, m in zip(split.y_train, split.meta_train, strict=True)
+    ]
+    chap_val = [
+        _derive_chapter(str(i), m.get("chapter"))
+        for i, m in zip(split.y_val, split.meta_val, strict=True)
+    ]
+    n_chapters = len({*chap_train, *chap_val})
+    console.log(f"Chapter labels derived | n_chapters={n_chapters}")
+
+    resolved = backbone or resolve_backbone(lang)
+    console.log(f"Backbone: {resolved}")
+
+    cfg = SUPPORT_CFG
+    if epochs is not None and epochs > 0:
+        cfg = dc_replace(cfg, transformer_epochs=epochs)
+        console.log(f"[yellow]Override: transformer_epochs={epochs}[/yellow]")
+    console.log(
+        f"Loss weights: intent_ce={cfg.ce_weight} "
+        f"chapter_ce={cfg.chapter_head_weight} supcon={cfg.supcon_weight}"
+    )
+
+    clf = TwoHeadTransformerIntentClassifier(lang=lang, backbone=resolved, cfg=cfg)
+    fit_info = clf.fit(
+        split.X_train,
+        split.y_train,
+        chap_train,
+        X_val=split.X_val,
+        y_val=split.y_val,
+        chapters_val=chap_val,
+        verbose=True,
+    )
+    console.log(
+        f"Fit done | n_samples={fit_info['n_samples']} "
+        f"intents={fit_info['n_intents']} chapters={fit_info['n_chapters']} "
+        f"best_val_f1={fit_info.get('best_val_macro_f1')}"
+    )
+
+    metrics = clf.evaluate(split.X_val, split.y_val, chapters=chap_val)
+    _log_metrics("two_head", metrics)
+    if metrics.get("chapter_head_top1") is not None:
+        console.print(
+            f"  chapter_head_top1={metrics['chapter_head_top1']:.3f}  "
+            f"chapter_head_macro_f1={metrics['chapter_head_macro_f1']:.3f}"
+        )
+
+    out_path = out / SUPPORT_CFG.two_head_model_dirname_template.format(lang=lang)
+    clf.save(out_path)
+    console.log(f"[green]Saved: {out_path}[/green]")
+
+    # ── Calibration on intent logits ──
+    calib_info: dict[str, Any] = {"fitted": False}
+    if calibrate:
+        import numpy as np
+
+        val_logits = clf.predict_logits_batch(split.X_val)
+        class_to_idx = {c: i for i, c in enumerate(clf.classes_)}
+        labels_np = np.array([class_to_idx.get(y, -1) for y in split.y_val], dtype=np.int64)
+        mask = labels_np >= 0
+        if mask.sum() >= 2:
+            calibrator = TemperatureCalibrator()
+            info = calibrator.fit(val_logits[mask], labels_np[mask])
+            calibrator.save(out_path / "temperature.json")
+            calib_info = {"fitted": True, **info}
+            console.log(
+                f"[cyan]Calibrator T={info['temperature']:.3f} "
+                f"ECE {info.get('ece_before', '?'):.4f} -> "
+                f"{info.get('ece_after', '?'):.4f}[/cyan]"
+            )
+        else:
+            console.log("[yellow]Calibration skipped (not enough val rows)[/yellow]")
+
+    device_name = _describe_device()
+    git_sha = _git_sha()
+
+    payload: dict[str, Any] = {
+        "lang": lang,
+        "backend": "two_head_transformer",
+        "backbone": resolved,
+        "n_train": split.n_train,
+        "n_val": split.n_val,
+        "n_classes": split.n_classes,
+        "n_chapters": fit_info["n_chapters"],
+        "loss_weights": {
+            "intent_ce": cfg.ce_weight,
+            "chapter_ce": cfg.chapter_head_weight,
+            "supcon": cfg.supcon_weight,
+            "chapter_gate": cfg.two_head_chapter_gate,
+        },
+        "metrics": metrics,
+        "calibration": calib_info,
+        "seed": seed_info,
+        "device": device_name,
+        "git_sha": git_sha,
+        "model_path": str(out_path),
+        "fit_info": fit_info,
+    }
+
+    single_metrics_path = out / SUPPORT_CFG.two_head_metrics_filename.replace(
+        ".json", f"_{lang}.json"
+    )
+    single_report = {
+        "per_language": [payload],
+        "backend": "two_head_transformer",
+        "include_ood": include_ood,
+        "seed": seed,
+        "device": device_name,
+        "git_sha": git_sha,
+        "config_version": "0.3.5",
+    }
+    single_metrics_path.write_text(
+        json.dumps(single_report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    console.log(f"[green]Wrote metrics: {single_metrics_path}[/green]")
+
+    return payload
+
+
+def train_two_head_all(
+    langs: list[str] | None = None,
+    dataset_path: Path | None = None,
+    out_dir: Path | None = None,
+    *,
+    include_ood: bool = True,
+    seed: int = 42,
+    calibrate: bool = True,
+    epochs: int | None = None,
+    max_rows_per_intent: int | None = None,
+) -> dict[str, Any]:
+    """Fine-tune the two-head transformer per locale and dump aggregated metrics."""
+    out = out_dir or SUPPORT_MODELS_DIR
+    out.mkdir(parents=True, exist_ok=True)
+    langs_list = list(langs) if langs else list(SUPPORT_CFG.languages)
+
+    all_stats: list[dict[str, Any]] = []
+    for lg in langs_list:
+        try:
+            stats = train_two_head_one_language(
+                lg,
+                dataset_path=dataset_path,
+                out_dir=out,
+                include_ood=include_ood,
+                seed=seed,
+                calibrate=calibrate,
+                epochs=epochs,
+                max_rows_per_intent=max_rows_per_intent,
+            )
+            all_stats.append(stats)
+        except Exception as exc:  # noqa: BLE001
+            console.log(f"[red]Failed for {lg}: {exc}[/red]")
+
+    metrics_path = out / SUPPORT_CFG.two_head_metrics_filename
+    payload = {
+        "per_language": all_stats,
+        "backend": "two_head_transformer",
+        "include_ood": include_ood,
+        "seed": seed,
+        "device": _describe_device(),
+        "git_sha": _git_sha(),
+        "config_version": "0.3.5",
+    }
+    metrics_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    console.log(f"[green]Wrote metrics: {metrics_path}[/green]")
+
+    return payload

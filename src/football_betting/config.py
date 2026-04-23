@@ -742,6 +742,18 @@ class SupportConfig:
     supcon_weight: float = 0.3
     ce_weight: float = 1.0
     supcon_temperature: float = 0.07
+    # Two-head (chapter + intent) joint classifier:
+    #   total = ce_weight·CE_intent + chapter_head_weight·CE_chapter + supcon_weight·SupCon
+    # Confusion analysis (v3) showed 95%+ of errors stay within-chapter, so an
+    # auxiliary chapter head acts as a strong regulariser that pushes the
+    # encoder to first separate chapters cleanly.
+    two_head_model_dirname_template: str = "support_twohead_{lang}"
+    two_head_metrics_filename: str = "support_intent_twohead_metrics.json"
+    chapter_head_weight: float = 0.3
+    # At inference: when the chapter head's top-1 prob exceeds this gate, we
+    # zero out intent probabilities that do not belong to the predicted chapter
+    # before re-normalising. Set to 1.0+ to disable chapter-masked inference.
+    two_head_chapter_gate: float = 0.6
     # ONNX export
     onnx_filename_template: str = "support_transformer_{lang}.onnx"
     onnx_opset: int = 17

@@ -1003,6 +1003,98 @@ def train_support_transformer(
         )
 
 
+# ─────────────────── train-support-twohead (v0.3.5 - chapter+intent heads) ───────────────────
+
+
+@main.command("train-support-twohead")
+@click.option(
+    "--lang",
+    type=str,
+    default="all",
+    show_default=True,
+    help="Locale to fine-tune (one of en/de/es/fr/it) or 'all'.",
+)
+@click.option(
+    "--dataset",
+    "dataset_path",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Dataset JSONL (default: v3 -> v2 -> dataset_augmented.jsonl fallback).",
+)
+@click.option(
+    "--out",
+    "out_dir",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output directory (default: models/support).",
+)
+@click.option(
+    "--backbone",
+    type=str,
+    default=None,
+    help="Override HF backbone (default: XLM-R base).",
+)
+@click.option(
+    "--include-ood/--no-ood",
+    default=True,
+    show_default=True,
+    help="Inject curated OOD seed rows during training.",
+)
+@click.option("--seed", type=int, default=42, show_default=True)
+@click.option("--calibrate/--no-calibrate", default=True, show_default=True)
+@click.option(
+    "--epochs",
+    type=int,
+    default=None,
+    help="Override transformer_epochs (e.g. 1 for a smoke run).",
+)
+@click.option(
+    "--max-rows-per-intent",
+    type=int,
+    default=None,
+    help="Cap training rows per intent (smoke/HPO). Class balance preserved.",
+)
+def train_support_twohead(
+    lang: str,
+    dataset_path: Path | None,
+    out_dir: Path | None,
+    backbone: str | None,
+    include_ood: bool,
+    seed: int,
+    calibrate: bool,
+    epochs: int | None,
+    max_rows_per_intent: int | None,
+) -> None:
+    """Fine-tune the two-head transformer (chapter + intent, weighted CE + SupCon)."""
+    from football_betting.support.trainer import (
+        train_two_head_all,
+        train_two_head_one_language,
+    )
+
+    if lang == "all":
+        train_two_head_all(
+            dataset_path=dataset_path,
+            out_dir=out_dir,
+            include_ood=include_ood,
+            seed=seed,
+            calibrate=calibrate,
+            epochs=epochs,
+            max_rows_per_intent=max_rows_per_intent,
+        )
+    else:
+        train_two_head_one_language(
+            lang,
+            dataset_path=dataset_path,
+            out_dir=out_dir,
+            backbone=backbone,
+            include_ood=include_ood,
+            seed=seed,
+            calibrate=calibrate,
+            epochs=epochs,
+            max_rows_per_intent=max_rows_per_intent,
+        )
+
+
 # ─────────────────── export-support-onnx (v0.3.4 - M3) ───────────────────
 
 
