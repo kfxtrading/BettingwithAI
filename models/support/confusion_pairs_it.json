@@ -1,0 +1,252 @@
+{
+  "lang": "it",
+  "n_val": 2488,
+  "n_correct": 1233,
+  "n_errors": 1255,
+  "top1_accuracy": 0.4956,
+  "top_confusion_pairs": [
+    {
+      "gold": "language-fu",
+      "pred": "responsible-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "contact-fu",
+      "pred": "responsible-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-live-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-howto-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-form-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-lineups-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-xg-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-weather-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-goalstats-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-coach-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-ougames-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-trapgames-fu",
+      "pred": "analysis-h2h-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-emotions-fu",
+      "pred": "mistakes-beginner-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-accumulators-fu",
+      "pred": "mistakes-beginner-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-overbetting-fu",
+      "pred": "mistakes-beginner-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "market-create-fu",
+      "pred": "market-movement-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "market-change-fu",
+      "pred": "market-movement-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "market-diffbooks-fu",
+      "pred": "market-movement-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "profit-roi-fu",
+      "pred": "profit-fail90-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "profit-skillVsLuck-fu",
+      "pred": "profit-fail90-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    }
+  ],
+  "top_pairs_cover_share_of_errors": 0.16,
+  "worst_intents": [
+    {
+      "intent": "language-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "contact-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-1x2-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-odds-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-single-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-accumulator-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-system-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-probability-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-bookie-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-overround-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-live-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-cashout-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-handicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-asianhandicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-btts-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-dnb-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-doublechance-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-specials-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-howto-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-form-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "per_lang_summary": [
+    {
+      "lang": "en",
+      "n_val": 2460,
+      "n_errors": 1253,
+      "top1": 0.4907,
+      "top_pairs_cover_share": 0.16
+    },
+    {
+      "lang": "de",
+      "n_val": 2481,
+      "n_errors": 1245,
+      "top1": 0.4982,
+      "top_pairs_cover_share": 0.153
+    },
+    {
+      "lang": "es",
+      "n_val": 2506,
+      "n_errors": 1267,
+      "top1": 0.4944,
+      "top_pairs_cover_share": 0.16
+    },
+    {
+      "lang": "fr",
+      "n_val": 2505,
+      "n_errors": 1268,
+      "top1": 0.4938,
+      "top_pairs_cover_share": 0.158
+    },
+    {
+      "lang": "it",
+      "n_val": 2488,
+      "n_errors": 1255,
+      "top1": 0.4956,
+      "top_pairs_cover_share": 0.16
+    }
+  ],
+  "cross_lang_top_pairs": [
+    {
+      "gold": "strategy-ownsystem-fu",
+      "pred": "strategy-martingale-fu",
+      "count_all_langs": 20
+    },
+    {
+      "gold": "mistakes-emotions-fu",
+      "pred": "mistakes-beginner-fu",
+      "count_all_langs": 20
+    },
+    {
+      "gold": "mistakes-accumulators-fu",
+      "pred": "mistakes-beginner-fu",
+      "count_all_langs": 20
+    },
+    {
+      "gold": "language-fu",
+      "pred": "cookies-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "basics-single-fu",
+      "pred": "basics-cashout-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "basics-bookiemoney-fu",
+      "pred": "basics-cashout-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "basics-overround-fu",
+      "pred": "basics-cashout-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "basics-asianhandicap-fu",
+      "pred": "basics-cashout-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "basics-dnb-fu",
+      "pred": "basics-cashout-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "strategy-best-fu",
+      "pred": "strategy-profitable-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "strategy-combos-fu",
+      "pred": "strategy-profitable-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "strategy-roi-fu",
+      "pred": "strategy-profitable-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "strategy-discipline-fu",
+      "pred": "strategy-profitable-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "strategy-prematchlive-fu",
+      "pred": "strategy-profitable-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "strategy-oddsmovement-fu",
+      "pred": "strategy-profitable-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "ai-how-fu",
+      "pred": "ai-oddsmodel-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "ai-ml-fu",
+      "pred": "ai-oddsmodel-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "ai-measure-fu",
+      "pred": "ai-oddsmodel-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "ai-apis-fu",
+      "pred": "ai-oddsmodel-fu",
+      "count_all_langs": 10
+    },
+    {
+      "gold": "market-valueOdds-fu",
+      "pred": "market-change-fu",
+      "count_all_langs": 10
+    }
+  ]
+}

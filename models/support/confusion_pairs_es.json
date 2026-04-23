@@ -1,0 +1,252 @@
+{
+  "lang": "es",
+  "n_val": 2506,
+  "n_correct": 1239,
+  "n_errors": 1267,
+  "top1_accuracy": 0.4944,
+  "top_confusion_pairs": [
+    {
+      "gold": "basics-1x2-fu",
+      "pred": "basics-ou25-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-overround-fu",
+      "pred": "basics-ou25-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-best-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-flat-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-losingstreak-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-profitable-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-test-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-goododds-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-timing-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-oddsmovement-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "strategy-ownsystem-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-emotions-fu",
+      "pred": "mistakes-beginner-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-accumulators-fu",
+      "pred": "mistakes-beginner-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-surebets-fu",
+      "pred": "mistakes-beginner-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-favteam-fu",
+      "pred": "mistakes-beginner-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-data-fu",
+      "pred": "ai-apis-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-model-fu",
+      "pred": "ai-apis-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-overfitting-fu",
+      "pred": "ai-apis-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-measure-fu",
+      "pred": "ai-apis-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-dashboard-fu",
+      "pred": "ai-apis-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    }
+  ],
+  "top_pairs_cover_share_of_errors": 0.16,
+  "worst_intents": [
+    {
+      "intent": "market-liquidity-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 11
+    },
+    {
+      "intent": "language-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "contact-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-1x2-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-odds-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-single-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-accumulator-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-system-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-probability-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-bookie-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-overround-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-live-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-handicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-asianhandicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-btts-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-dnb-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-doublechance-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-specials-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-howto-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-stats-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    }
+  ]
+}

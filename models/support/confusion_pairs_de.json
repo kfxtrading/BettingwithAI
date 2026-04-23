@@ -1,0 +1,252 @@
+{
+  "lang": "de",
+  "n_val": 2481,
+  "n_correct": 1236,
+  "n_errors": 1245,
+  "top1_accuracy": 0.4982,
+  "top_confusion_pairs": [
+    {
+      "gold": "strategy-ownsystem-fu",
+      "pred": "strategy-martingale-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-emotions-fu",
+      "pred": "mistakes-favteam-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-nobankroll-fu",
+      "pred": "mistakes-favteam-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-surebets-fu",
+      "pred": "mistakes-favteam-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-ml-fu",
+      "pred": "ai-reliability-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-features-fu",
+      "pred": "ai-reliability-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-combine-fu",
+      "pred": "ai-reliability-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "ai-ensemble-fu",
+      "pred": "ai-reliability-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "market-clv-fu",
+      "pred": "market-change-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "platform-confidence-fu",
+      "pred": "platform-wrongMatch-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "platform-visualize-fu",
+      "pred": "platform-wrongMatch-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "platform-history-fu",
+      "pred": "platform-wrongMatch-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "platform-alerts-fu",
+      "pred": "platform-wrongMatch-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "responsible-fu",
+      "pred": "pi-rating-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    },
+    {
+      "gold": "analysis-stats-fu",
+      "pred": "analysis-coach-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    },
+    {
+      "gold": "analysis-form-fu",
+      "pred": "analysis-coach-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    },
+    {
+      "gold": "analysis-homeaway-fu",
+      "pred": "analysis-coach-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    },
+    {
+      "gold": "analysis-motivation-fu",
+      "pred": "analysis-coach-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    },
+    {
+      "gold": "analysis-deffoff-fu",
+      "pred": "analysis-coach-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    },
+    {
+      "gold": "analysis-ougames-fu",
+      "pred": "analysis-coach-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    }
+  ],
+  "top_pairs_cover_share_of_errors": 0.153,
+  "worst_intents": [
+    {
+      "intent": "strategy-flat-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 11
+    },
+    {
+      "intent": "language-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "contact-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-1x2-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-odds-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-winnings-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-valuebet-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-probability-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-bookiemoney-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-live-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-cashout-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-handicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-asianhandicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-btts-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-stats-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-homeaway-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-injuries-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-motivation-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-deffoff-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "analysis-bestleague-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    }
+  ]
+}

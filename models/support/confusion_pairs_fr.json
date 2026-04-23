@@ -1,0 +1,252 @@
+{
+  "lang": "fr",
+  "n_val": 2505,
+  "n_correct": 1237,
+  "n_errors": 1268,
+  "top1_accuracy": 0.4938,
+  "top_confusion_pairs": [
+    {
+      "gold": "basics-1x2-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-odds-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-winnings-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-accumulator-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-system-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-bookie-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-overround-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-cashout-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-handicap-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-asianhandicap-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-dnb-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-doublechance-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-specials-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-h2h-fu",
+      "pred": "analysis-coach-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "analysis-goalstats-fu",
+      "pred": "analysis-coach-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-losemoney-fu",
+      "pred": "mistakes-tipsters-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-chasing-fu",
+      "pred": "mistakes-tipsters-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "mistakes-favteam-fu",
+      "pred": "mistakes-tipsters-fu",
+      "count": 10,
+      "share_of_errors": 0.008
+    },
+    {
+      "gold": "basics-single-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    },
+    {
+      "gold": "basics-bookiemoney-fu",
+      "pred": "basics-valuebet-fu",
+      "count": 9,
+      "share_of_errors": 0.007
+    }
+  ],
+  "top_pairs_cover_share_of_errors": 0.158,
+  "worst_intents": [
+    {
+      "intent": "language-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "contact-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-1x2-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-odds-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-winnings-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-single-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-accumulator-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-system-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-bookie-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-bookiemoney-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-overround-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-live-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-cashout-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-handicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-asianhandicap-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-ou25-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-btts-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-dnb-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-doublechance-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    },
+    {
+      "intent": "basics-specials-fu",
+      "recall": 0.0,
+      "correct": 0,
+      "total": 10
+    }
+  ]
+}
