@@ -1,19 +1,20 @@
 {
-  "w_catboost": 0.9173643481267485,
-  "w_poisson": 0.06850156458375593,
-  "w_mlp": 0.0,
-  "w_sequence": 0.014134087289495756,
+  "w_catboost": 0.779455600062592,
+  "w_poisson": 0.140842009606732,
+  "w_mlp": 0.042496812972562185,
+  "w_sequence": 0.03720557735811377,
   "metadata": {
     "league": "LL",
     "val_season": "2024-25",
-    "objective": "rps",
+    "objective": "clv",
     "blend": null,
     "active_members": [
       "catboost",
       "poisson",
+      "mlp",
       "sequence"
     ],
-    "score_key": "best_rps",
-    "score_value": 0.1879633673324671
+    "score_key": "best_clv_mean",
+    "score_value": 0.007296374251285228
   }
 }

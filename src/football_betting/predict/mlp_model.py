@@ -352,7 +352,9 @@ class MLPPredictor:
 
         # Reconstruct model
         self.model = _build_network(meta["input_dim"], self.cfg)
-        self.model.load_state_dict(torch.load(path, map_location="cpu"))
+        # weights_only=False: checkpoints produced by this repo are trusted.
+        # Needed for PyTorch >=2.6 compatibility with numpy-pickled state dicts.
+        self.model.load_state_dict(torch.load(path, map_location="cpu", weights_only=False))
         self.model.eval()
 
         self.scaler = joblib.load(path.with_suffix(".scaler.joblib"))

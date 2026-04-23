@@ -1,8 +1,8 @@
 {
-  "w_catboost": 0.6517089985503304,
-  "w_poisson": 0.23813816381740424,
-  "w_mlp": 0.0,
-  "w_sequence": 0.11015283763226537,
+  "w_catboost": 0.6739315046213843,
+  "w_poisson": 0.256249210195972,
+  "w_mlp": 0.03587030506541315,
+  "w_sequence": 0.03394898011723049,
   "metadata": {
     "league": "PL",
     "val_season": "2024-25",
@@ -11,9 +11,10 @@
     "active_members": [
       "catboost",
       "poisson",
+      "mlp",
       "sequence"
     ],
     "score_key": "best_clv_mean",
-    "score_value": 0.011745107585788858
+    "score_value": 0.012158216308752388
   }
 }

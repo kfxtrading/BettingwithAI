@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -12,9 +12,14 @@ import pytest
 from football_betting.config import WeatherConfig
 from football_betting.features.weather import (
     FAMILIE_A_KEYS,
+    FAMILIE_B_KEYS,
+    FAMILIE_C_KEYS,
+    PARIS_MONTHLY_TEMP,
     WeatherTracker,
     _average_observations,
     _empty_familie_a,
+    latitude_seasonal_humidity,
+    latitude_seasonal_temp,
 )
 from football_betting.scraping.cache import ResponseCache
 from football_betting.scraping.weather import (
@@ -23,7 +28,6 @@ from football_betting.scraping.weather import (
     WeatherObservation,
     _safe_float,
 )
-
 
 # ───────────────────────── Fixtures ─────────────────────────
 
@@ -185,7 +189,7 @@ class TestWeatherTracker:
         assert feats == {}
 
     def test_returns_nan_keys_when_no_stadium(self) -> None:
-        cfg = WeatherConfig()
+        cfg = WeatherConfig(use_weather_shock=False, use_simons_signal=False)
         client = MagicMock(spec=OpenMeteoClient)
         tracker = WeatherTracker(cfg=cfg, client=client, stadiums={})
 
@@ -194,9 +198,9 @@ class TestWeatherTracker:
         assert all(math.isnan(v) for v in feats.values())
 
     def test_emits_familie_a_for_known_stadium(self) -> None:
-        cfg = WeatherConfig()
+        cfg = WeatherConfig(use_weather_shock=False, use_simons_signal=False)
         client = MagicMock(spec=OpenMeteoClient)
-        kickoff = datetime(2024, 4, 15, 19, 0, tzinfo=timezone.utc)
+        kickoff = datetime(2024, 4, 15, 19, 0, tzinfo=UTC)
         client.fetch_forecast.return_value = [
             _make_observation(kickoff - timedelta(hours=1), temp_c=20.0),
             _make_observation(kickoff, temp_c=21.0),
@@ -217,9 +221,9 @@ class TestWeatherTracker:
         assert feats["weather_is_extreme"] == 0.0
 
     def test_naive_kickoff_treated_as_utc(self) -> None:
-        cfg = WeatherConfig()
+        cfg = WeatherConfig(use_weather_shock=False, use_simons_signal=False)
         client = MagicMock(spec=OpenMeteoClient)
-        kickoff_aware = datetime(2024, 4, 15, 19, 0, tzinfo=timezone.utc)
+        kickoff_aware = datetime(2024, 4, 15, 19, 0, tzinfo=UTC)
         client.fetch_forecast.return_value = [_make_observation(kickoff_aware, temp_c=15.0)]
         client.fetch_historical.return_value = client.fetch_forecast.return_value
 
@@ -254,7 +258,7 @@ class TestHelpers:
         assert all(math.isnan(v) for v in feats.values())
 
     def test_average_observations_aggregates_correctly(self) -> None:
-        ts = datetime(2024, 4, 15, 19, 0, tzinfo=timezone.utc)
+        ts = datetime(2024, 4, 15, 19, 0, tzinfo=UTC)
         obs = [
             _make_observation(ts - timedelta(hours=1), temp_c=10.0, precip_mm=1.0, wind_kmh=10.0),
             _make_observation(ts, temp_c=12.0, precip_mm=2.0, wind_kmh=15.0),
@@ -273,8 +277,8 @@ class TestFeatureBuilderIntegration:
     def test_build_features_passes_kickoff_to_tracker(self) -> None:
         from football_betting.features.builder import FeatureBuilder
 
-        kickoff = datetime(2024, 4, 15, 19, 0, tzinfo=timezone.utc)
-        cfg = WeatherConfig()
+        kickoff = datetime(2024, 4, 15, 19, 0, tzinfo=UTC)
+        cfg = WeatherConfig(use_weather_shock=False, use_simons_signal=False)
         client = MagicMock(spec=OpenMeteoClient)
         client.fetch_forecast.return_value = [_make_observation(kickoff, temp_c=22.5)]
         client.fetch_historical.return_value = client.fetch_forecast.return_value
@@ -305,3 +309,146 @@ class TestFeatureBuilderIntegration:
             match_date=date(2024, 4, 15),
         )
         assert not any(k.startswith("weather_") for k in feats)
+
+
+# ───────────────────────── Climatology helpers ─────────────────────────
+
+
+class TestClimatology:
+    def test_latitude_temp_warmer_in_summer_northern(self) -> None:
+        jan = latitude_seasonal_temp(48.0, 1)
+        jul = latitude_seasonal_temp(48.0, 7)
+        assert jul > jan
+
+    def test_latitude_temp_seasons_flip_southern(self) -> None:
+        jan = latitude_seasonal_temp(-30.0, 1)  # summer in SH
+        jul = latitude_seasonal_temp(-30.0, 7)  # winter in SH
+        assert jan > jul
+
+    def test_humidity_within_realistic_bounds(self) -> None:
+        for lat in (40, 48, 55):
+            for month in (1, 4, 7, 10):
+                h = latitude_seasonal_humidity(float(lat), month)
+                assert 30.0 < h < 100.0
+
+
+# ───────────────────────── Familie B — Weather Shock ─────────────────────────
+
+
+class TestFamilieBShock:
+    def test_shock_zero_when_observed_matches_climate(self) -> None:
+        cfg = WeatherConfig(use_match_day_weather=True, use_weather_shock=True,
+                            use_simons_signal=False)
+        client = MagicMock(spec=OpenMeteoClient)
+        stadiums = {
+            "Home": {"lat": 48.0, "lon": 11.0},
+            "Away": {"lat": 48.0, "lon": 11.0},  # same latitude → same climate
+        }
+        match_date = date(2024, 7, 15)
+        climate_t = latitude_seasonal_temp(48.0, 7)
+        kickoff = datetime(2024, 7, 15, 19, 0, tzinfo=UTC)
+        client.fetch_forecast.return_value = [
+            _make_observation(kickoff, temp_c=climate_t),
+        ]
+        client.fetch_historical.return_value = client.fetch_forecast.return_value
+
+        tracker = WeatherTracker(cfg=cfg, client=client, stadiums=stadiums)
+        feats = tracker.features_for_match("Home", "Away", match_date, kickoff)
+        assert feats["weather_shock_home_temp"] == pytest.approx(0.0, abs=0.5)
+        assert feats["weather_travel_climate_diff"] == pytest.approx(0.0, abs=0.1)
+
+    def test_away_shock_large_when_tropical_team_visits_cold_venue(self) -> None:
+        cfg = WeatherConfig(use_match_day_weather=True, use_weather_shock=True,
+                            use_simons_signal=False)
+        client = MagicMock(spec=OpenMeteoClient)
+        stadiums = {
+            "Cold": {"lat": 55.0, "lon": 10.0},
+            "Tropical": {"lat": 10.0, "lon": 40.0},
+        }
+        match_date = date(2024, 1, 15)
+        kickoff = datetime(2024, 1, 15, 19, 0, tzinfo=UTC)
+        client.fetch_forecast.return_value = [
+            _make_observation(kickoff, temp_c=2.0),
+        ]
+        client.fetch_historical.return_value = client.fetch_forecast.return_value
+
+        tracker = WeatherTracker(cfg=cfg, client=client, stadiums=stadiums)
+        feats = tracker.features_for_match("Cold", "Tropical", match_date, kickoff)
+        # Tropical team used to ~20+°C; here they face ~2°C → large negative shock
+        assert feats["weather_shock_away_temp"] < -10.0
+        assert feats["weather_shock_away_magnitude"] > 5.0
+        assert feats["weather_travel_climate_diff"] > 10.0
+
+    def test_nan_when_away_team_missing_coords(self) -> None:
+        cfg = WeatherConfig(use_match_day_weather=True, use_weather_shock=True,
+                            use_simons_signal=False)
+        client = MagicMock(spec=OpenMeteoClient)
+        kickoff = datetime(2024, 4, 15, 19, 0, tzinfo=UTC)
+        client.fetch_forecast.return_value = [_make_observation(kickoff, temp_c=18.0)]
+        client.fetch_historical.return_value = client.fetch_forecast.return_value
+
+        tracker = WeatherTracker(
+            cfg=cfg, client=client,
+            stadiums={"Home": {"lat": 48.0, "lon": 11.0}},  # Away missing
+        )
+        feats = tracker.features_for_match("Home", "UnknownAway", date(2024, 4, 15), kickoff)
+        for k in FAMILIE_B_KEYS:
+            assert math.isnan(feats[k]), f"{k} should be NaN when coords missing"
+
+
+# ───────────────────────── Familie C — Simons-Signal ─────────────────────────
+
+
+class TestFamilieCSimons:
+    def test_emits_three_paris_features(self) -> None:
+        cfg = WeatherConfig(use_match_day_weather=False, use_weather_shock=False,
+                            use_simons_signal=True)
+        client = MagicMock(spec=OpenMeteoClient)
+        # Mock Paris morning window with full sun + 1020 hPa + warm anomaly
+        morning_ts = datetime(2024, 7, 15, 7, 0, tzinfo=UTC)
+        obs = WeatherObservation(
+            timestamp=morning_ts, latitude=48.85, longitude=2.35,
+            temp_c=25.0, precip_mm=0.0, wind_kmh=5.0, wind_gust_kmh=7.0,
+            humidity_pct=55.0, pressure_hpa=1020.0, cloud_cover_pct=0.0,
+        )
+        client.fetch_historical.return_value = [obs]
+        client.fetch_forecast.return_value = [obs]
+
+        tracker = WeatherTracker(cfg=cfg, client=client, stadiums={})
+        feats = tracker.features_for_match("Home", "Away", date(2024, 7, 15))
+        assert set(feats.keys()) == set(FAMILIE_C_KEYS)
+        assert feats["simons_paris_sunny_morning"] == pytest.approx(1.0)
+        assert feats["simons_paris_pressure"] == pytest.approx(1020.0)
+        # July climatology = 20.5 → anomaly +4.5
+        assert feats["simons_paris_temp_anomaly"] == pytest.approx(
+            25.0 - PARIS_MONTHLY_TEMP[6], abs=0.1
+        )
+
+    def test_fully_cloudy_gives_zero_sunny(self) -> None:
+        cfg = WeatherConfig(use_match_day_weather=False, use_weather_shock=False,
+                            use_simons_signal=True)
+        client = MagicMock(spec=OpenMeteoClient)
+        obs = WeatherObservation(
+            timestamp=datetime(2024, 3, 10, 7, 0, tzinfo=UTC),
+            latitude=48.85, longitude=2.35,
+            temp_c=8.0, precip_mm=0.0, wind_kmh=5.0, wind_gust_kmh=7.0,
+            humidity_pct=80.0, pressure_hpa=1005.0, cloud_cover_pct=100.0,
+        )
+        client.fetch_historical.return_value = [obs]
+        client.fetch_forecast.return_value = [obs]
+
+        tracker = WeatherTracker(cfg=cfg, client=client, stadiums={})
+        feats = tracker.features_for_match("H", "A", date(2024, 3, 10))
+        assert feats["simons_paris_sunny_morning"] == pytest.approx(0.0)
+
+    def test_returns_nans_when_no_paris_data(self) -> None:
+        cfg = WeatherConfig(use_match_day_weather=False, use_weather_shock=False,
+                            use_simons_signal=True)
+        client = MagicMock(spec=OpenMeteoClient)
+        client.fetch_historical.return_value = []
+        client.fetch_forecast.return_value = []
+
+        tracker = WeatherTracker(cfg=cfg, client=client, stadiums={})
+        feats = tracker.features_for_match("H", "A", date(2024, 4, 15))
+        for k in FAMILIE_C_KEYS:
+            assert math.isnan(feats[k])

@@ -3,6 +3,7 @@ API service layer — bridges FastAPI routers and the existing ML package.
 
 All functions return wire-format Pydantic models from `api.schemas`.
 """
+
 from __future__ import annotations
 
 import json
@@ -90,6 +91,7 @@ __all__ = [
 # SEO helpers
 # ─────────────────────────────────────────────────────────────────
 
+
 def _slugify(name: str) -> str:
     """Make a URL-friendly slug from an arbitrary team/league name."""
     slug = re.sub(r"[^\w\s-]", "", name, flags=re.UNICODE).strip().lower()
@@ -111,9 +113,7 @@ def get_seo_slugs() -> SeoSlugsOut:
     leagues: list[SeoLeagueSlug] = []
     teams: list[SeoTeamSlug] = []
     for key, cfg in LEAGUES.items():
-        leagues.append(
-            SeoLeagueSlug(key=key, slug=_slugify(cfg.name), name=cfg.name)
-        )
+        leagues.append(SeoLeagueSlug(key=key, slug=_slugify(cfg.name), name=cfg.name))
         try:
             ratings = _ratings_for_league(key)
         except FileNotFoundError:
@@ -122,9 +122,7 @@ def get_seo_slugs() -> SeoSlugsOut:
             logger.warning("get_seo_slugs: failed to load ratings for %s", key)
             continue
         for team, _ in ratings.top_n(500):
-            teams.append(
-                SeoTeamSlug(league=key, slug=_slugify(team), name=team)
-            )
+            teams.append(SeoTeamSlug(league=key, slug=_slugify(team), name=team))
 
     payload = SeoSlugsOut(leagues=leagues, teams=teams)
     cache.set(cache_key, payload, ttl=3600.0)
@@ -134,6 +132,7 @@ def get_seo_slugs() -> SeoSlugsOut:
 # ─────────────────────────────────────────────────────────────────
 # Health / metadata
 # ─────────────────────────────────────────────────────────────────
+
 
 def get_health(version: str) -> HealthOut:
     models: dict[str, ModelAvailability] = {}
@@ -338,9 +337,7 @@ def _persist_sofascore_event_id(
             continue
         if prediction.sofascore_event_id == event_id:
             return True
-        snapshot.predictions[index] = prediction.model_copy(
-            update={"sofascore_event_id": event_id}
-        )
+        snapshot.predictions[index] = prediction.model_copy(update={"sofascore_event_id": event_id})
         try:
             write_today(snapshot)
         except OSError as exc:
@@ -407,7 +404,8 @@ def build_predictions_for_fixtures(
         except FileNotFoundError:
             logger.warning(
                 "[predict] No historical CSV for %s — run `fb download --league %s`.",
-                league_key, league_key,
+                league_key,
+                league_key,
             )
             continue
 
@@ -416,7 +414,10 @@ def build_predictions_for_fixtures(
         date_max = max(m.date for m in matches).isoformat() if matches else None
         date_range = f"{date_min} → {date_max}" if date_min else None
 
-        fb = FeatureBuilder()
+        # Phase 1: weather features wired into live prediction path.
+        from football_betting.features.weather import WeatherTracker
+
+        fb = FeatureBuilder(weather_tracker=WeatherTracker())
 
         # Stage Sofascore BEFORE replay → consumed chronologically by fit_on_history
         sofascore_count = 0
@@ -461,9 +462,11 @@ def build_predictions_for_fixtures(
                 lead_h = (kickoff_dt - _now_utc).total_seconds() / 3600.0
                 if lead_h < _min_lead_h:
                     logger.debug(
-                        "[predict] Skipping opening-store append for %s vs %s "
-                        "(lead=%.2fh < %.1fh)",
-                        fd["home_team"], fd["away_team"], lead_h, _min_lead_h,
+                        "[predict] Skipping opening-store append for %s vs %s (lead=%.2fh < %.1fh)",
+                        fd["home_team"],
+                        fd["away_team"],
+                        lead_h,
+                        _min_lead_h,
                     )
                     continue
             try:
@@ -477,11 +480,11 @@ def build_predictions_for_fixtures(
             except Exception as exc:  # pragma: no cover - defensive
                 logger.warning(
                     "[predict] Failed to persist odds snapshot for %s vs %s: %s",
-                    fd["home_team"], fd["away_team"], exc,
+                    fd["home_team"],
+                    fd["away_team"],
+                    exc,
                 )
-        odds_snaps_loaded = load_odds_snapshots(
-            league_key, fb.market_tracker, only_future=True
-        )
+        odds_snaps_loaded = load_odds_snapshots(league_key, fb.market_tracker, only_future=True)
 
         model = _build_model(league_key, fb)
         model_name = type(model).__name__
@@ -489,9 +492,15 @@ def build_predictions_for_fixtures(
         logger.info(
             "[predict] %s (%s): %d historical matches | seasons=%s | range=%s | "
             "sofascore=%d | odds_snaps=%d | model=%s | fixtures=%d",
-            league_name, league_key, len(matches),
-            ",".join(seasons), date_range, sofascore_count,
-            odds_snaps_loaded, model_name, len(league_fixtures),
+            league_name,
+            league_key,
+            len(matches),
+            ",".join(seasons),
+            date_range,
+            sofascore_count,
+            odds_snaps_loaded,
+            model_name,
+            len(league_fixtures),
         )
 
         n_pred_before = len(predictions)
@@ -512,7 +521,10 @@ def build_predictions_for_fixtures(
             except Exception as exc:
                 logger.warning(
                     "[predict] Failed %s vs %s (%s): %s",
-                    fd["home_team"], fd["away_team"], league_key, exc,
+                    fd["home_team"],
+                    fd["away_team"],
+                    league_key,
+                    exc,
                 )
                 continue
             pred_out = _to_prediction_out(pred, league_name)
@@ -525,9 +537,7 @@ def build_predictions_for_fixtures(
                 context="predict",
             )
             if event_id is not None:
-                pred_out = pred_out.model_copy(
-                    update={"sofascore_event_id": event_id}
-                )
+                pred_out = pred_out.model_copy(update={"sofascore_event_id": event_id})
             predictions.append(pred_out)
 
             if odds is not None:
@@ -550,7 +560,9 @@ def build_predictions_for_fixtures(
 
     logger.info(
         "[predict] DONE — %d predictions, %d value bets across %d league(s).",
-        len(predictions), len(value_bets), len(data_sources),
+        len(predictions),
+        len(value_bets),
+        len(data_sources),
     )
 
     # Allocate the daily bankroll across all 1X2 predictions (confidence-weighted).
@@ -566,10 +578,12 @@ def build_predictions_for_fixtures(
     )
     stakes = allocate_prediction_stakes(predictions, staking_cfg)
     predictions = [
-        p.model_copy(update={
-            "stake": s,
-            "stake_pct": round(s / bankroll * 100.0, 2) if bankroll > 0 else None,
-        })
+        p.model_copy(
+            update={
+                "stake": s,
+                "stake_pct": round(s / bankroll * 100.0, 2) if bankroll > 0 else None,
+            }
+        )
         for p, s in zip(predictions, stakes)
     ]
 
@@ -632,9 +646,7 @@ def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayl
         for g in load_graded():
             if g.kind != "prediction":
                 continue
-            graded_idx[
-                (g.league, g.date, _norm(g.home_team), _norm(g.away_team))
-            ] = g
+            graded_idx[(g.league, g.date, _norm(g.home_team), _norm(g.away_team))] = g
     except Exception as exc:  # pragma: no cover
         logger.warning("[api] load_graded failed: %s", exc)
 
@@ -714,14 +726,19 @@ def get_today_payload(league: str | None = None) -> TodayPayload:
         source = "on-demand"
         fixtures_file = _latest_fixtures_file()
         if fixtures_file is None:
-            logger.info("[api] /predictions/today — no snapshot, no fixtures file; returning empty.")
+            logger.info(
+                "[api] /predictions/today — no snapshot, no fixtures file; returning empty."
+            )
             return TodayPayload(generated_at=datetime.now(UTC))
         try:
             data = json.loads(fixtures_file.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             logger.warning("[api] /predictions/today — malformed fixtures file %s", fixtures_file)
             return TodayPayload(generated_at=datetime.now(UTC))
-        logger.info("[api] /predictions/today — no snapshot; computing on-demand from %s", fixtures_file.name)
+        logger.info(
+            "[api] /predictions/today — no snapshot; computing on-demand from %s",
+            fixtures_file.name,
+        )
         snapshot = build_predictions_for_fixtures(data)
 
     snapshot = _enrich_predictions_with_live_and_graded(snapshot)
@@ -786,10 +803,17 @@ def get_history(days: int | None = 14) -> HistoryPayload:
         lost = sum(1 for b in bets if b.status == "lost")
         pending = sum(1 for b in bets if b.status == "pending")
         pnl = round(sum(b.pnl for b in bets), 2)
-        day_rows.append(HistoryDayOut(
-            date=d, n_bets=len(bets), n_won=won, n_lost=lost,
-            n_pending=pending, pnl=pnl, bets=bets,
-        ))
+        day_rows.append(
+            HistoryDayOut(
+                date=d,
+                n_bets=len(bets),
+                n_won=won,
+                n_lost=lost,
+                n_pending=pending,
+                pnl=pnl,
+                bets=bets,
+            )
+        )
 
     if days is not None and days > 0:
         day_rows = day_rows[:days]
@@ -820,25 +844,36 @@ def _log_snapshot_served(payload: TodayPayload, source: str, league: str | None)
     filter_txt = f" filter={league.upper()}" if league else ""
     logger.info(
         "[api] /predictions/today served from %s (generated_at=%s, %d preds, %d value bets)%s",
-        source, payload.generated_at.isoformat(timespec="seconds"),
-        len(payload.predictions), len(payload.value_bets), filter_txt,
+        source,
+        payload.generated_at.isoformat(timespec="seconds"),
+        len(payload.predictions),
+        len(payload.value_bets),
+        filter_txt,
     )
     if not payload.data_sources:
-        logger.info("[api]   ↳ no data-source metadata (legacy snapshot — regenerate with `fb snapshot`).")
+        logger.info(
+            "[api]   ↳ no data-source metadata (legacy snapshot — regenerate with `fb snapshot`)."
+        )
         return
     for ds in payload.data_sources:
         logger.info(
             "[api]   ↳ %s (%s): model=%s | %d hist. matches | seasons=%s | range=%s | "
             "sofascore=%d | %d predictions",
-            ds.league_name, ds.league, ds.model, ds.n_matches,
-            ",".join(ds.seasons), ds.date_range or "n/a",
-            ds.sofascore_matches_ingested, ds.n_predictions,
+            ds.league_name,
+            ds.league,
+            ds.model,
+            ds.n_matches,
+            ",".join(ds.seasons),
+            ds.date_range or "n/a",
+            ds.sofascore_matches_ingested,
+            ds.n_predictions,
         )
 
 
 # ─────────────────────────────────────────────────────────────────
 # Pi-Ratings & form
 # ─────────────────────────────────────────────────────────────────
+
 
 def _ratings_for_league(league_key: str) -> PiRatings:
     cache_key = f"pi_ratings:{league_key}"
@@ -903,9 +938,7 @@ def get_league_form(league_key: str, top: int = 20, last_n: int = 5) -> list[For
                 points += 1
             else:
                 last5 += "L"
-        rows.append(
-            FormRow(team=team, last5=last5, points=points, goals_for=gf, goals_against=ga)
-        )
+        rows.append(FormRow(team=team, last5=last5, points=points, goals_for=gf, goals_against=ga))
 
     rows.sort(key=lambda r: (-r.points, -(r.goals_for - r.goals_against)))
     rows = rows[:top]
@@ -922,7 +955,9 @@ def get_league_summaries() -> list[LeagueRatingSummary]:
         except FileNotFoundError:
             summaries.append(
                 LeagueRatingSummary(
-                    league=key, league_name=cfg.name, n_teams=0,
+                    league=key,
+                    league_name=cfg.name,
+                    n_teams=0,
                 )
             )
             continue
@@ -987,6 +1022,7 @@ def get_team_detail(league_key: str, team: str) -> TeamDetail | None:
 # Performance dashboard
 # ─────────────────────────────────────────────────────────────────
 
+
 def _load_tracker() -> ResultsTracker:
     """Load the canonical tracker and *always* merge in graded-bet history.
 
@@ -1049,9 +1085,7 @@ def _max_drawdown_from_series(series: list[float]) -> float:
     return round(max_dd * 100, 2)
 
 
-def _daily_pnl_by_kind() -> tuple[
-    dict[str, float], dict[str, float], dict[str, float]
-]:
+def _daily_pnl_by_kind() -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
     """Return ``(value_pnl, prediction_pnl, combined_pnl)`` keyed by date.
 
     Source of truth is ``graded_bets.jsonl`` — it is the only place that
@@ -1107,9 +1141,7 @@ def get_bankroll_curve(initial_bankroll: float = 1000.0) -> list[BankrollPoint]:
 
     sorted_dates = sorted(all_dates)
     try:
-        anchor = (
-            _date.fromisoformat(sorted_dates[0]) - timedelta(days=1)
-        ).isoformat()
+        anchor = (_date.fromisoformat(sorted_dates[0]) - timedelta(days=1)).isoformat()
     except ValueError:
         anchor = sorted_dates[0]
 
@@ -1217,10 +1249,8 @@ def get_performance_summary() -> PerformanceSummary:
         else:
             value_rows.append(g)
 
-    value_series = [p.value_bets if p.value_bets is not None else p.value
-                    for p in bankroll_curve]
-    pred_series = [p.predictions if p.predictions is not None else p.value
-                   for p in bankroll_curve]
+    value_series = [p.value_bets if p.value_bets is not None else p.value for p in bankroll_curve]
+    pred_series = [p.predictions if p.predictions is not None else p.value for p in bankroll_curve]
 
     vb_stats = _strategy_stats_from_graded(value_rows, value_series)
     pr_stats = _strategy_stats_from_graded(pred_rows, pred_series)
@@ -1304,9 +1334,7 @@ def get_performance_index() -> PerformanceIndexOut:
         try:
             payload = json.loads(public_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
-            logger.warning(
-                "[api] /performance/index — malformed %s, recomputing.", public_path
-            )
+            logger.warning("[api] /performance/index — malformed %s, recomputing.", public_path)
             payload = None
 
     if payload is None:
@@ -1314,9 +1342,7 @@ def get_performance_index() -> PerformanceIndexOut:
 
     result = PerformanceIndexOut(
         updated_at=payload.get("updated_at", ""),
-        tracking_started_at=payload.get(
-            "tracking_started_at", pi.TRACKING_START_DEFAULT
-        ),
+        tracking_started_at=payload.get("tracking_started_at", pi.TRACKING_START_DEFAULT),
         n_days_tracked=int(payload.get("n_days_tracked", 0)),
         n_bets=int(payload.get("n_bets", 0)),
         hit_rate=payload.get("hit_rate"),
@@ -1342,6 +1368,7 @@ def get_performance_index() -> PerformanceIndexOut:
 # ─────────────────────────────────────────────────────────────────
 # SEO match-prediction pages
 # ─────────────────────────────────────────────────────────────────
+
 
 def get_upcoming_match_slugs(league: str | None = None) -> MatchSlugsOut:
     """Slug list for ``/leagues/{league}/{match}`` SEO routes + sitemap."""
@@ -1405,9 +1432,7 @@ def get_match_wrapper(slug: str) -> MatchWrapperOut | None:
 
         ev_id = get_override(slug)
         if ev_id is not None:
-            logger.info(
-                "[api] Sofascore override hit for %s -> event_id=%s", slug, ev_id
-            )
+            logger.info("[api] Sofascore override hit for %s -> event_id=%s", slug, ev_id)
         else:
             client = _new_sofascore_lookup_client("api")
             ev_id = _resolve_sofascore_event_id(
@@ -1467,9 +1492,11 @@ def get_league_fixtures(league_key: str, limit: int = 5) -> LeagueFixturesOut:
     snapshot = load_today()
     if snapshot is not None:
         from datetime import datetime as _dt
+
         today_iso = _dt.now(UTC).date().isoformat()
         upcoming = [
-            p for p in snapshot.predictions
+            p
+            for p in snapshot.predictions
             if p.league.upper() == league_key and p.date >= today_iso
         ]
         upcoming.sort(key=lambda p: (p.date, p.kickoff_time or ""))
@@ -1525,9 +1552,7 @@ def get_league_fixtures(league_key: str, limit: int = 5) -> LeagueFixturesOut:
     except FileNotFoundError:
         last_rows = []
     except Exception as exc:  # pragma: no cover — never 500 SEO endpoint
-        logger.warning(
-            "[api] /leagues/%s/fixtures: load_league failed: %s", league_key, exc
-        )
+        logger.warning("[api] /leagues/%s/fixtures: load_league failed: %s", league_key, exc)
         last_rows = []
 
     return LeagueFixturesOut(

@@ -46,6 +46,14 @@ from football_betting.data.odds_snapshots import (
     load_into_tracker as load_odds_snapshots,
 )
 from football_betting.features.builder import FeatureBuilder
+from football_betting.features.weather import WeatherTracker
+
+
+def _make_feature_builder() -> FeatureBuilder:
+    """Construct FeatureBuilder with WeatherTracker wired in (v0.4 Phase 1)."""
+    return FeatureBuilder(weather_tracker=WeatherTracker())
+
+
 from football_betting.predict.catboost_model import CatBoostPredictor
 from football_betting.predict.ensemble import EnsembleModel
 from football_betting.predict.mlp_model import MLPPredictor
@@ -358,7 +366,7 @@ def train(
     league = league.upper()
     matches = load_league(league, seasons=list(seasons))
 
-    fb = FeatureBuilder()
+    fb = _make_feature_builder()
 
     # Stage Sofascore data — consumed chronologically in build_training_data
     if use_sofascore:
@@ -408,7 +416,7 @@ def train_mlp(league: str, seasons: tuple[str, ...], warmup: int) -> None:
     league = league.upper()
     matches = load_league(league, seasons=list(seasons))
 
-    fb = FeatureBuilder()
+    fb = _make_feature_builder()
     for season in seasons:
         sf_data = SofascoreClient.load_matches(league, season)
         if sf_data:
@@ -458,7 +466,7 @@ def train_tab(league: str, seasons: tuple[str, ...], warmup: int, device: str) -
 
     matches = load_league(league, seasons=list(seasons))
 
-    fb = FeatureBuilder()
+    fb = _make_feature_builder()
     for season in seasons:
         sf_data = SofascoreClient.load_matches(league, season)
         if sf_data:
@@ -899,7 +907,7 @@ def export_onnx(league: str) -> None:
         console.print(f"[red]No MLP at {model_path}[/red]")
         raise click.Abort()
 
-    fb = FeatureBuilder()
+    fb = _make_feature_builder()
     mlp = MLPPredictor(feature_builder=fb)
     mlp.load(model_path)
 
@@ -929,7 +937,7 @@ def predict(fixtures: str, bankroll: float, save: bool) -> None:
     for league_key, league_fixtures in by_league.items():
         console.rule(f"[bold cyan]{LEAGUES[league_key].name}[/bold cyan]")
         matches = load_league(league_key)
-        fb = FeatureBuilder()
+        fb = _make_feature_builder()
         # Stage Sofascore BEFORE replay → consumed chronologically by fit_on_history
         for season in {m.season for m in matches}:
             sf_data = SofascoreClient.load_matches(league_key, season)
@@ -1477,9 +1485,7 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
             ko = kickoff_by_key.get(key)
             if ko is None:
                 try:
-                    ko = datetime.fromisoformat(key[0]).replace(
-                        hour=18, tzinfo=UTC
-                    )
+                    ko = datetime.fromisoformat(key[0]).replace(hour=18, tzinfo=UTC)
                 except ValueError:
                     continue
             leads.append((ko - earliest).total_seconds() / 3600.0)
@@ -1591,6 +1597,12 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
     help="Include 1D-CNN+Transformer sequence head in the ensemble (if trained).",
 )
 @click.option(
+    "--use-mlp/--no-mlp",
+    default=True,
+    show_default=True,
+    help="Include MLP head in the ensemble (if trained).",
+)
+@click.option(
     "--save/--no-save",
     default=True,
     show_default=True,
@@ -1602,6 +1614,7 @@ def tune_ensemble(
     objective: str,
     blend: float,
     use_sequence: bool,
+    use_mlp: bool,
     save: bool,
 ) -> None:
     """Dirichlet-sampled ensemble weight tuning (RPS / CLV / blended / Brier+LogLoss)."""
@@ -1617,7 +1630,7 @@ def tune_ensemble(
     # Phase 6 + Phase 4: overlay opening-line snapshots so CLV is non-degenerate
     val_matches = merge_snapshots_into_matches(val_matches, league)
 
-    fb = FeatureBuilder()
+    fb = _make_feature_builder()
     all_seasons = {m.season for m in train_matches} | {val_season}
     for season in all_seasons:
         sf = SofascoreClient.load_matches(league, season)
@@ -1632,7 +1645,7 @@ def tune_ensemble(
 
     cb = CatBoostPredictor.for_league(league, fb)
     poisson = PoissonModel(pi_ratings=fb.pi_ratings)
-    mlp = MLPPredictor.for_league(league, fb)
+    mlp = MLPPredictor.for_league(league, fb) if use_mlp else None
 
     # Optional 4th ensemble member: 1D-CNN + Transformer sequence head
     sequence: SequencePredictor | None = None
@@ -1727,16 +1740,34 @@ def tune_ensemble(
                 "blend": blend if objective == "blended" else None,
                 "active_members": result.get("active_members"),
                 "score_key": next(
-                    (k for k in result if k.startswith("best_") and k not in {
-                        "best_w_catboost", "best_w_poisson", "best_w_mlp", "best_w_sequence",
-                    }),
+                    (
+                        k
+                        for k in result
+                        if k.startswith("best_")
+                        and k
+                        not in {
+                            "best_w_catboost",
+                            "best_w_poisson",
+                            "best_w_mlp",
+                            "best_w_sequence",
+                        }
+                    ),
                     None,
                 ),
                 "score_value": next(
-                    (float(v) for k, v in result.items()
-                     if k.startswith("best_") and k not in {
-                        "best_w_catboost", "best_w_poisson", "best_w_mlp", "best_w_sequence",
-                    } and isinstance(v, (int, float))),
+                    (
+                        float(v)
+                        for k, v in result.items()
+                        if k.startswith("best_")
+                        and k
+                        not in {
+                            "best_w_catboost",
+                            "best_w_poisson",
+                            "best_w_mlp",
+                            "best_w_sequence",
+                        }
+                        and isinstance(v, (int, float))
+                    ),
                     None,
                 ),
             },
@@ -1783,7 +1814,7 @@ def monitor(league: str, recent_days: int) -> None:
     console.log(f"Production window: {len(prod_matches)} matches")
 
     # Build features separately
-    train_fb = FeatureBuilder()
+    train_fb = _make_feature_builder()
     train_rows = []
     sorted_train = sorted(train_matches, key=lambda m: m.date)
     for m in sorted_train[-500:]:  # last 500 training matches

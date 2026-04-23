@@ -241,7 +241,7 @@ class FeatureConfig:
     use_weather: bool = (
         False  # v0.4: disabled pending unsupervised effect study (fb weather-effect-study)
     )
-    use_standings: bool = True  # v0.4: season-to-date table features
+    use_standings: bool = False  # v0.4: A/B test — disabled to isolate CLV regression
 
     form: FormConfig = field(default_factory=FormConfig)
     xg: XgProxyConfig = field(default_factory=XgProxyConfig)

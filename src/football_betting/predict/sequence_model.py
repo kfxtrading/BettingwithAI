@@ -342,6 +342,8 @@ class SequencePredictor:
     def load(self, path: Path) -> None:
         torch, *_ = _import_torch()
         self.model = _build_network(self.cfg)
-        self.model.load_state_dict(torch.load(path, map_location="cpu"))
+        # weights_only=False: checkpoints produced by this repo are trusted.
+        # Needed for PyTorch >=2.6 compatibility with numpy-pickled state dicts.
+        self.model.load_state_dict(torch.load(path, map_location="cpu", weights_only=False))
         self.model.eval()
         self._device = torch.device("cpu")
