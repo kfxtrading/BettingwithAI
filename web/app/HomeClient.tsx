@@ -84,10 +84,10 @@ export function HomeClient({
     initialData: league === null ? initialToday ?? undefined : undefined,
     refetchInterval: (query) => {
       const data = query.state.data as TodayPayload | undefined;
-      if (!data) return 60_000;
-      if (isSnapshotStale(data)) return 60_000;
+      if (!data) return 30_000;
+      if (isSnapshotStale(data)) return 30_000;
       const hasLive = data.predictions.some((p) => p.is_live);
-      return hasLive ? 20_000 : false;
+      return hasLive ? 20_000 : 30_000;
     },
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
