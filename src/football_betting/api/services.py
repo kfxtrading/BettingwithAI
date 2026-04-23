@@ -59,10 +59,11 @@ from football_betting.data.odds_snapshots import (
     load_into_tracker as load_odds_snapshots,
 )
 from football_betting.features.builder import FeatureBuilder
-from football_betting.predict.catboost_model import CatBoostPredictor
-from football_betting.predict.ensemble import EnsembleModel, ensemble_weights_path
-from football_betting.predict.mlp_model import MLPPredictor
-from football_betting.predict.poisson import PoissonModel
+from football_betting.predict.runtime import (
+    betting_config_from_profile,
+    build_league_model,
+    warm_feature_builder,
+)
 from football_betting.rating.pi_ratings import PiRatings
 from football_betting.scraping.sofascore import SofascoreClient
 from football_betting.tracking.tracker import ResultsTracker
@@ -414,19 +415,8 @@ def build_predictions_for_fixtures(
         date_max = max(m.date for m in matches).isoformat() if matches else None
         date_range = f"{date_min} → {date_max}" if date_min else None
 
-        # Phase 1: weather features wired into live prediction path.
-        from football_betting.features.weather import WeatherTracker
-
-        fb = FeatureBuilder(weather_tracker=WeatherTracker())
-
-        # Stage Sofascore BEFORE replay → consumed chronologically by fit_on_history
-        sofascore_count = 0
-        for season in seasons:
-            sf_data = SofascoreClient.load_matches(league_key, season)
-            if sf_data:
-                sofascore_count += fb.stage_sofascore_batch(sf_data)
-
-        fb.fit_on_history(matches)
+        fb, sofascore_count = warm_feature_builder(league_key, matches, purpose="1x2")
+        value_fb, value_sofascore_count = warm_feature_builder(league_key, matches, purpose="value")
 
         # Persist current odds → reload full history into market tracker so
         # mm_* features reflect real drift across prediction runs.
@@ -485,10 +475,28 @@ def build_predictions_for_fixtures(
                     exc,
                 )
         odds_snaps_loaded = load_odds_snapshots(league_key, fb.market_tracker, only_future=True)
+        load_odds_snapshots(league_key, value_fb.market_tracker, only_future=True)
 
-        model = _build_model(league_key, fb, purpose="1x2")
+        model, model_profile = build_league_model(
+            league_key,
+            fb,
+            purpose="1x2",
+            history_matches=matches,
+        )
+        if model is None:  # pragma: no cover - 1x2 always falls back to Poisson
+            logger.warning("[predict] No 1X2 model could be built for %s", league_key)
+            continue
         model_name = type(model).__name__
-        value_model = _build_model(league_key, fb, purpose="value")
+        value_model, value_profile = build_league_model(
+            league_key,
+            value_fb,
+            purpose="value",
+            history_matches=matches,
+        )
+        value_bet_cfg = betting_config_from_profile(value_profile)
+        model_descriptor = model_name
+        if value_model is not None:
+            model_descriptor = f"{model_name} | value={type(value_model).__name__}"
 
         logger.info(
             "[predict] %s (%s): %d historical matches | seasons=%s | range=%s | "
@@ -498,9 +506,9 @@ def build_predictions_for_fixtures(
             len(matches),
             ",".join(seasons),
             date_range,
-            sofascore_count,
+            max(sofascore_count, value_sofascore_count),
             odds_snaps_loaded,
-            model_name,
+            model_descriptor,
             len(league_fixtures),
         )
 
@@ -556,7 +564,7 @@ def build_predictions_for_fixtures(
                         exc,
                     )
                     value_pred = pred
-                bets = find_value_bets(value_pred, bankroll)
+                bets = find_value_bets(value_pred, bankroll, value_bet_cfg)
                 for b in rank_value_bets(bets):
                     value_bets.append(_to_value_bet_out(b, league_name))
 
@@ -567,9 +575,9 @@ def build_predictions_for_fixtures(
                 n_matches=len(matches),
                 seasons=seasons,
                 date_range=date_range,
-                model=model_name,
+                model=model_descriptor,
                 n_predictions=len(predictions) - n_pred_before,
-                sofascore_matches_ingested=sofascore_count,
+                sofascore_matches_ingested=max(sofascore_count, value_sofascore_count),
             )
         )
 
@@ -614,39 +622,16 @@ def _build_model(
     league_key: str,
     fb: FeatureBuilder,
     purpose: str = "1x2",
+    history_matches: list | None = None,
 ):
-    """Instantiate the strongest model available for this league & purpose.
-
-    ``purpose="1x2"`` → standard outcome predictor (default behaviour).
-    ``purpose="value"`` → value-bet specialist; returns ``None`` when the
-    dedicated artefacts haven't been trained yet so the caller can fall back.
-    """
-    from football_betting.config import artifact_suffix  # local to avoid cycles
-
-    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
-    catboost_path = MODELS_DIR / f"catboost_{league_key}{suffix}.cbm"
-    if not catboost_path.exists():
-        if purpose == "value":
-            return None
-        return PoissonModel(pi_ratings=fb.pi_ratings)
-
-    cb = CatBoostPredictor.for_league(league_key, fb, purpose=purpose)  # type: ignore[arg-type]
-    poisson = PoissonModel(pi_ratings=fb.pi_ratings)
-    mlp = MLPPredictor.for_league(league_key, fb, purpose=purpose)  # type: ignore[arg-type]
-    ensemble = EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
-
-    # Phase 6: auto-load CLV-tuned weights if persisted
-    weights_path = ensemble_weights_path(league_key, purpose=purpose)  # type: ignore[arg-type]
-    if weights_path.exists():
-        try:
-            ensemble.load_weights(weights_path)
-        except Exception as exc:  # pragma: no cover - defensive
-            import logging
-
-            logging.getLogger(__name__).warning(
-                "Failed to load %s: %s — falling back to defaults", weights_path, exc
-            )
-    return ensemble
+    """Instantiate the strongest shared-runtime model for this league & purpose."""
+    model, _profile = build_league_model(
+        league_key,
+        fb,
+        purpose=purpose,  # type: ignore[arg-type]
+        history_matches=history_matches,
+    )
+    return model
 
 
 def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayload:

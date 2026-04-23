@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Iterable, Literal
 
 import numpy as np
 
@@ -44,6 +44,18 @@ from football_betting.tracking.metrics import (
 )
 
 Objective = Literal["rps", "log_loss", "brier", "clv", "blended", "brier_logloss_blended"]
+
+
+def _normalize_active_members(raw: Iterable[object]) -> list[str]:
+    canonical = ["catboost", "poisson", "mlp", "sequence"]
+    requested = {str(name).lower() for name in raw}
+    unknown = sorted(requested.difference(canonical))
+    if unknown:
+        raise ValueError(f"Unknown ensemble members in weight metadata: {unknown}")
+    active = [name for name in canonical if name in requested]
+    if not active:
+        raise ValueError("Weight metadata active_members must not be empty")
+    return active
 
 
 def ensemble_weights_path(league_key: str, purpose: ModelPurpose = "1x2") -> Path:
@@ -178,15 +190,90 @@ class EnsembleModel:
             "w_mlp": float(self.w_mlp),
             "w_sequence": float(self.w_sequence),
         }
-        if metadata:
-            payload["metadata"] = metadata
+        metadata_payload = dict(metadata or {})
+        metadata_payload.setdefault("active_members", self._active_members())
+        payload["metadata"] = metadata_payload
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-    def load_weights(self, path: Path) -> None:
-        """Load simplex weights from JSON, normalise, and zero-out missing members."""
+    def load_weights(
+        self,
+        path: Path,
+        *,
+        expected_purpose: ModelPurpose | None = None,
+        expected_active_members: Iterable[str] | None = None,
+        expected_objective: str | None = None,
+        expected_calibration_method: str | None = None,
+    ) -> None:
+        """Load simplex weights from JSON and optionally validate saved metadata."""
         data = json.loads(Path(path).read_text(encoding="utf-8"))
+        metadata_raw = data.get("metadata")
+        metadata = dict(metadata_raw) if isinstance(metadata_raw, dict) else {}
+
+        runtime_active = self._active_members()
+        expected_active = (
+            _normalize_active_members(expected_active_members)
+            if expected_active_members is not None
+            else runtime_active
+        )
+
+        metadata_active_raw = metadata.get("active_members")
+        if metadata_active_raw is not None:
+            if not isinstance(metadata_active_raw, list):
+                raise ValueError(
+                    f"EnsembleModel.load_weights: metadata.active_members must be a list in {path}"
+                )
+            metadata_active = _normalize_active_members(metadata_active_raw)
+            if metadata_active != runtime_active:
+                raise ValueError(
+                    "EnsembleModel.load_weights: saved active_members "
+                    f"{metadata_active} do not match runtime members {runtime_active} in {path}"
+                )
+        elif expected_active_members is not None:
+            raise ValueError(
+                f"EnsembleModel.load_weights: missing metadata.active_members in {path}"
+            )
+
+        if runtime_active != expected_active:
+            raise ValueError(
+                "EnsembleModel.load_weights: runtime members "
+                f"{runtime_active} do not match expected members {expected_active}"
+            )
+
+        if expected_purpose is not None:
+            metadata_purpose = metadata.get("purpose")
+            if metadata_purpose is None:
+                raise ValueError(f"EnsembleModel.load_weights: missing metadata.purpose in {path}")
+            if str(metadata_purpose).lower() != expected_purpose:
+                raise ValueError(
+                    "EnsembleModel.load_weights: saved purpose "
+                    f"{metadata_purpose!r} does not match expected {expected_purpose!r}"
+                )
+
+        if expected_objective is not None:
+            metadata_objective = metadata.get("objective")
+            if metadata_objective is None:
+                raise ValueError(f"EnsembleModel.load_weights: missing metadata.objective in {path}")
+            if str(metadata_objective) != expected_objective:
+                raise ValueError(
+                    "EnsembleModel.load_weights: saved objective "
+                    f"{metadata_objective!r} does not match expected {expected_objective!r}"
+                )
+
+        if expected_calibration_method is not None:
+            metadata_calibration = metadata.get("calibration_method")
+            if metadata_calibration is None:
+                raise ValueError(
+                    f"EnsembleModel.load_weights: missing metadata.calibration_method in {path}"
+                )
+            if str(metadata_calibration) != expected_calibration_method:
+                raise ValueError(
+                    "EnsembleModel.load_weights: saved calibration_method "
+                    f"{metadata_calibration!r} does not match expected "
+                    f"{expected_calibration_method!r}"
+                )
+
         self.w_catboost = float(data.get("w_catboost", 0.0))
         self.w_poisson = float(data.get("w_poisson", 0.0))
         self.w_mlp = float(data.get("w_mlp", 0.0)) if self.mlp is not None else 0.0
