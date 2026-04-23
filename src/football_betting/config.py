@@ -238,7 +238,9 @@ class FeatureConfig:
     use_market_odds: bool = True
     use_squad_quality: bool = True  # v0.3
     use_market_movement: bool = True  # v0.3
-    use_weather: bool = True  # v0.4 (Familie A — Match-Day Weather)
+    use_weather: bool = (
+        False  # v0.4: disabled pending unsupervised effect study (fb weather-effect-study)
+    )
     use_standings: bool = True  # v0.4: season-to-date table features
 
     form: FormConfig = field(default_factory=FormConfig)
@@ -414,14 +416,21 @@ class WeatherConfig:
     """Open-Meteo weather feature configuration (v0.4 — Phase 1+2)."""
 
     enabled: bool = True
-    use_match_day_weather: bool = True  # Familie A — active in this phase
-    use_weather_shock: bool = False  # Familie B — Phase 3
-    use_simons_signal: bool = False  # Familie C — Phase 3
+    use_match_day_weather: bool = True  # Familie A — active
+    use_weather_shock: bool = False  # Familie B — inactive (regresses CLV on 2024-25; needs permutation-importance filter before re-enabling)
+    use_simons_signal: bool = False  # Familie C — inactive (control hypothesis; re-enable only for the Phase 6 permutation test)
 
     # ±hours around kickoff to average hourly observations
     kickoff_window_hours: int = 3
     # Fallback when Match.kickoff_datetime_utc is None
     default_kickoff_hour_utc: int = 19
+
+    # Simons-Signal Paris morning window (UTC hours)
+    simons_morning_hour_start: int = 6
+    simons_morning_hour_end: int = 9
+    # Paris reference coords (kept here for completeness; tracker hard-codes
+    # the value to avoid unnecessary mutability).
+    simons_reference_city: tuple[float, float] = (48.8566, 2.3522)
 
     # Open-Meteo endpoints (no API key required)
     historical_api: str = "https://archive-api.open-meteo.com/v1/archive"
