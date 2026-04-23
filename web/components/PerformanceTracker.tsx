@@ -33,9 +33,6 @@ const OPTIMIZED_VALUE_BETS_SNAPSHOT: StrategyStats = {
 
 // 1X2-most-likely predictions aren't part of the value-bet backtest, so
 // we leave the predictions group to resolve from live data (or empty).
-function hasStats(s: StrategyStats | null | undefined): boolean {
-  return !!s && s.n_bets > 0;
-}
 
 function StrategyKpiGroup({
   title,
@@ -120,11 +117,7 @@ export function PerformanceTracker() {
         <div className="flex flex-col gap-6">
           <StrategyKpiGroup
             title={t('transparency.group.valueBets')}
-            stats={
-              hasStats(s?.value_bets)
-                ? s!.value_bets
-                : OPTIMIZED_VALUE_BETS_SNAPSHOT
-            }
+            stats={OPTIMIZED_VALUE_BETS_SNAPSHOT}
             labels={{
               bets: t('kpi.bets'),
               hitRate: t('kpi.hitRate'),

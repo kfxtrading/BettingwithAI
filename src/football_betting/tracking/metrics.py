@@ -14,6 +14,7 @@ from math import log, sqrt
 import numpy as np
 
 from football_betting.data.models import Outcome
+from football_betting.predict.calibration import expected_calibration_error
 
 OUTCOME_IDX: dict[Outcome, int] = {"H": 0, "D": 1, "A": 2}
 
@@ -186,11 +187,14 @@ def summary_stats(
         pred_outcomes.append(["H", "D", "A"][idx])  # type: ignore[arg-type]
 
     actuals = [a for _, a in predictions]
+    probs = np.asarray([p for p, _ in predictions], dtype=float)
+    y_true = np.asarray([OUTCOME_TO_INT[a] for a in actuals], dtype=int)
 
     return {
         "n": len(predictions),
         "mean_rps": mean_rps(predictions),
         "mean_brier": float(np.mean([brier_score(p, a) for p, a in predictions])),
         "mean_log_loss": float(np.mean([log_loss_3way(p, a) for p, a in predictions])),
+        "ece": expected_calibration_error(probs, y_true),
         "hit_rate": hit_rate(pred_outcomes, actuals),
     }
