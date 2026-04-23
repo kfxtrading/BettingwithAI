@@ -185,8 +185,12 @@ class MLPPredictor:
             combined = None
             ce_only = nn.CrossEntropyLoss()
 
+        _eye3 = torch.eye(3, dtype=torch.float32, device=device)
+
         def _onehot(yb: Any) -> Any:
-            return nn.functional.one_hot(yb, num_classes=3).float()
+            # Indexing into a fixed eye matrix — avoids ``F.one_hot``
+            # (and scatter) which are unsupported on the DirectML backend.
+            return _eye3[yb]
 
         train_ds = TensorDataset(
             torch.tensor(X_train_s, dtype=torch.float32, device=device),
