@@ -239,6 +239,7 @@ class FeatureConfig:
     use_squad_quality: bool = True  # v0.3
     use_market_movement: bool = True  # v0.3
     use_weather: bool = True  # v0.4 (Familie A — Match-Day Weather)
+    use_standings: bool = True  # v0.4: season-to-date table features
 
     form: FormConfig = field(default_factory=FormConfig)
     xg: XgProxyConfig = field(default_factory=XgProxyConfig)

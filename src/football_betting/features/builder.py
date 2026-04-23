@@ -30,6 +30,7 @@ from football_betting.features.market_movement import MarketMovementTracker
 from football_betting.features.real_xg import RealXgTracker
 from football_betting.features.rest_days import RestDaysTracker
 from football_betting.features.squad_quality import SquadQualityTracker
+from football_betting.features.standings import SeasonStandingsTracker
 from football_betting.features.weather import WeatherTracker
 from football_betting.features.xg_proxy import XgProxyTracker
 from football_betting.rating.pi_ratings import PiRatings
@@ -52,6 +53,7 @@ class FeatureBuilder:
     home_adv_tracker: HomeAdvantageTracker = field(default_factory=HomeAdvantageTracker)
     squad_tracker: SquadQualityTracker = field(default_factory=SquadQualityTracker)
     market_tracker: MarketMovementTracker = field(default_factory=MarketMovementTracker)
+    standings_tracker: SeasonStandingsTracker = field(default_factory=SeasonStandingsTracker)
     weather_tracker: WeatherTracker | None = None  # v0.4: optional, opt-in
     _sofascore_staged: dict[str, dict] = field(default_factory=dict)
 
@@ -150,6 +152,14 @@ class FeatureBuilder:
         if self.cfg.use_home_advantage:
             feats.update(self.home_adv_tracker.features_for_match(home_team, away_team, match_date))
 
+        # Season standings (v0.4)
+        if self.cfg.use_standings:
+            feats.update(
+                self.standings_tracker.features_for_match(
+                    home_team, away_team, league_key, season
+                )
+            )
+
         # League meta
         feats["league_avg_goals"] = league.avg_goals_per_team
         feats["league_home_adv"] = dynamic_home_advantage(
@@ -247,6 +257,8 @@ class FeatureBuilder:
             self.rest_days_tracker.update(match)
         if self.cfg.use_home_advantage:
             self.home_adv_tracker.update(match)
+        if self.cfg.use_standings:
+            self.standings_tracker.update(match)
 
     def fit_on_history(self, matches: list[Match]) -> None:
         """Warmup: populate trackers from historical matches chronologically."""
@@ -311,4 +323,5 @@ class FeatureBuilder:
         self.home_adv_tracker = HomeAdvantageTracker(self.home_adv_tracker.cfg)
         self.squad_tracker = SquadQualityTracker(self.squad_tracker.cfg)
         self.market_tracker = MarketMovementTracker(self.market_tracker.cfg)
+        self.standings_tracker = SeasonStandingsTracker()
         self._sofascore_staged = dict(staged)
