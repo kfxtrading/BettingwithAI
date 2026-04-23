@@ -513,10 +513,13 @@ class SofascoreClient:
 
         tz_name = league_tz_name(league_key)
         local_tz = ZoneInfo(tz_name)
-        now_utc = datetime.now(timezone.utc)
 
         # Sofascore returns events keyed by UTC date, but kickoffs near midnight
         # can spill into a different local date — probe target ± 1 day.
+        # Unlike the Odds-API path we do NOT drop kicked-off matches: Sofascore
+        # records carry no odds, so there is no live-in-play pollution, and the
+        # landing page relies on these entries to show today's full card even
+        # after kickoff (live-settle loop then attaches scores).
         seen_ids: set[int] = set()
         fixtures: list[dict[str, Any]] = []
         for delta in (-1, 0, 1):
@@ -548,10 +551,6 @@ class SofascoreClient:
                 try:
                     kickoff_utc = datetime.fromtimestamp(int(start_ts), tz=timezone.utc)
                 except (TypeError, ValueError):
-                    continue
-                # Only include future (pre-match) fixtures — live/completed
-                # matches are the responsibility of the live-settle loop.
-                if kickoff_utc <= now_utc:
                     continue
 
                 kickoff_local = kickoff_utc.astimezone(local_tz)
