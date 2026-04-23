@@ -1,0 +1,11 @@
+weather_enabled: True
+[15:45:08] Loaded 1520 Premier League matches                     loader.py:197
+PL: n_matches=1520, n_rows=1420, n_feature_cols=84
+           Loaded 2208 EFL Championship matches                   loader.py:197
+CH: n_matches=2208, n_rows=2108, n_feature_cols=84
+[15:45:09] Loaded 1224 Bundesliga matches                         loader.py:197
+BL: n_matches=1224, n_rows=1124, n_feature_cols=84
+           Loaded 1520 Serie A matches                            loader.py:197
+SA: n_matches=1520, n_rows=1420, n_feature_cols=84
+[15:45:10] Loaded 1520 La Liga matches                            loader.py:197
+LL: n_matches=1520, n_rows=1420, n_feature_cols=84

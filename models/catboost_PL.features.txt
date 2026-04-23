@@ -30,7 +30,6 @@ xg_away_against
 xg_away_diff
 xg_away_conv
 xg_matchup_diff
-has_real_xg
 real_xg_home_for
 real_xg_home_against
 real_xg_home_diff
@@ -44,6 +43,7 @@ real_xg_away_at_away_for
 real_xg_away_finishing
 real_xg_away_big_chances
 real_xg_matchup_diff
+has_real_xg
 squad_home_rating
 squad_away_rating
 squad_rating_diff
