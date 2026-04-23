@@ -25,16 +25,69 @@ import asyncio
 import json
 import logging
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 from football_betting.api.services import build_predictions_for_fixtures
 from football_betting.api.snapshots import load_today, snapshot_is_stale, write_today
 from football_betting.config import DATA_DIR, LEAGUES, ODDS_API_CFG
 from football_betting.data.models import MatchOdds
 from football_betting.data.odds_snapshots import append_snapshot as append_odds_snapshot
-from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
+from football_betting.scraping.odds_api import (
+    OddsApiClient,
+    OddsApiError,
+    OddsApiQuotaError,
+)
 
 logger = logging.getLogger("football_betting.api")
+
+
+# ───────────────── Quota backoff ─────────────────
+# When The Odds API returns a quota-exhausted error (HTTP 401 with
+# "usage"/"quota" body or HTTP 429), we pause all outbound polling
+# for a configurable number of hours so we don't spam logs and
+# (when the quota resets mid-pause) don't miss the recovery by
+# polling too aggressively against a still-flaky key.
+_quota_exhausted_until: datetime | None = None
+
+
+def _quota_backoff_hours() -> int:
+    raw = os.environ.get("ODDS_API_QUOTA_BACKOFF_HOURS", "16")
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        logger.warning(
+            "[scheduler] Invalid ODDS_API_QUOTA_BACKOFF_HOURS=%r, defaulting to 16.", raw,
+        )
+        return 16
+
+
+def _note_quota_exhausted(source: str) -> None:
+    """Record that the Odds API reported quota exhaustion."""
+    global _quota_exhausted_until
+    hours = _quota_backoff_hours()
+    until = datetime.now(UTC) + timedelta(hours=hours)
+    # Extend existing backoff rather than shorten it.
+    if _quota_exhausted_until is None or until > _quota_exhausted_until:
+        _quota_exhausted_until = until
+    logger.error(
+        "[%s] Odds API quota exhausted — pausing all Odds-API polling for %d h "
+        "(until %s UTC).",
+        source, hours, _quota_exhausted_until.isoformat(timespec="minutes"),
+    )
+
+
+def _quota_blocked() -> bool:
+    """True while we are inside the active quota-exhausted backoff window."""
+    global _quota_exhausted_until
+    if _quota_exhausted_until is None:
+        return False
+    if datetime.now(UTC) >= _quota_exhausted_until:
+        logger.info(
+            "[scheduler] Quota backoff expired — resuming Odds-API polling.",
+        )
+        _quota_exhausted_until = None
+        return False
+    return True
 
 
 def _refresh_hour_utc() -> int:
@@ -52,6 +105,9 @@ def _refresh_blocking() -> None:
     if not ODDS_API_CFG.api_key:
         logger.warning("[scheduler] ODDS_API_KEY not set — snapshot refresh skipped.")
         return
+    if _quota_blocked():
+        logger.info("[scheduler] Snapshot refresh skipped — quota backoff active.")
+        return
 
     client = OddsApiClient()
     today = date.today()
@@ -66,6 +122,10 @@ def _refresh_blocking() -> None:
             )
             fixtures = client.fetch_all_leagues_for_date(tomorrow)
             target_date = tomorrow
+    except OddsApiQuotaError as exc:
+        logger.error("[scheduler] %s", exc)
+        _note_quota_exhausted("scheduler")
+        return
     except OddsApiError as exc:
         logger.error("[scheduler] Odds API call failed: %s", exc)
         return
@@ -260,11 +320,18 @@ def _settle_live_blocking() -> None:
     """Hit Odds-API /scores for leagues with pending bets or live matches and re-grade."""
     if not ODDS_API_CFG.api_key:
         return  # quiet — daily loop already warned at startup
+    if _quota_blocked():
+        return  # quiet — _note_quota_exhausted() already logged the reason
     try:
         from football_betting.evaluation.pipeline import settle_live
 
         force = _live_display_league_codes()
-        added, settled = settle_live(force_leagues=force)
+        try:
+            added, settled = settle_live(force_leagues=force)
+        except OddsApiQuotaError as exc:
+            logger.error("[live-settle] %s", exc)
+            _note_quota_exhausted("live-settle")
+            return
         if added or settled:
             logger.info(
                 "[live-settle] +%d live results, %d bet(s) newly settled.",
@@ -347,6 +414,8 @@ def _capture_prekickoff_blocking() -> None:
     """Append a fresh odds snapshot per league with a match ~30 min from kickoff."""
     if not ODDS_API_CFG.api_key:
         return
+    if _quota_blocked():
+        return
     payload = load_today()
     if payload is None or not payload.predictions:
         return
@@ -375,6 +444,10 @@ def _capture_prekickoff_blocking() -> None:
     for league_key in sorted(due_leagues):
         try:
             fixtures = client.fetch_for_date(league_key, today)
+        except OddsApiQuotaError as exc:
+            logger.error("[prekickoff] %s", exc)
+            _note_quota_exhausted("prekickoff")
+            return
         except OddsApiError as exc:
             logger.warning("[prekickoff] Odds API fetch failed for %s: %s", league_key, exc)
             continue

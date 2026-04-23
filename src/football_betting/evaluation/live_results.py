@@ -27,7 +27,12 @@ from typing import Iterable
 
 from football_betting.config import DATA_DIR, LEAGUES
 from football_betting.evaluation.grader import GRADED_FILE, _norm, load_graded
-from football_betting.scraping.odds_api import OddsApiClient, OddsApiError, ScoreResult
+from football_betting.scraping.odds_api import (
+    OddsApiClient,
+    OddsApiError,
+    OddsApiQuotaError,
+    ScoreResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -283,6 +288,11 @@ def poll_and_store_scores(
             continue
         try:
             scores = client.fetch_scores(league_key, days_from=days_from)
+        except OddsApiQuotaError:
+            # Let the scheduler / caller see quota exhaustion so it can
+            # pause polling. No point iterating the remaining leagues —
+            # the same key would fail for all of them.
+            raise
         except OddsApiError as e:
             logger.warning("[live] Odds API scores failed for %s: %s", league_key, e)
             continue

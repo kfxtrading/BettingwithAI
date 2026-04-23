@@ -28,6 +28,15 @@ class OddsApiError(RuntimeError):
     """Raised on missing key, HTTP failure, or unexpected payload shape."""
 
 
+class OddsApiQuotaError(OddsApiError):
+    """Raised when the API key is valid but the monthly request quota is exhausted.
+
+    The Odds API signals this via HTTP 401 (with ``"quota"``/``"usage"``
+    in the body) or HTTP 429. Consumers can catch this separately to
+    trigger backoff / pause-polling logic.
+    """
+
+
 @dataclass(slots=True)
 class ScoreResult:
     """Completed / in-progress match result from The Odds API /scores."""
@@ -111,15 +120,15 @@ class OddsApiClient:
             body = (r.text or "").strip()[:240]
             lower = body.lower()
             if "quota" in lower or "usage" in lower or "exceeded" in lower:
-                reason = "quota exhausted"
-            else:
-                reason = "invalid key"
+                raise OddsApiQuotaError(
+                    f"Odds API HTTP 401 (quota exhausted) — body: {body or 'no body'}"
+                )
             raise OddsApiError(
-                f"Odds API HTTP 401 ({reason}) — body: {body or 'no body'}"
+                f"Odds API HTTP 401 (invalid key) — body: {body or 'no body'}"
             )
         if r.status_code == 429:
             body = (r.text or "").strip()[:240]
-            raise OddsApiError(
+            raise OddsApiQuotaError(
                 f"Odds API HTTP 429 (quota / rate limit) — body: {body or 'no body'}"
             )
         if r.status_code != 200:
