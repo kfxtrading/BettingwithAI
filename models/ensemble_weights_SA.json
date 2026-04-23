@@ -1,0 +1,19 @@
+{
+  "w_catboost": 0.9615336752523872,
+  "w_poisson": 0.0100625414891071,
+  "w_mlp": 0.0,
+  "w_sequence": 0.02840378325850558,
+  "metadata": {
+    "league": "SA",
+    "val_season": "2024-25",
+    "objective": "clv",
+    "blend": null,
+    "active_members": [
+      "catboost",
+      "poisson",
+      "sequence"
+    ],
+    "score_key": "best_clv_mean",
+    "score_value": 0.016316494508635013
+  }
+}

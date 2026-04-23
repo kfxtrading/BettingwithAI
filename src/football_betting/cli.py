@@ -1216,7 +1216,25 @@ def backtest(
 )
 @click.option("--bankroll", default=1000.0, show_default=True)
 @click.option("--no-ensemble", is_flag=True)
-def sweep_cushion(league: str, cushions: str, bankroll: float, no_ensemble: bool) -> None:
+@click.option(
+    "--calibration-method",
+    type=click.Choice(["auto", "isotonic", "sigmoid"], case_sensitive=False),
+    default=None,
+    help="Override the CatBoost calibration method (default: auto).",
+)
+@click.option(
+    "--stacking",
+    is_flag=True,
+    help="Use Phase 7 stacking meta-learner for prediction (matches backtest --stacking).",
+)
+def sweep_cushion(
+    league: str,
+    cushions: str,
+    bankroll: float,
+    no_ensemble: bool,
+    calibration_method: str | None,
+    stacking: bool,
+) -> None:
     """Sweep BettingConfig.min_ev_pct on the standard backtest holdout.
 
     Trains the model once, then re-runs the financial layer for each cushion
@@ -1253,6 +1271,8 @@ def sweep_cushion(league: str, cushions: str, bankroll: float, no_ensemble: bool
             bet_cfg=bet_cfg,
             initial_bankroll=bankroll,
             use_ensemble=not no_ensemble,
+            use_stacking=stacking,
+            calibration_method=calibration_method,
         )
         result = bt.run(league)
         bm = result.bet_metrics

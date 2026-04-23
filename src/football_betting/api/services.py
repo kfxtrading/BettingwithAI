@@ -590,7 +590,20 @@ def _build_model(league_key: str, fb: FeatureBuilder):
     cb = CatBoostPredictor.for_league(league_key, fb)
     poisson = PoissonModel(pi_ratings=fb.pi_ratings)
     mlp = MLPPredictor.for_league(league_key, fb)
-    return EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
+    ensemble = EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
+
+    # Phase 6: auto-load CLV-tuned weights if persisted
+    weights_path = MODELS_DIR / f"ensemble_weights_{league_key}.json"
+    if weights_path.exists():
+        try:
+            ensemble.load_weights(weights_path)
+        except Exception as exc:  # pragma: no cover - defensive
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Failed to load %s: %s — falling back to defaults", weights_path, exc
+            )
+    return ensemble
 
 
 def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayload:

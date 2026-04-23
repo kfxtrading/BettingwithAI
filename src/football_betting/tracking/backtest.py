@@ -193,6 +193,18 @@ class Backtester:
 
         model = EnsembleModel(catboost=cb, poisson=poisson) if self.use_ensemble else cb
 
+        # Phase 6: auto-load CLV-tuned weights if persisted for this league
+        if self.use_ensemble and isinstance(model, EnsembleModel):
+            from football_betting.config import MODELS_DIR as _MODELS_DIR
+
+            _weights_path = _MODELS_DIR / f"ensemble_weights_{league_key}.json"
+            if _weights_path.exists():
+                try:
+                    model.load_weights(_weights_path)
+                    console.log(f"[green]Loaded tuned ensemble weights: {_weights_path}[/green]")
+                except Exception as exc:  # pragma: no cover - defensive
+                    console.log(f"[yellow]Failed to load {_weights_path}: {exc}[/yellow]")
+
         # Phase 7: Meta-learner fit on OOF probs over stack_val
         if self.use_stacking and stack_val_matches:
             from football_betting.predict.stacking import (

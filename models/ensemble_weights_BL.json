@@ -1,0 +1,19 @@
+{
+  "w_catboost": 0.5018217102586521,
+  "w_poisson": 0.48679041150279967,
+  "w_mlp": 0.0,
+  "w_sequence": 0.011387878238548267,
+  "metadata": {
+    "league": "BL",
+    "val_season": "2024-25",
+    "objective": "clv",
+    "blend": null,
+    "active_members": [
+      "catboost",
+      "poisson",
+      "sequence"
+    ],
+    "score_key": "best_clv_mean",
+    "score_value": 0.006393233581921107
+  }
+}
