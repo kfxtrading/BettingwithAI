@@ -144,10 +144,6 @@ def _refresh_blocking() -> None:
         logger.info(
             "[scheduler] ODDS_API_KEY not set — using Sofascore widget for fixtures."
         )
-    elif _quota_blocked():
-        logger.info(
-            "[scheduler] Quota backoff active — using Sofascore widget for fixtures."
-        )
     else:
         client = OddsApiClient()
         try:
@@ -163,7 +159,6 @@ def _refresh_blocking() -> None:
             payload = [f.to_fixture_dict() for f in fixtures]
         except OddsApiQuotaError as exc:
             logger.error("[scheduler] %s", exc)
-            _note_quota_exhausted("scheduler")
             payload = []
             target_date = None
         except OddsApiError as exc:
