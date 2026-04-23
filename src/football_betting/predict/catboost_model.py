@@ -19,7 +19,14 @@ import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from rich.console import Console
 
-from football_betting.config import CATBOOST_CFG, MODELS_DIR, CalibrationConfig, CatBoostConfig
+from football_betting.config import (
+    CATBOOST_CFG,
+    MODELS_DIR,
+    CalibrationConfig,
+    CatBoostConfig,
+    ModelPurpose,
+    artifact_suffix,
+)
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.calibration import ProbabilityCalibrator
@@ -46,6 +53,10 @@ class CatBoostPredictor:
     #: is used. Set e.g. ``CalibrationConfig(method="sigmoid")`` to pin Platt
     #: scaling for leagues where isotonic over-fits the extremes.
     calibration_cfg: CalibrationConfig | None = None
+    #: Dual-model split. ``"1x2"`` (default) optimises outcome cross-entropy
+    #: and keeps every feature. ``"value"`` trains a value-bet specialist
+    #: on the feature set with ``market_*``/``mm_*`` dropped.
+    purpose: ModelPurpose = "1x2"
 
     # ───────────────────────── Back-compat ─────────────────────────
 
@@ -227,9 +238,15 @@ class CatBoostPredictor:
             console.log(f"Loaded calibrator: {cal_path.name}")
 
     @classmethod
-    def for_league(cls, league_key: str, feature_builder: FeatureBuilder) -> CatBoostPredictor:
-        inst = cls(feature_builder=feature_builder)
-        model_path = MODELS_DIR / f"catboost_{league_key}.cbm"
+    def for_league(
+        cls,
+        league_key: str,
+        feature_builder: FeatureBuilder,
+        purpose: ModelPurpose = "1x2",
+    ) -> CatBoostPredictor:
+        inst = cls(feature_builder=feature_builder, purpose=purpose)
+        suffix = artifact_suffix(purpose)
+        model_path = MODELS_DIR / f"catboost_{league_key}{suffix}.cbm"
         if model_path.exists():
             inst.load(model_path)
             console.log(f"Loaded model: {model_path.name}")

@@ -35,7 +35,13 @@ import pandas as pd
 from rich.console import Console
 from sklearn.preprocessing import StandardScaler
 
-from football_betting.config import MODELS_DIR, TAB_TRANSFORMER_CFG, TabTransformerConfig
+from football_betting.config import (
+    MODELS_DIR,
+    TAB_TRANSFORMER_CFG,
+    ModelPurpose,
+    TabTransformerConfig,
+    artifact_suffix,
+)
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.calibration import ProbabilityCalibrator
@@ -119,6 +125,8 @@ class TabTransformerPredictor:
     scaler: StandardScaler | None = None
     feature_names: list[str] = field(default_factory=list)
     calibrator: ProbabilityCalibrator | None = None
+    #: Dual-model split — see ``CatBoostPredictor.purpose``.
+    purpose: ModelPurpose = "1x2"
 
     # ───────────────────────── Training data ─────────────────────────
 
@@ -350,12 +358,16 @@ class TabTransformerPredictor:
 
     @classmethod
     def for_league(
-        cls, league_key: str, feature_builder: FeatureBuilder
+        cls,
+        league_key: str,
+        feature_builder: FeatureBuilder,
+        purpose: ModelPurpose = "1x2",
     ) -> TabTransformerPredictor | None:
-        path = MODELS_DIR / f"tabtransformer_{league_key}.pt"
+        suffix = artifact_suffix(purpose)
+        path = MODELS_DIR / f"tabtransformer_{league_key}{suffix}.pt"
         if not path.exists():
             return None
-        inst = cls(feature_builder=feature_builder)
+        inst = cls(feature_builder=feature_builder, purpose=purpose)
         try:
             inst.load(path)
             console.log(f"Loaded TabTransformer: {path.name}")

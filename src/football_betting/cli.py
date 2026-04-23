@@ -49,8 +49,21 @@ from football_betting.features.builder import FeatureBuilder
 from football_betting.features.weather import WeatherTracker
 
 
-def _make_feature_builder() -> FeatureBuilder:
-    """Construct FeatureBuilder with WeatherTracker wired in (v0.4 Phase 1)."""
+def _make_feature_builder(purpose: str = "1x2") -> FeatureBuilder:
+    """Construct FeatureBuilder with WeatherTracker wired in (v0.4 Phase 1).
+
+    When ``purpose="value"`` the value-bet feature blocklist (``market_*``
+    and ``mm_*``) is applied so the value specialist cannot learn the
+    market consensus directly.
+    """
+    from football_betting.config import VALUE_MODEL_CFG
+
+    if purpose == "value":
+        return FeatureBuilder(
+            weather_tracker=WeatherTracker(),
+            feature_blocklist_prefixes=VALUE_MODEL_CFG.feature_blocklist_prefixes,
+            feature_blocklist_exact=VALUE_MODEL_CFG.feature_blocklist_exact,
+        )
     return FeatureBuilder(weather_tracker=WeatherTracker())
 
 
@@ -359,14 +372,29 @@ def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
     default=True,
     help="Ingest pre-scraped Sofascore data if present",
 )
+@click.option(
+    "--purpose",
+    type=click.Choice(["1x2", "value"], case_sensitive=False),
+    default="1x2",
+    show_default=True,
+    help="Dual-model split: 1X2 (default) or value-bet specialist.",
+)
 def train(
-    league: str, seasons: tuple[str, ...], warmup: int, calibrate: bool, use_sofascore: bool
+    league: str,
+    seasons: tuple[str, ...],
+    warmup: int,
+    calibrate: bool,
+    use_sofascore: bool,
+    purpose: str,
 ) -> None:
     """Train CatBoost + calibrator."""
+    from football_betting.config import artifact_suffix
+
     league = league.upper()
+    purpose = purpose.lower()
     matches = load_league(league, seasons=list(seasons))
 
-    fb = _make_feature_builder()
+    fb = _make_feature_builder(purpose=purpose)
 
     # Stage Sofascore data — consumed chronologically in build_training_data
     if use_sofascore:
@@ -380,11 +408,14 @@ def train(
         else:
             console.log("[yellow]No Sofascore data found — using xG proxy[/yellow]")
 
-    predictor = CatBoostPredictor(feature_builder=fb)
-    console.log(f"[cyan]Training CatBoost for {LEAGUES[league].name}…[/cyan]")
+    predictor = CatBoostPredictor(feature_builder=fb, purpose=purpose)  # type: ignore[arg-type]
+    console.log(
+        f"[cyan]Training CatBoost for {LEAGUES[league].name} (purpose={purpose})…[/cyan]"
+    )
     result = predictor.fit(matches, warmup_games=warmup, calibrate=calibrate)
 
-    model_path = MODELS_DIR / f"catboost_{league}.cbm"
+    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
+    model_path = MODELS_DIR / f"catboost_{league}{suffix}.cbm"
     predictor.save(model_path)
     console.log(f"[green]Model saved: {model_path}[/green]")
 
@@ -411,22 +442,44 @@ def train(
     "--seasons", "-s", multiple=True, default=("2021-22", "2022-23", "2023-24", "2024-25")
 )
 @click.option("--warmup", default=100)
-def train_mlp(league: str, seasons: tuple[str, ...], warmup: int) -> None:
+@click.option(
+    "--purpose",
+    type=click.Choice(["1x2", "value"], case_sensitive=False),
+    default="1x2",
+    show_default=True,
+    help="Dual-model split: 1X2 (default) or value-bet specialist.",
+)
+def train_mlp(league: str, seasons: tuple[str, ...], warmup: int, purpose: str) -> None:
     """Train PyTorch MLP classifier (v0.3)."""
+    from dataclasses import replace
+
+    from football_betting.config import MLP_CFG, VALUE_MODEL_CFG, artifact_suffix
+
     league = league.upper()
+    purpose = purpose.lower()
     matches = load_league(league, seasons=list(seasons))
 
-    fb = _make_feature_builder()
+    fb = _make_feature_builder(purpose=purpose)
     for season in seasons:
         sf_data = SofascoreClient.load_matches(league, season)
         if sf_data:
             fb.stage_sofascore_batch(sf_data)
 
-    mlp = MLPPredictor(feature_builder=fb)
-    console.log(f"[cyan]Training MLP for {LEAGUES[league].name}…[/cyan]")
+    cfg = MLP_CFG
+    if purpose == "value":
+        cfg = replace(
+            MLP_CFG,
+            use_kelly_loss=VALUE_MODEL_CFG.use_kelly_loss,
+            kelly_lambda=VALUE_MODEL_CFG.kelly_lambda,
+            kelly_f_cap=VALUE_MODEL_CFG.kelly_f_cap,
+        )
+
+    mlp = MLPPredictor(feature_builder=fb, cfg=cfg, purpose=purpose)  # type: ignore[arg-type]
+    console.log(f"[cyan]Training MLP for {LEAGUES[league].name} (purpose={purpose})…[/cyan]")
     result = mlp.fit(matches, warmup_games=warmup)
 
-    path = MODELS_DIR / f"mlp_{league}.pt"
+    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
+    path = MODELS_DIR / f"mlp_{league}{suffix}.pt"
     mlp.save(path)
     console.log(f"[green]MLP saved: {path}[/green]")
     console.print(f"  n_train={result['n_train']}, n_val={result['n_val']}")
@@ -457,26 +510,42 @@ def train_mlp(league: str, seasons: tuple[str, ...], warmup: int) -> None:
     show_default=True,
     help="Torch backend: auto → CUDA → DirectML (AMD/Intel) → CPU.",
 )
-def train_tab(league: str, seasons: tuple[str, ...], warmup: int, device: str) -> None:
+@click.option(
+    "--purpose",
+    type=click.Choice(["1x2", "value"], case_sensitive=False),
+    default="1x2",
+    show_default=True,
+    help="Dual-model split: 1X2 (default) or value-bet specialist.",
+)
+def train_tab(
+    league: str, seasons: tuple[str, ...], warmup: int, device: str, purpose: str
+) -> None:
     """Train FT-Transformer tabular classifier (v0.4, GPU-friendly)."""
     import os as _os
 
+    from football_betting.config import artifact_suffix
+
     league = league.upper()
+    purpose = purpose.lower()
     _os.environ["FB_TORCH_DEVICE"] = device.lower()
 
     matches = load_league(league, seasons=list(seasons))
 
-    fb = _make_feature_builder()
+    fb = _make_feature_builder(purpose=purpose)
     for season in seasons:
         sf_data = SofascoreClient.load_matches(league, season)
         if sf_data:
             fb.stage_sofascore_batch(sf_data)
 
-    tab = TabTransformerPredictor(feature_builder=fb)
-    console.log(f"[cyan]Training FT-Transformer for {LEAGUES[league].name}…[/cyan]")
+    tab = TabTransformerPredictor(feature_builder=fb, purpose=purpose)  # type: ignore[arg-type]
+    console.log(
+        f"[cyan]Training FT-Transformer for {LEAGUES[league].name} "
+        f"(purpose={purpose})…[/cyan]"
+    )
     result = tab.fit(matches, warmup_games=warmup)
 
-    path = MODELS_DIR / f"tabtransformer_{league}.pt"
+    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
+    path = MODELS_DIR / f"tabtransformer_{league}{suffix}.pt"
     tab.save(path)
     console.log(f"[green]TabTransformer saved: {path}[/green]")
     console.print(f"  n_train={result['n_train']}, n_val={result['n_val']}")
@@ -508,27 +577,41 @@ def train_tab(league: str, seasons: tuple[str, ...], warmup: int, device: str) -
     show_default=True,
     help="Torch backend: auto → CUDA → DirectML → CPU.",
 )
+@click.option(
+    "--purpose",
+    type=click.Choice(["1x2", "value"], case_sensitive=False),
+    default="1x2",
+    show_default=True,
+    help="Dual-model split: 1X2 (default) or value-bet specialist.",
+)
 def train_sequence(
     league: str,
     seasons: tuple[str, ...],
     warmup: int,
     device: str,
+    purpose: str,
 ) -> None:
     """Train 1D-CNN + Transformer sequence head (v0.4)."""
     import os as _os
 
+    from football_betting.config import artifact_suffix
     from football_betting.predict.sequence_model import SequencePredictor
 
     league = league.upper()
+    purpose = purpose.lower()
     _os.environ["FB_TORCH_DEVICE"] = device.lower()
 
     matches = load_league(league, seasons=list(seasons))
 
-    seq = SequencePredictor()
-    console.log(f"[cyan]Training Sequence head for {LEAGUES[league].name}…[/cyan]")
+    seq = SequencePredictor(purpose=purpose)  # type: ignore[arg-type]
+    console.log(
+        f"[cyan]Training Sequence head for {LEAGUES[league].name} "
+        f"(purpose={purpose})…[/cyan]"
+    )
     result = seq.fit(matches, warmup_games=warmup)
 
-    path = MODELS_DIR / f"sequence_{league}.pt"
+    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
+    path = MODELS_DIR / f"sequence_{league}{suffix}.pt"
     seq.save(path)
     console.log(f"[green]Sequence model saved: {path}[/green]")
     console.print(f"  n_train={result.get('n_train', '?')}, n_val={result.get('n_val', '?')}")

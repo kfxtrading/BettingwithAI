@@ -24,7 +24,13 @@ import pandas as pd
 from rich.console import Console
 from sklearn.preprocessing import StandardScaler
 
-from football_betting.config import MLP_CFG, MODELS_DIR, MLPConfig
+from football_betting.config import (
+    MLP_CFG,
+    MODELS_DIR,
+    MLPConfig,
+    ModelPurpose,
+    artifact_suffix,
+)
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.calibration import ProbabilityCalibrator
@@ -76,6 +82,8 @@ class MLPPredictor:
     scaler: StandardScaler | None = None
     feature_names: list[str] = field(default_factory=list)
     calibrator: ProbabilityCalibrator | None = None
+    #: Dual-model split — see ``CatBoostPredictor.purpose``.
+    purpose: ModelPurpose = "1x2"
 
     # ───────────────────────── Training data ─────────────────────────
 
@@ -363,12 +371,18 @@ class MLPPredictor:
             self.calibrator = joblib.load(cal_path)
 
     @classmethod
-    def for_league(cls, league_key: str, feature_builder: FeatureBuilder) -> MLPPredictor | None:
+    def for_league(
+        cls,
+        league_key: str,
+        feature_builder: FeatureBuilder,
+        purpose: ModelPurpose = "1x2",
+    ) -> MLPPredictor | None:
         """Load MLP for league if available, else return None."""
-        path = MODELS_DIR / f"mlp_{league_key}.pt"
+        suffix = artifact_suffix(purpose)
+        path = MODELS_DIR / f"mlp_{league_key}{suffix}.pt"
         if not path.exists():
             return None
-        inst = cls(feature_builder=feature_builder)
+        inst = cls(feature_builder=feature_builder, purpose=purpose)
         try:
             inst.load(path)
             console.log(f"Loaded MLP: {path.name}")

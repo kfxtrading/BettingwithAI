@@ -13,15 +13,21 @@ import numpy as np
 from rich.console import Console
 from rich.table import Table
 
-from football_betting.config import LEAGUES, MODELS_DIR, WEATHER_CFG
+from football_betting.config import (
+    LEAGUES,
+    MODELS_DIR,
+    VALUE_MODEL_CFG,
+    WEATHER_CFG,
+    artifact_suffix,
+)
 from football_betting.data.loader import load_league
+from football_betting.data.models import Outcome
 from football_betting.features.builder import FeatureBuilder
 from football_betting.features.weather import WeatherTracker
 from football_betting.predict.calibration import expected_calibration_error
 from football_betting.predict.catboost_model import CatBoostPredictor
 from football_betting.scraping.sofascore import SofascoreClient
 from football_betting.tracking.metrics import summary_stats
-from football_betting.data.models import Outcome
 
 console = Console()
 
@@ -29,8 +35,8 @@ TRAIN_SEASONS = ("2021-22", "2022-23", "2023-24", "2024-25")
 INT_TO_OUTCOME = {0: "H", 1: "D", 2: "A"}
 
 
-def train_league(league_key: str) -> dict[str, float | int | str]:
-    console.rule(f"[bold cyan]{LEAGUES[league_key].name}[/bold cyan]")
+def train_league(league_key: str, purpose: str = "1x2") -> dict[str, float | int | str]:
+    console.rule(f"[bold cyan]{LEAGUES[league_key].name} — {purpose}[/bold cyan]")
 
     matches = load_league(league_key, seasons=list(TRAIN_SEASONS))
     console.log(f"Loaded {len(matches)} training matches")
@@ -42,7 +48,11 @@ def train_league(league_key: str) -> dict[str, float | int | str]:
             "[yellow]Weather enabled but no stadiums.json found — "
             "run `fb weather-stadiums` first to populate it.[/yellow]"
         )
-    fb = FeatureBuilder(weather_tracker=weather_tracker)
+    fb_kwargs: dict = {"weather_tracker": weather_tracker}
+    if purpose == "value":
+        fb_kwargs["feature_blocklist_prefixes"] = VALUE_MODEL_CFG.feature_blocklist_prefixes
+        fb_kwargs["feature_blocklist_exact"] = VALUE_MODEL_CFG.feature_blocklist_exact
+    fb = FeatureBuilder(**fb_kwargs)
 
     # Stage Sofascore data so chronological replay consumes it (real xG / squad)
     staged = 0
@@ -53,7 +63,7 @@ def train_league(league_key: str) -> dict[str, float | int | str]:
     if staged:
         console.log(f"[green]Staged Sofascore data: {staged} matches[/green]")
 
-    predictor = CatBoostPredictor(feature_builder=fb)
+    predictor = CatBoostPredictor(feature_builder=fb, purpose=purpose)  # type: ignore[arg-type]
     result = predictor.fit(matches, warmup_games=100, val_fraction=0.15, calibrate=True)
 
     # Evaluate RPS on raw + calibrated validation predictions
@@ -81,7 +91,8 @@ def train_league(league_key: str) -> dict[str, float | int | str]:
         ece_raw = ece_cal = 0.0
 
     # Save
-    model_path = MODELS_DIR / f"catboost_{league_key}.cbm"
+    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
+    model_path = MODELS_DIR / f"catboost_{league_key}{suffix}.cbm"
     predictor.save(model_path)
     console.log(f"[green]Saved: {model_path.name}[/green]")
 
@@ -101,6 +112,7 @@ def train_league(league_key: str) -> dict[str, float | int | str]:
 
     return {
         "league": league_key,
+        "purpose": purpose,
         "n_train": result["n_train"],
         "n_val": result["n_val"],
         "n_features": result["n_features"],
@@ -113,17 +125,28 @@ def train_league(league_key: str) -> dict[str, float | int | str]:
 
 
 def main() -> None:
-    all_stats = []
-    for key in LEAGUES.keys():
-        try:
-            stats = train_league(key)
-            all_stats.append(stats)
-        except FileNotFoundError as e:
-            console.log(f"[red]Skip {key}: {e}[/red]")
+    import sys
 
-    console.rule("[bold green]FINAL SUMMARY — v0.2[/bold green]")
+    # Allow: python scripts/train.py [1x2|value|both]
+    mode = sys.argv[1] if len(sys.argv) > 1 else "both"
+    if mode not in ("1x2", "value", "both"):
+        raise SystemExit(f"Unknown mode {mode!r}; expected 1x2, value, or both")
+    purposes = (mode,) if mode != "both" else ("1x2", "value")
+
+    all_stats = []
+    for purpose in purposes:
+        for key in LEAGUES.keys():
+            try:
+                stats = train_league(key, purpose=purpose)
+                all_stats.append(stats)
+            except FileNotFoundError as e:
+                console.log(f"[red]Skip {key} ({purpose}): {e}[/red]")
+
+    console.rule("[bold green]FINAL SUMMARY[/bold green]")
     table = Table()
-    table.add_column("League"); table.add_column("#Feat", justify="right")
+    table.add_column("League")
+    table.add_column("Purpose")
+    table.add_column("#Feat", justify="right")
     table.add_column("RPS (raw)", justify="right")
     table.add_column("RPS (cal)", justify="right")
     table.add_column("ECE (raw)", justify="right")
@@ -131,7 +154,9 @@ def main() -> None:
     table.add_column("Hit", justify="right")
     for s in all_stats:
         table.add_row(
-            str(s["league"]), str(s["n_features"]),
+            str(s["league"]),
+            str(s.get("purpose", "1x2")),
+            str(s["n_features"]),
             f"{s['rps_raw']:.4f}", f"{s['rps_cal']:.4f}",
             f"{s['ece_raw']:.4f}", f"{s['ece_cal']:.4f}",
             f"{s['hit_rate']:.3f}",

@@ -55,7 +55,23 @@ class FeatureBuilder:
     market_tracker: MarketMovementTracker = field(default_factory=MarketMovementTracker)
     standings_tracker: SeasonStandingsTracker = field(default_factory=SeasonStandingsTracker)
     weather_tracker: WeatherTracker | None = None  # v0.4: optional, opt-in
+    # Dual-model split: when set, any feature whose key starts with one of
+    # these prefixes (or matches ``feature_blocklist_exact``) is stripped
+    # from the output of ``build_features``. Used by the value-bet model
+    # family to drop ``market_*`` / ``mm_*`` so it can't learn the market.
+    feature_blocklist_prefixes: tuple[str, ...] = ()
+    feature_blocklist_exact: tuple[str, ...] = ()
     _sofascore_staged: dict[str, dict] = field(default_factory=dict)
+
+    def _apply_blocklist(self, feats: dict[str, float]) -> dict[str, float]:
+        if not self.feature_blocklist_prefixes and not self.feature_blocklist_exact:
+            return feats
+        return {
+            k: v
+            for k, v in feats.items()
+            if k not in self.feature_blocklist_exact
+            and not any(k.startswith(p) for p in self.feature_blocklist_prefixes)
+        }
 
     @staticmethod
     def _sofascore_key(home: str, away: str, date_iso: str) -> str:
@@ -209,7 +225,7 @@ class FeatureBuilder:
                 )
             )
 
-        return feats
+        return self._apply_blocklist(feats)
 
     def features_for_fixture(self, fixture: Fixture) -> dict[str, float]:
         odds = fixture.odds

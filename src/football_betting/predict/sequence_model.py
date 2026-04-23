@@ -32,7 +32,13 @@ from typing import Any
 import numpy as np
 from rich.console import Console
 
-from football_betting.config import SEQUENCE_CFG, SequenceConfig
+from football_betting.config import (
+    MODELS_DIR,
+    SEQUENCE_CFG,
+    ModelPurpose,
+    SequenceConfig,
+    artifact_suffix,
+)
 from football_betting.data.models import Fixture, Match, Prediction
 from football_betting.features.form import FormTracker
 from football_betting.predict.sequence_features import (
@@ -155,6 +161,8 @@ class SequencePredictor:
     cfg: SequenceConfig = field(default_factory=lambda: SEQUENCE_CFG)
     model: Any = None
     _device: Any = None
+    #: Dual-model split — see ``CatBoostPredictor.purpose``.
+    purpose: ModelPurpose = "1x2"
 
     # ───────────────────────── Training ─────────────────────────
 
@@ -347,3 +355,23 @@ class SequencePredictor:
         self.model.load_state_dict(torch.load(path, map_location="cpu", weights_only=False))
         self.model.eval()
         self._device = torch.device("cpu")
+
+    @classmethod
+    def for_league(
+        cls,
+        league_key: str,
+        purpose: ModelPurpose = "1x2",
+    ) -> SequencePredictor | None:
+        """Load Sequence predictor for league if the checkpoint exists."""
+        suffix = artifact_suffix(purpose)
+        path = MODELS_DIR / f"sequence_{league_key}{suffix}.pt"
+        if not path.exists():
+            return None
+        inst = cls(purpose=purpose)
+        try:
+            inst.load(path)
+            console.log(f"Loaded Sequence: {path.name}")
+            return inst
+        except Exception as e:  # pragma: no cover - defensive
+            console.log(f"[red]Failed to load Sequence {path.name}: {e}[/red]")
+            return None

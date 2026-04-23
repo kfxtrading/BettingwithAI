@@ -60,7 +60,7 @@ from football_betting.data.odds_snapshots import (
 )
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.catboost_model import CatBoostPredictor
-from football_betting.predict.ensemble import EnsembleModel
+from football_betting.predict.ensemble import EnsembleModel, ensemble_weights_path
 from football_betting.predict.mlp_model import MLPPredictor
 from football_betting.predict.poisson import PoissonModel
 from football_betting.rating.pi_ratings import PiRatings
@@ -486,8 +486,9 @@ def build_predictions_for_fixtures(
                 )
         odds_snaps_loaded = load_odds_snapshots(league_key, fb.market_tracker, only_future=True)
 
-        model = _build_model(league_key, fb)
+        model = _build_model(league_key, fb, purpose="1x2")
         model_name = type(model).__name__
+        value_model = _build_model(league_key, fb, purpose="value")
 
         logger.info(
             "[predict] %s (%s): %d historical matches | seasons=%s | range=%s | "
@@ -541,7 +542,21 @@ def build_predictions_for_fixtures(
             predictions.append(pred_out)
 
             if odds is not None:
-                bets = find_value_bets(pred, bankroll)
+                # Dual-model split: value-bet detection uses a dedicated
+                # model (feature set w/o market_*, Kelly-loss for Torch heads).
+                # Fallback to the 1X2 model if the value artefacts are missing.
+                try:
+                    value_pred = value_model.predict(fixture) if value_model else pred
+                except Exception as exc:
+                    logger.warning(
+                        "[predict] value model failed for %s vs %s: %s — "
+                        "falling back to 1X2 prediction",
+                        fd["home_team"],
+                        fd["away_team"],
+                        exc,
+                    )
+                    value_pred = pred
+                bets = find_value_bets(value_pred, bankroll)
                 for b in rank_value_bets(bets):
                     value_bets.append(_to_value_bet_out(b, league_name))
 
@@ -595,19 +610,33 @@ def build_predictions_for_fixtures(
     )
 
 
-def _build_model(league_key: str, fb: FeatureBuilder):
-    """Instantiate the strongest model available for this league."""
-    catboost_path = MODELS_DIR / f"catboost_{league_key}.cbm"
+def _build_model(
+    league_key: str,
+    fb: FeatureBuilder,
+    purpose: str = "1x2",
+):
+    """Instantiate the strongest model available for this league & purpose.
+
+    ``purpose="1x2"`` → standard outcome predictor (default behaviour).
+    ``purpose="value"`` → value-bet specialist; returns ``None`` when the
+    dedicated artefacts haven't been trained yet so the caller can fall back.
+    """
+    from football_betting.config import artifact_suffix  # local to avoid cycles
+
+    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
+    catboost_path = MODELS_DIR / f"catboost_{league_key}{suffix}.cbm"
     if not catboost_path.exists():
+        if purpose == "value":
+            return None
         return PoissonModel(pi_ratings=fb.pi_ratings)
 
-    cb = CatBoostPredictor.for_league(league_key, fb)
+    cb = CatBoostPredictor.for_league(league_key, fb, purpose=purpose)  # type: ignore[arg-type]
     poisson = PoissonModel(pi_ratings=fb.pi_ratings)
-    mlp = MLPPredictor.for_league(league_key, fb)
+    mlp = MLPPredictor.for_league(league_key, fb, purpose=purpose)  # type: ignore[arg-type]
     ensemble = EnsembleModel(catboost=cb, poisson=poisson, mlp=mlp)
 
     # Phase 6: auto-load CLV-tuned weights if persisted
-    weights_path = MODELS_DIR / f"ensemble_weights_{league_key}.json"
+    weights_path = ensemble_weights_path(league_key, purpose=purpose)  # type: ignore[arg-type]
     if weights_path.exists():
         try:
             ensemble.load_weights(weights_path)

@@ -25,8 +25,11 @@ from football_betting.betting.margin import remove_margin
 from football_betting.config import (
     BETTING_CFG,
     ENSEMBLE_TUNE_CFG,
+    MODELS_DIR,
     BettingConfig,
     EnsembleTuneConfig,
+    ModelPurpose,
+    artifact_suffix,
 )
 from football_betting.data.models import Fixture, Outcome, Prediction
 from football_betting.predict.catboost_model import CatBoostPredictor
@@ -41,6 +44,11 @@ from football_betting.tracking.metrics import (
 )
 
 Objective = Literal["rps", "log_loss", "brier", "clv", "blended", "brier_logloss_blended"]
+
+
+def ensemble_weights_path(league_key: str, purpose: ModelPurpose = "1x2") -> Path:
+    """Return the canonical ``models/ensemble_weights_<LG><suffix>.json`` path."""
+    return MODELS_DIR / f"ensemble_weights_{league_key}{artifact_suffix(purpose)}.json"
 
 
 @dataclass(slots=True)

@@ -144,6 +144,42 @@ LEAGUES: dict[str, LeagueConfig] = {
 }
 
 
+# ───────────────────────── Model Purpose (dual-model split) ─────────────────────────
+
+ModelPurpose = Literal["1x2", "value"]
+
+# File-name suffix appended to every model artefact (``.cbm``, ``.pt``,
+# ``ensemble_weights_*.json``) so the 1X2 pipeline and the value-bet
+# pipeline can be trained and served completely independently.
+MODEL_ARTIFACT_SUFFIX: dict[str, str] = {"1x2": "", "value": "_value"}
+
+
+def artifact_suffix(purpose: ModelPurpose) -> str:
+    """Return the filename suffix associated with a model purpose."""
+    return MODEL_ARTIFACT_SUFFIX[purpose]
+
+
+@dataclass(frozen=True, slots=True)
+class ValueModelConfig:
+    """Separate hyper-parameters for the value-bet model family.
+
+    The value model must not learn from the market consensus directly — it
+    has to beat it. We therefore drop every feature whose key matches one
+    of the prefixes in ``feature_blocklist_prefixes`` before fitting. The
+    Kelly-Loss is enabled for the Torch heads so the learner directly
+    optimises expected log-growth rather than pure cross-entropy.
+    """
+
+    feature_blocklist_prefixes: tuple[str, ...] = (
+        "market_",
+        "mm_",
+    )
+    feature_blocklist_exact: tuple[str, ...] = ()
+    use_kelly_loss: bool = True
+    kelly_lambda: float = 0.5
+    kelly_f_cap: float = 0.25
+
+
 # ───────────────────────── Pi-Ratings ─────────────────────────
 
 
@@ -731,3 +767,11 @@ PREDICTION_STAKING_CFG = PredictionStakingConfig()
 BACKTEST_CFG = BacktestConfig()
 ENSEMBLE_TUNE_CFG = EnsembleTuneConfig()
 SUPPORT_CFG = SupportConfig()
+VALUE_MODEL_CFG = ValueModelConfig()
+
+
+def should_drop_feature(feature_name: str, cfg: ValueModelConfig = VALUE_MODEL_CFG) -> bool:
+    """Return True if ``feature_name`` is on the value-model blocklist."""
+    if feature_name in cfg.feature_blocklist_exact:
+        return True
+    return any(feature_name.startswith(p) for p in cfg.feature_blocklist_prefixes)
