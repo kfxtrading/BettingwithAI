@@ -35,7 +35,14 @@ from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
 
-from football_betting.config import BETTING_CFG, DATA_DIR, LEAGUES, MODELS_DIR, BettingConfig
+from football_betting.config import (
+    BETTING_CFG,
+    DATA_DIR,
+    LEAGUES,
+    MODELS_DIR,
+    BettingConfig,
+    CalibrationConfig,
+)
 from football_betting.data.downloader import download_all
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, MatchOdds
@@ -414,6 +421,12 @@ def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
 @click.option("--warmup", default=100)
 @click.option("--calibrate/--no-calibrate", default=True)
 @click.option(
+    "--calibration-method",
+    type=click.Choice(["auto", "isotonic", "sigmoid"], case_sensitive=False),
+    default=None,
+    help="Override the CatBoost probability calibration method.",
+)
+@click.option(
     "--use-sofascore/--no-sofascore",
     default=True,
     help="Ingest pre-scraped Sofascore data if present",
@@ -430,6 +443,7 @@ def train(
     seasons: tuple[str, ...],
     warmup: int,
     calibrate: bool,
+    calibration_method: str | None,
     use_sofascore: bool,
     purpose: str,
 ) -> None:
@@ -454,7 +468,16 @@ def train(
         else:
             console.log("[yellow]No Sofascore data found — using xG proxy[/yellow]")
 
-    predictor = CatBoostPredictor(feature_builder=fb, purpose=purpose)  # type: ignore[arg-type]
+    calibration_cfg = (
+        CalibrationConfig(method=calibration_method.lower())
+        if calibration_method is not None
+        else None
+    )
+    predictor = CatBoostPredictor(
+        feature_builder=fb,
+        calibration_cfg=calibration_cfg,
+        purpose=purpose,
+    )  # type: ignore[arg-type]
     console.log(
         f"[cyan]Training CatBoost for {LEAGUES[league].name} (purpose={purpose})…[/cyan]"
     )
@@ -2139,7 +2162,7 @@ def tune_ensemble(
             weight_blend=blend if objective == "blended" else None,
             preserve_members=False,
         )
-        console.print(f"[green]Saved weights → {weights_path}[/green]")
+        console.print(f"[green]Saved weights -> {weights_path}[/green]")
 
     for k, v in result.items():
         if k in skip:

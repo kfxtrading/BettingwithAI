@@ -188,7 +188,7 @@ def summary_stats(
 
     actuals = [a for _, a in predictions]
     probs = np.asarray([p for p, _ in predictions], dtype=float)
-    y_true = np.asarray([OUTCOME_TO_INT[a] for a in actuals], dtype=int)
+    y_true = np.asarray([OUTCOME_IDX[a] for a in actuals], dtype=int)
 
     return {
         "n": len(predictions),
