@@ -34,7 +34,7 @@ from rich.progress import Progress
 from rich.table import Table
 
 from football_betting.betting.value import find_value_bets, rank_value_bets
-from football_betting.config import DATA_DIR, LEAGUES, MODELS_DIR
+from football_betting.config import BETTING_CFG, DATA_DIR, LEAGUES, MODELS_DIR, BettingConfig
 from football_betting.data.downloader import download_all
 from football_betting.data.loader import load_league
 from football_betting.data.models import Fixture, MatchOdds
@@ -1187,6 +1187,76 @@ def backtest(
     console.print(table)
 
     result.save()
+
+
+# ───────────────────────── sweep-cushion ─────────────────────────
+
+
+@main.command("sweep-cushion")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(list(LEAGUES.keys()), case_sensitive=False),
+    required=True,
+)
+@click.option(
+    "--cushions",
+    default="0.0,0.02,0.03,0.05,0.08",
+    show_default=True,
+    help="Comma-separated min_ev_pct values to sweep on the standard test holdout.",
+)
+@click.option("--bankroll", default=1000.0, show_default=True)
+@click.option("--no-ensemble", is_flag=True)
+def sweep_cushion(league: str, cushions: str, bankroll: float, no_ensemble: bool) -> None:
+    """Sweep BettingConfig.min_ev_pct on the standard backtest holdout.
+
+    Trains the model once, then re-runs the financial layer for each cushion
+    value to find the CLV-neutral sweet spot. Reports n_bets, ROI, CLV mean
+    and CLV % positive per cushion.
+    """
+    league = league.upper()
+    try:
+        grid = sorted({float(x.strip()) for x in cushions.split(",") if x.strip()})
+    except ValueError as exc:
+        raise click.BadParameter(f"Invalid cushion grid: {exc}") from exc
+    if not grid:
+        raise click.BadParameter("At least one cushion value is required")
+
+    table = Table(title=f"min_ev_pct sweep — {LEAGUES[league].name}")
+    table.add_column("min_ev_pct", justify="right")
+    table.add_column("n_bets", justify="right")
+    table.add_column("ROI", justify="right")
+    table.add_column("CLV mean", justify="right")
+    table.add_column("CLV %+", justify="right")
+    table.add_column("Bankroll", justify="right")
+
+    for cushion in grid:
+        bet_cfg = BettingConfig(
+            min_edge=BETTING_CFG.min_edge,
+            kelly_fraction=BETTING_CFG.kelly_fraction,
+            max_stake_pct=BETTING_CFG.max_stake_pct,
+            min_odds=BETTING_CFG.min_odds,
+            max_odds=BETTING_CFG.max_odds,
+            devig_method=BETTING_CFG.devig_method,
+            min_ev_pct=cushion,
+        )
+        bt = Backtester(
+            bet_cfg=bet_cfg,
+            initial_bankroll=bankroll,
+            use_ensemble=not no_ensemble,
+        )
+        result = bt.run(league)
+        bm = result.bet_metrics
+        table.add_row(
+            f"{cushion:.3f}",
+            str(int(bm.get("n_bets", 0))),
+            f"{bm.get('roi', 0.0):+.2%}",
+            f"{bm.get('clv_mean', 0.0):+.4f}",
+            f"{bm.get('clv_pct_positive', 0.0):.1%}",
+            f"{result.bankroll_final:,.2f}",
+        )
+
+    console.print(table)
 
 
 # ───────────────────────── tune-ensemble ─────────────────────────
