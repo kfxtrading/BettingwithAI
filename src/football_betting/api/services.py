@@ -1129,6 +1129,14 @@ def _daily_pnl_by_kind() -> tuple[dict[str, float], dict[str, float], dict[str, 
             value_pnl[g.date] += g.pnl
             combined_pnl[g.date] += g.pnl
 
+    # Inject the optimised-strategy snapshot so the equity curve shows
+    # the actual day-by-day evolution of the backtest window instead of
+    # a single anchored jump.
+    if "VALUE_SNAPSHOT_DAILY_PNL" in globals():
+        for d, pnl in VALUE_SNAPSHOT_DAILY_PNL.items():
+            value_pnl[d] += pnl
+            combined_pnl[d] += pnl
+
     return value_pnl, pred_pnl, combined_pnl
 
 
@@ -1153,12 +1161,11 @@ def get_bankroll_curve(initial_bankroll: float = 1000.0) -> list[BankrollPoint]:
     all_dates = set(value_pnl) | set(pred_pnl) | set(combined_pnl)
     if not all_dates:
         today_iso = _date.today().isoformat()
-        snap_profit = float(VALUE_SNAPSHOT_BASELINE["total_profit"])
         return [
             BankrollPoint(
                 date=today_iso,
-                value=round(initial_bankroll + snap_profit, 2),
-                value_bets=round(initial_bankroll + snap_profit, 2),
+                value=round(initial_bankroll, 2),
+                value_bets=round(initial_bankroll, 2),
                 predictions=round(initial_bankroll, 2),
             )
         ]
@@ -1169,13 +1176,8 @@ def get_bankroll_curve(initial_bankroll: float = 1000.0) -> list[BankrollPoint]:
     except ValueError:
         anchor = sorted_dates[0]
 
-    # Seed the value-bet and combined lines with the optimised-strategy
-    # opening balance (internal 5-day backtest). Legacy value bets before
-    # the cutoff are already excluded in ``_daily_pnl_by_kind`` so we can
-    # simply bump the starting bankroll.
-    snapshot_profit = float(VALUE_SNAPSHOT_BASELINE["total_profit"])
-    combined = initial_bankroll + snapshot_profit
-    value_roll = initial_bankroll + snapshot_profit
+    combined = initial_bankroll
+    value_roll = initial_bankroll
     pred_roll = initial_bankroll
 
     curve: list[BankrollPoint] = [
@@ -1244,14 +1246,29 @@ def _strategy_stats_from_graded(
 #   on or after the cutoff.
 # * If/when a better model replaces this one, update the snapshot
 #   constants + cutoff and the tracker seamlessly re-anchors.
-VALUE_SNAPSHOT_CUTOFF: date = date(2026, 4, 23)
+VALUE_SNAPSHOT_CUTOFF: date = date(2026, 4, 15)
+
+# Per-day aggregated P/L of the internal 5-day backtest across all 5
+# leagues (PL / CH / BL / SA / LL). Dates are ``YYYY-MM-DD`` and values
+# are the combined value-bet P/L for that day (pre-cutoff). The tracker
+# injects these into the bankroll curve so the equity line has real
+# daily granularity instead of a single seeded anchor.
+VALUE_SNAPSHOT_DAILY_PNL: dict[str, float] = {
+    "2026-04-10": -9.52,
+    "2026-04-11": 261.64,
+    "2026-04-12": 161.40,
+    "2026-04-13": 124.93,
+    "2026-04-14": 104.26,
+}
 
 VALUE_SNAPSHOT_BASELINE: dict[str, float | int] = {
-    "n_bets": 50,
-    "wins": 18,  # 36.0 % hit rate
-    "total_stake": 1088.45,
-    "total_profit": 419.92,
-    "max_drawdown_pct": 10.1,
+    "n_bets": 58,
+    "wins": 20,  # 34.48 % hit rate
+    "total_stake": 1139.62,
+    "total_profit": round(sum(VALUE_SNAPSHOT_DAILY_PNL.values()), 2),
+    # Only day-1 sees a drawdown (-9.52 against 1000 bankroll); everything
+    # after that is a new peak.
+    "max_drawdown_pct": 0.95,
 }
 
 

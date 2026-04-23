@@ -59,6 +59,7 @@ def patch_graded(monkeypatch: pytest.MonkeyPatch):
             "max_drawdown_pct": 0.0,
         },
     )
+    monkeypatch.setattr(services, "VALUE_SNAPSHOT_DAILY_PNL", {})
     return _install
 
 

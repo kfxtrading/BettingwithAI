@@ -142,6 +142,10 @@ def backtest_league(league_key: str, days: int) -> dict:
     total_stake = 0.0
     total_pnl = 0.0
     wins = 0
+    daily_pnl: dict[str, float] = defaultdict(float)
+    daily_stake: dict[str, float] = defaultdict(float)
+    daily_wins: dict[str, int] = defaultdict(int)
+    daily_bets: dict[str, int] = defaultdict(int)
 
     # Walk chronologically through the window and update trackers after settle
     for m in sorted(in_window, key=lambda m: m.date):
@@ -171,8 +175,13 @@ def backtest_league(league_key: str, days: int) -> dict:
             pnl = _settle_bet(b.outcome, m.result, b.kelly_stake, b.odds)
             total_stake += b.kelly_stake
             total_pnl += pnl
+            d_iso = m.date.isoformat()
+            daily_pnl[d_iso] += pnl
+            daily_stake[d_iso] += b.kelly_stake
+            daily_bets[d_iso] += 1
             if pnl > 0:
                 wins += 1
+                daily_wins[d_iso] += 1
             n_bets += 1
 
         # Feed result forward
@@ -191,6 +200,10 @@ def backtest_league(league_key: str, days: int) -> dict:
         "total_pnl": total_pnl,
         "roi_pct": roi * 100.0,
         "hit_rate": hit_rate,
+        "daily_pnl": dict(daily_pnl),
+        "daily_stake": dict(daily_stake),
+        "daily_bets": dict(daily_bets),
+        "daily_wins": dict(daily_wins),
     }
 
 
@@ -255,6 +268,37 @@ def main() -> None:
         "-",
     )
     console.print(table)
+
+    # Aggregate across leagues: per-day totals ready to be hardcoded as
+    # the snapshot baseline in api/services.py.
+    agg_pnl: dict = defaultdict(float)
+    agg_stake: dict = defaultdict(float)
+    agg_bets: dict = defaultdict(int)
+    agg_wins: dict = defaultdict(int)
+    for r in rows:
+        if r.get("skipped"):
+            continue
+        for d, v in r["daily_pnl"].items():
+            agg_pnl[d] += v
+        for d, v in r["daily_stake"].items():
+            agg_stake[d] += v
+        for d, v in r["daily_bets"].items():
+            agg_bets[d] += v
+        for d, v in r["daily_wins"].items():
+            agg_wins[d] += v
+
+    print("\n--- per-day baseline (paste into services.py) ---")
+    import json as _json
+    payload = {
+        d: {
+            "pnl": round(agg_pnl[d], 2),
+            "stake": round(agg_stake[d], 2),
+            "bets": int(agg_bets[d]),
+            "wins": int(agg_wins[d]),
+        }
+        for d in sorted(agg_pnl)
+    }
+    print(_json.dumps(payload, indent=2))
 
 
 if __name__ == "__main__":

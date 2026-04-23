@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import date
 
 import pytest
+
+pytest.importorskip("catboost")
 
 from football_betting.config import ENSEMBLE_TUNE_CFG, EnsembleTuneConfig
 from football_betting.data.models import Fixture, MatchOdds, Outcome, Prediction
@@ -353,3 +356,56 @@ class TestBrierLogLossBlendedObjective:
         # Individual metrics at the chosen index must be finite
         assert res["brier_at_best"] == pytest.approx(res["brier_at_best"])  # not NaN
         assert res["log_loss_at_best"] > 0.0
+
+
+class TestWeightMetadataValidation:
+    def test_load_weights_rejects_wrong_purpose(self, tmp_path) -> None:  # noqa: ANN001
+        fixtures = _mk_fixtures(1)
+        ens = _mk_ensemble([(0.5, 0.25, 0.25)], [(0.4, 0.3, 0.3)], fixtures)
+        path = tmp_path / "weights.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "w_catboost": 0.7,
+                    "w_poisson": 0.3,
+                    "metadata": {
+                        "purpose": "value",
+                        "active_members": ["catboost", "poisson"],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(ValueError, match="purpose"):
+            ens.load_weights(
+                path,
+                expected_purpose="1x2",
+                expected_active_members=["catboost", "poisson"],
+            )
+
+    def test_load_weights_rejects_incompatible_active_members(self, tmp_path) -> None:  # noqa: ANN001
+        fixtures = _mk_fixtures(1)
+        ens = _mk_ensemble([(0.5, 0.25, 0.25)], [(0.4, 0.3, 0.3)], fixtures)
+        path = tmp_path / "weights.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "w_catboost": 0.6,
+                    "w_poisson": 0.2,
+                    "w_mlp": 0.2,
+                    "metadata": {
+                        "purpose": "1x2",
+                        "active_members": ["catboost", "poisson", "mlp"],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(ValueError, match="active_members"):
+            ens.load_weights(
+                path,
+                expected_purpose="1x2",
+                expected_active_members=["catboost", "poisson"],
+            )

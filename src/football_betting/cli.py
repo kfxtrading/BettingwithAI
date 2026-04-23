@@ -103,6 +103,16 @@ def _persist_profile(
     save_model_profile(profile)
 
 
+def _parse_float_grid(raw: str) -> tuple[float, ...]:
+    try:
+        values = sorted({float(part.strip()) for part in raw.split(",") if part.strip()})
+    except ValueError as exc:  # pragma: no cover - click surface
+        raise click.BadParameter(f"Invalid float grid: {exc}") from exc
+    if not values:
+        raise click.BadParameter("At least one numeric value is required")
+    return tuple(values)
+
+
 from football_betting.predict.catboost_model import CatBoostPredictor
 from football_betting.predict.ensemble import EnsembleModel
 from football_betting.predict.mlp_model import MLPPredictor
@@ -1377,6 +1387,247 @@ def sweep_cushion(
         )
 
     console.print(table)
+
+
+# ───────────────────────── benchmark-matrix ─────────────────────────
+
+
+@main.command("benchmark-matrix")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(list(LEAGUES.keys()), case_sensitive=False),
+    required=True,
+)
+@click.option(
+    "--purpose",
+    type=click.Choice(["1x2", "value"], case_sensitive=False),
+    default="1x2",
+    show_default=True,
+)
+@click.option(
+    "--mode",
+    type=click.Choice(["expanding", "sliding", "both"], case_sensitive=False),
+    default="both",
+    show_default=True,
+)
+@click.option("--window-matches", type=click.IntRange(100, 10_000), default=500, show_default=True)
+@click.option("--bankroll", default=1000.0, show_default=True)
+@click.option(
+    "--with-stacking/--no-stacking",
+    default=True,
+    show_default=True,
+    help="Also evaluate stacking candidates on top of the base member sets.",
+)
+@click.option(
+    "--include-sequence/--no-sequence",
+    default=True,
+    show_default=True,
+    help="Include the CB+Poisson+MLP+Sequence topology in the matrix.",
+)
+@click.option(
+    "--min-edge-grid",
+    default=f"{BETTING_CFG.min_edge}",
+    show_default=True,
+    help="Comma-separated min_edge candidates for purpose=value.",
+)
+@click.option(
+    "--min-ev-grid",
+    default=f"{BETTING_CFG.min_ev_pct}",
+    show_default=True,
+    help="Comma-separated min_ev_pct candidates for purpose=value.",
+)
+@click.option(
+    "--kelly-grid",
+    default=f"{BETTING_CFG.kelly_fraction}",
+    show_default=True,
+    help="Comma-separated Kelly fraction candidates for purpose=value.",
+)
+@click.option(
+    "--min-odds-grid",
+    default=f"{BETTING_CFG.min_odds}",
+    show_default=True,
+    help="Comma-separated minimum odds candidates for purpose=value.",
+)
+@click.option(
+    "--max-odds-grid",
+    default=f"{BETTING_CFG.max_odds}",
+    show_default=True,
+    help="Comma-separated maximum odds candidates for purpose=value.",
+)
+@click.option(
+    "--save-best/--no-save-best",
+    default=False,
+    show_default=True,
+    help="Persist the top-ranked profile as models/model_profile_<LEAGUE><suffix>.json.",
+)
+def benchmark_matrix(
+    league: str,
+    purpose: str,
+    mode: str,
+    window_matches: int,
+    bankroll: float,
+    with_stacking: bool,
+    include_sequence: bool,
+    min_edge_grid: str,
+    min_ev_grid: str,
+    kelly_grid: str,
+    min_odds_grid: str,
+    max_odds_grid: str,
+    save_best: bool,
+) -> None:
+    """Run a walk-forward matrix and write a consolidated scoreboard report."""
+    from football_betting.tracking.backtest import walk_forward_backtest
+
+    league = league.upper()
+    purpose = purpose.lower()
+    modes = ["expanding", "sliding"] if mode == "both" else [mode]
+
+    member_variants: list[tuple[str, tuple[str, ...], str]] = [
+        ("catboost", ("catboost",), "catboost"),
+        ("cb_poisson", ("catboost", "poisson"), "ensemble"),
+        ("cb_poisson_mlp", ("catboost", "poisson", "mlp"), "ensemble"),
+    ]
+    if include_sequence:
+        member_variants.append(
+            ("cb_poisson_mlp_sequence", ("catboost", "poisson", "mlp", "sequence"), "ensemble")
+        )
+
+    betting_variants: list[dict[str, object] | None] = [None]
+    if purpose == "value":
+        betting_variants = []
+        for min_edge in _parse_float_grid(min_edge_grid):
+            for min_ev in _parse_float_grid(min_ev_grid):
+                for kelly in _parse_float_grid(kelly_grid):
+                    for min_odds in _parse_float_grid(min_odds_grid):
+                        for max_odds in _parse_float_grid(max_odds_grid):
+                            betting_variants.append(
+                                {
+                                    "min_edge": min_edge,
+                                    "min_ev_pct": min_ev,
+                                    "kelly_fraction": kelly,
+                                    "min_odds": min_odds,
+                                    "max_odds": max_odds,
+                                }
+                            )
+
+    scored: list[tuple[dict[str, object], LeagueModelProfile]] = []
+    total_runs = 0
+    for _, active_members, _ in member_variants:
+        stack_options = [False, True] if with_stacking and len(active_members) > 1 else [False]
+        total_runs += len(stack_options) * 3 * len(modes) * len(betting_variants)
+
+    with Progress(console=console) as progress:
+        task = progress.add_task(f"Benchmark {league}/{purpose}", total=total_runs)
+        for label, active_members, model_kind in member_variants:
+            stack_options = [False, True] if with_stacking and len(active_members) > 1 else [False]
+            for stacking in stack_options:
+                for calibration_method in ("auto", "isotonic", "sigmoid"):
+                    for betting in betting_variants:
+                        for current_mode in modes:
+                            profile = LeagueModelProfile(
+                                league_key=league,
+                                purpose=purpose,  # type: ignore[arg-type]
+                                model_kind=model_kind,  # type: ignore[arg-type]
+                                active_members=active_members,  # type: ignore[arg-type]
+                                calibration_method=calibration_method,
+                                stacking=stacking,
+                                betting=betting,
+                            )
+                            summary = walk_forward_backtest(
+                                league,
+                                bankroll=bankroll,
+                                use_ensemble=(model_kind == "ensemble"),
+                                use_stacking=stacking,
+                                mode=current_mode,
+                                window_matches=window_matches,
+                                profile_1x2=profile if purpose == "1x2" else None,
+                                profile_value=profile if purpose == "value" else None,
+                            )
+                            agg = summary.aggregate
+                            row = {
+                                "league": league,
+                                "purpose": purpose,
+                                "label": label,
+                                "mode": current_mode,
+                                "stacking": stacking,
+                                "active_members": list(active_members),
+                                "calibration_method": calibration_method,
+                                "mean_rps": agg.get("mean_rps", {}).get("mean"),
+                                "mean_log_loss": agg.get("mean_log_loss", {}).get("mean"),
+                                "ece": agg.get("ece", {}).get("mean"),
+                                "n_bets": agg.get("n_bets", {}).get("mean"),
+                                "roi": agg.get("roi", {}).get("mean"),
+                                "clv_mean": agg.get("clv_mean", {}).get("mean"),
+                                "clv_pct_positive": agg.get("clv_pct_positive", {}).get("mean"),
+                            }
+                            if betting is not None:
+                                row.update(betting)
+                            scored.append((row, profile))
+                            progress.advance(task)
+
+    if purpose == "1x2":
+        scored.sort(
+            key=lambda item: (
+                float(item[0]["mean_rps"] if item[0]["mean_rps"] is not None else 999.0),
+                float(item[0]["ece"] if item[0]["ece"] is not None else 999.0),
+                float(item[0]["mean_log_loss"] if item[0]["mean_log_loss"] is not None else 999.0),
+            )
+        )
+    else:
+        scored.sort(
+            key=lambda item: (
+                -float(item[0]["roi"] if item[0]["roi"] is not None else -999.0),
+                -float(item[0]["clv_mean"] if item[0]["clv_mean"] is not None else -999.0),
+                float(item[0]["mean_rps"] if item[0]["mean_rps"] is not None else 999.0),
+            )
+        )
+
+    rows = [row for row, _profile in scored]
+    out_path = DATA_DIR / "backtests" / f"benchmark_{league}_{purpose}.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(
+        json.dumps(
+            {
+                "league": league,
+                "purpose": purpose,
+                "mode": mode,
+                "window_matches": window_matches,
+                "n_candidates": len(rows),
+                "rows": rows,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    table = Table(title=f"Benchmark Matrix — {LEAGUES[league].name} ({purpose})")
+    table.add_column("#", justify="right")
+    table.add_column("Variant")
+    table.add_column("Mode")
+    table.add_column("Cal")
+    table.add_column("RPS", justify="right")
+    table.add_column("ECE", justify="right")
+    table.add_column("ROI", justify="right")
+    table.add_column("CLV", justify="right")
+    for idx, row in enumerate(rows[:12], 1):
+        table.add_row(
+            str(idx),
+            f"{row['label']}{' +stack' if row['stacking'] else ''}",
+            str(row["mode"]),
+            str(row["calibration_method"]),
+            f"{float(row['mean_rps']):.4f}" if row["mean_rps"] is not None else "-",
+            f"{float(row['ece']):.4f}" if row["ece"] is not None else "-",
+            f"{float(row['roi']):.4f}" if row["roi"] is not None else "-",
+            f"{float(row['clv_mean']):.4f}" if row["clv_mean"] is not None else "-",
+        )
+    console.print(table)
+    console.print(f"[green]Scoreboard saved → {out_path}[/green]")
+
+    if save_best and scored:
+        best_profile = scored[0][1]
+        save_model_profile(best_profile)
+        console.print("[green]Best profile persisted.[/green]")
 
 
 # ───────────────────────── calibration-audit ─────────────────────────
