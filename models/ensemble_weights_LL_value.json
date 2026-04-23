@@ -1,11 +1,11 @@
 {
-  "w_catboost": 0.11374157884621605,
-  "w_poisson": 0.7455224608974832,
-  "w_mlp": 0.031236252008694843,
-  "w_sequence": 0.10949970824760591,
+  "w_catboost": 0.062030699327725,
+  "w_poisson": 0.7029871260723881,
+  "w_mlp": 0.10862865632126129,
+  "w_sequence": 0.12635351827862557,
   "metadata": {
-    "league": "PL",
-    "purpose": "1x2",
+    "league": "LL",
+    "purpose": "value",
     "val_season": "2024-25",
     "objective": "clv",
     "blend": null,
@@ -16,6 +16,6 @@
       "sequence"
     ],
     "score_key": "best_clv_mean",
-    "score_value": 5.129847432911088e-05
+    "score_value": -0.004762152523450668
   }
 }

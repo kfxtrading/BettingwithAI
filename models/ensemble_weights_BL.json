@@ -1,10 +1,11 @@
 {
-  "w_catboost": 0.36321170727422525,
-  "w_poisson": 0.5096703991353341,
-  "w_mlp": 0.019313014935352573,
-  "w_sequence": 0.10780487865508823,
+  "w_catboost": 0.03893466535877459,
+  "w_poisson": 0.10277012232117812,
+  "w_mlp": 0.02621074635355124,
+  "w_sequence": 0.8320844659664959,
   "metadata": {
     "league": "BL",
+    "purpose": "1x2",
     "val_season": "2024-25",
     "objective": "clv",
     "blend": null,
@@ -15,6 +16,6 @@
       "sequence"
     ],
     "score_key": "best_clv_mean",
-    "score_value": 0.002020440567796842
+    "score_value": -0.0076826759076812435
   }
 }

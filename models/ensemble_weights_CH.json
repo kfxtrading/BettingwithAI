@@ -1,10 +1,11 @@
 {
-  "w_catboost": 0.8197926122080412,
-  "w_poisson": 0.012505803971077685,
-  "w_mlp": 0.12019187371145473,
-  "w_sequence": 0.047509710109426236,
+  "w_catboost": 0.4055965573391798,
+  "w_poisson": 0.3509733617676853,
+  "w_mlp": 0.19846493256462644,
+  "w_sequence": 0.044965148328508425,
   "metadata": {
     "league": "CH",
+    "purpose": "1x2",
     "val_season": "2024-25",
     "objective": "clv",
     "blend": null,
@@ -15,6 +16,6 @@
       "sequence"
     ],
     "score_key": "best_clv_mean",
-    "score_value": -0.0005802425008042344
+    "score_value": -0.01468769335257327
   }
 }

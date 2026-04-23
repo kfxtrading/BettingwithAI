@@ -1,11 +1,11 @@
 {
-  "w_catboost": 0.1915139952427663,
-  "w_poisson": 0.0030574620892738218,
-  "w_mlp": 0.12026026268590766,
-  "w_sequence": 0.6851682799820523,
+  "w_catboost": 0.6072400306889627,
+  "w_poisson": 0.03218034825442153,
+  "w_mlp": 0.3472680547441047,
+  "w_sequence": 0.013311566312510965,
   "metadata": {
     "league": "SA",
-    "purpose": "1x2",
+    "purpose": "value",
     "val_season": "2024-25",
     "objective": "clv",
     "blend": null,
@@ -16,6 +16,6 @@
       "sequence"
     ],
     "score_key": "best_clv_mean",
-    "score_value": -0.012637499417844082
+    "score_value": 2.0428917307109532e-05
   }
 }

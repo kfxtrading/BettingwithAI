@@ -78,3 +78,8 @@ data/graded_bets.jsonl
 .zen/package.json
 .zen/smoke-test.js
 .zen/smoke/
+mlp_train.log 
+mlp_value.log 
+tab_train.log 
+seq_train.log 
+tune.log 

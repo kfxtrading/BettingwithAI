@@ -5,7 +5,7 @@
   "w_sequence": 0.10949970824760591,
   "metadata": {
     "league": "PL",
-    "purpose": "1x2",
+    "purpose": "value",
     "val_season": "2024-25",
     "objective": "clv",
     "blend": null,
@@ -16,6 +16,6 @@
       "sequence"
     ],
     "score_key": "best_clv_mean",
-    "score_value": 5.129847432911088e-05
+    "score_value": 0.002502860599541625
   }
 }

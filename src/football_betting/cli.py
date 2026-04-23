@@ -1691,6 +1691,13 @@ def snapshot_freshness_audit(league: str, min_lead_hours: int) -> None:
     show_default=True,
     help="Persist tuned weights to models/ensemble_weights_<LEAGUE>.json.",
 )
+@click.option(
+    "--purpose",
+    type=click.Choice(["1x2", "value"], case_sensitive=False),
+    default="1x2",
+    show_default=True,
+    help="Dual-model split: tune weights for the 1X2 stack (default) or the value-bet stack.",
+)
 def tune_ensemble(
     league: str,
     val_season: str,
@@ -1699,13 +1706,18 @@ def tune_ensemble(
     use_sequence: bool,
     use_mlp: bool,
     save: bool,
+    purpose: str,
 ) -> None:
     """Dirichlet-sampled ensemble weight tuning (RPS / CLV / blended / Brier+LogLoss)."""
+    from football_betting.config import artifact_suffix
     from football_betting.data.snapshot_service import merge_snapshots_into_matches
+    from football_betting.predict.ensemble import ensemble_weights_path
     from football_betting.predict.sequence_model import SequencePredictor
 
     league = league.upper()
     objective = objective.lower()
+    purpose = purpose.lower()
+    suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
     matches = load_league(league)
     val_matches = [m for m in matches if m.season == val_season]
     train_matches = [m for m in matches if m.season < val_season]
@@ -1713,7 +1725,7 @@ def tune_ensemble(
     # Phase 6 + Phase 4: overlay opening-line snapshots so CLV is non-degenerate
     val_matches = merge_snapshots_into_matches(val_matches, league)
 
-    fb = _make_feature_builder()
+    fb = _make_feature_builder(purpose=purpose)
     all_seasons = {m.season for m in train_matches} | {val_season}
     for season in all_seasons:
         sf = SofascoreClient.load_matches(league, season)
@@ -1721,24 +1733,28 @@ def tune_ensemble(
             fb.stage_sofascore_batch(sf)
     fb.fit_on_history(train_matches)
 
-    model_path = MODELS_DIR / f"catboost_{league}.cbm"
+    model_path = MODELS_DIR / f"catboost_{league}{suffix}.cbm"
     if not model_path.exists():
         console.print(f"[red]No CatBoost at {model_path}[/red]")
         raise click.Abort()
 
-    cb = CatBoostPredictor.for_league(league, fb)
+    cb = CatBoostPredictor.for_league(league, fb, purpose=purpose)  # type: ignore[arg-type]
     poisson = PoissonModel(pi_ratings=fb.pi_ratings)
-    mlp = MLPPredictor.for_league(league, fb) if use_mlp else None
+    mlp = (
+        MLPPredictor.for_league(league, fb, purpose=purpose)  # type: ignore[arg-type]
+        if use_mlp
+        else None
+    )
 
     # Optional 4th ensemble member: 1D-CNN + Transformer sequence head
     sequence: SequencePredictor | None = None
-    seq_path = MODELS_DIR / f"sequence_{league}.pt"
+    seq_path = MODELS_DIR / f"sequence_{league}{suffix}.pt"
     if use_sequence and seq_path.exists():
         from football_betting.predict.sequence_features import (
             build_dataset as seq_build_dataset,
         )
 
-        sequence = SequencePredictor()
+        sequence = SequencePredictor(purpose=purpose)  # type: ignore[arg-type]
         sequence.load(seq_path)
         # Replay history so form/pi trackers are current by val_season kickoff
         seq_build_dataset(
@@ -1813,11 +1829,12 @@ def tune_ensemble(
         "objective",
     }
     if save:
-        weights_path = MODELS_DIR / f"ensemble_weights_{league}.json"
+        weights_path = ensemble_weights_path(league, purpose=purpose)  # type: ignore[arg-type]
         ensemble.save_weights(
             weights_path,
             metadata={
                 "league": league,
+                "purpose": purpose,
                 "val_season": val_season,
                 "objective": objective,
                 "blend": blend if objective == "blended" else None,

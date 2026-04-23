@@ -185,7 +185,10 @@ class MLPPredictor:
             combined = None
             ce_only = nn.CrossEntropyLoss()
 
-        _eye3 = torch.eye(3, dtype=torch.float32, device=device)
+        # Build the eye on CPU (``torch.eye`` silently falls back to CPU
+        # on the DirectML backend) then move to the training device so
+        # the index lookup below works cross-device.
+        _eye3 = torch.eye(3, dtype=torch.float32).to(device)
 
         def _onehot(yb: Any) -> Any:
             # Indexing into a fixed eye matrix — avoids ``F.one_hot``
