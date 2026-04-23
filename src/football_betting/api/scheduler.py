@@ -317,25 +317,49 @@ def _live_display_league_codes() -> set[str]:
 
 
 def _settle_live_blocking() -> None:
-    """Hit Odds-API /scores for leagues with pending bets or live matches and re-grade."""
-    if not ODDS_API_CFG.api_key:
+    """Hit Odds-API /scores for leagues with pending bets or live matches and re-grade.
+
+    While the Odds-API key is in quota backoff we transparently fall back to
+    Sofascore's public scheduled-events widget so live scores keep flowing
+    into the UI and pending bets still get settled on full-time.
+    """
+    quota_blocked = _quota_blocked()
+    if not ODDS_API_CFG.api_key and not quota_blocked:
         return  # quiet — daily loop already warned at startup
-    if _quota_blocked():
-        return  # quiet — _note_quota_exhausted() already logged the reason
     try:
         from football_betting.evaluation.pipeline import settle_live
 
         force = _live_display_league_codes()
-        try:
-            added, settled = settle_live(force_leagues=force)
-        except OddsApiQuotaError as exc:
-            logger.error("[live-settle] %s", exc)
-            _note_quota_exhausted("live-settle")
-            return
+        if quota_blocked:
+            try:
+                added, settled = settle_live(
+                    force_leagues=force, use_sofascore=True,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception("[live-settle] Sofascore fallback failed")
+                return
+            source_tag = "sofascore"
+        else:
+            try:
+                added, settled = settle_live(force_leagues=force)
+                source_tag = "odds-api"
+            except OddsApiQuotaError as exc:
+                logger.error("[live-settle] %s", exc)
+                _note_quota_exhausted("live-settle")
+                # Immediately retry via Sofascore so the current iteration
+                # still surfaces fresh live scores to the UI.
+                try:
+                    added, settled = settle_live(
+                        force_leagues=force, use_sofascore=True,
+                    )
+                    source_tag = "sofascore"
+                except Exception:  # noqa: BLE001
+                    logger.exception("[live-settle] Sofascore fallback failed")
+                    return
         if added or settled:
             logger.info(
-                "[live-settle] +%d live results, %d bet(s) newly settled.",
-                added, settled,
+                "[live-settle] (%s) +%d live results, %d bet(s) newly settled.",
+                source_tag, added, settled,
             )
             try:
                 from football_betting.api.services import (

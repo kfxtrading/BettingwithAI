@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -330,6 +330,189 @@ def poll_and_store_scores(
     return added + updated
 
 
+# ───────────────────── Sofascore fallback ─────────────────────
+# Free public endpoint used while the Odds-API key is in quota backoff.
+# Only the scheduled-events widget is hit (``force=True``), so this path is
+# safe even with ``SCRAPING_ENABLED`` unset.
+
+_SOFASCORE_LIVE_STATUSES = {"inprogress", "live"}
+_SOFASCORE_DONE_STATUSES = {"finished", "ended", "afterextra", "afterpenalties"}
+
+
+def _sofascore_event_to_row(
+    ev: dict, code: str, *, now: datetime | None = None,
+) -> LiveScoreRow | None:
+    """Convert a Sofascore scheduled-event dict to a :class:`LiveScoreRow`."""
+    now = now or datetime.now(timezone.utc)
+    try:
+        home_name = str((ev.get("homeTeam") or {}).get("name") or "")
+        away_name = str((ev.get("awayTeam") or {}).get("name") or "")
+    except Exception:  # noqa: BLE001
+        return None
+    if not home_name or not away_name:
+        return None
+
+    status_obj = ev.get("status") or {}
+    status_type = str(status_obj.get("type") or "").lower()
+    start_ts = ev.get("startTimestamp")
+    try:
+        kickoff_utc = datetime.fromtimestamp(int(start_ts), tz=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+    home_score_obj = ev.get("homeScore") or {}
+    away_score_obj = ev.get("awayScore") or {}
+    hg_raw = home_score_obj.get("current")
+    ag_raw = away_score_obj.get("current")
+
+    if status_type in _SOFASCORE_DONE_STATUSES:
+        if hg_raw is None or ag_raw is None:
+            return None
+        hg, ag = int(hg_raw), int(ag_raw)
+        ftr = "H" if hg > ag else "A" if hg < ag else "D"
+        return LiveScoreRow(
+            league_code=code,
+            date=kickoff_utc.date().isoformat(),
+            home_norm=_norm(home_name),
+            away_norm=_norm(away_name),
+            ftr=ftr,
+            fthg=hg,
+            ftag=ag,
+            source="sofascore",
+            fetched_at=_now_utc_iso(),
+            status="completed",
+            kickoff_utc=kickoff_utc.isoformat().replace("+00:00", "Z"),
+        )
+
+    if status_type in _SOFASCORE_LIVE_STATUSES or (
+        status_type not in _SOFASCORE_DONE_STATUSES
+        and kickoff_utc <= now
+        and (hg_raw is not None or ag_raw is not None)
+    ):
+        # Live (in-progress) — only persist if already kicked off.
+        if kickoff_utc > now:
+            return None
+        hg = int(hg_raw) if hg_raw is not None else 0
+        ag = int(ag_raw) if ag_raw is not None else 0
+        ftr = "H" if hg > ag else "A" if hg < ag else "D"
+        return LiveScoreRow(
+            league_code=code,
+            date=kickoff_utc.date().isoformat(),
+            home_norm=_norm(home_name),
+            away_norm=_norm(away_name),
+            ftr=ftr,
+            fthg=hg,
+            ftag=ag,
+            source="sofascore",
+            fetched_at=_now_utc_iso(),
+            status="live",
+            kickoff_utc=kickoff_utc.isoformat().replace("+00:00", "Z"),
+        )
+
+    return None
+
+
+def poll_sofascore_scores(league_codes: Iterable[str] | None = None) -> int:
+    """Fetch today's live + finished scores from Sofascore as a free fallback.
+
+    Returns the number of rows added or corrected. One HTTP call per unique
+    date — Sofascore's ``/scheduled-events/<day>`` endpoint returns every
+    football match worldwide on that day, and we filter by each league's
+    ``sofascore_tournament_id``.
+    """
+    try:
+        from football_betting.scraping.sofascore import SofascoreClient
+    except Exception as exc:  # pragma: no cover — optional dep
+        logger.warning("[live] Sofascore client unavailable: %s", exc)
+        return 0
+
+    codes = list(league_codes) if league_codes is not None else [
+        cfg.code for cfg in LEAGUES.values()
+    ]
+    if not codes:
+        return 0
+
+    # Build (tournament_id -> league_code) map; skip leagues without an id.
+    tid_to_code: dict[int, str] = {}
+    for code in codes:
+        league_key = _CODE_TO_KEY.get(code)
+        if league_key is None:
+            continue
+        cfg = LEAGUES.get(league_key)
+        if cfg is None or cfg.sofascore_tournament_id is None:
+            continue
+        tid_to_code[int(cfg.sofascore_tournament_id)] = code
+    if not tid_to_code:
+        return 0
+
+    client = SofascoreClient()
+    now = datetime.now(timezone.utc)
+
+    # Pull yesterday + today + tomorrow (UTC) to absorb timezone skew and
+    # matches that finished just after midnight UTC.
+    lookup_days = sorted({
+        (now - timedelta(days=1)).date(),
+        now.date(),
+        (now + timedelta(days=1)).date(),
+    })
+
+    existing = {r.key(): r for r in _load_rows()}
+    added = 0
+    updated = 0
+
+    for day in lookup_days:
+        try:
+            events = client.get_scheduled_events_for_date(day, force=True)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[live] Sofascore scheduled-events(%s) failed: %s", day, exc)
+            continue
+        for ev in events:
+            t_obj = ev.get("tournament", {}) or {}
+            ut_obj = t_obj.get("uniqueTournament", {}) or {}
+            try:
+                ev_tid = int(ut_obj.get("id") or t_obj.get("id") or 0)
+            except (TypeError, ValueError):
+                continue
+            code = tid_to_code.get(ev_tid)
+            if code is None:
+                continue
+            row = _sofascore_event_to_row(ev, code, now=now)
+            if row is None:
+                continue
+            prev = existing.get(row.key())
+            if prev is None:
+                existing[row.key()] = row
+                added += 1
+                continue
+            # Never downgrade a completed row back to live, and never
+            # clobber an Odds-API completed row with a Sofascore one
+            # (Odds-API is treated as authoritative when present).
+            if prev.status == "completed" and row.status == "live":
+                continue
+            if prev.source == "odds_api" and prev.status == "completed":
+                continue
+            state_changed = prev.status != row.status
+            score_changed = (prev.ftr, prev.fthg, prev.ftag) != (
+                row.ftr, row.fthg, row.ftag,
+            )
+            if state_changed or score_changed:
+                logger.info(
+                    "[live] Sofascore update %s %s %s-%s: %d-%d (%s/%s) -> %d-%d (%s/%s)",
+                    row.date, code, row.home_norm, row.away_norm,
+                    prev.fthg, prev.ftag, prev.ftr, prev.status,
+                    row.fthg, row.ftag, row.ftr, row.status,
+                )
+                existing[row.key()] = row
+                updated += 1
+
+    if added or updated:
+        _write_rows(existing.values())
+        logger.info(
+            "[live] Sofascore: %d new + %d corrected result(s).", added, updated,
+        )
+    return added + updated
+
+
 __all__ = [
     "LIVE_SCORES_FILE",
     "LiveScoreRow",
@@ -337,4 +520,5 @@ __all__ = [
     "load_live_results_for_code",
     "pending_league_codes",
     "poll_and_store_scores",
+    "poll_sofascore_scores",
 ]
