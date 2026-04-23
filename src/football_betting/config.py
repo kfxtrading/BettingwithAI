@@ -49,6 +49,7 @@ BACKTEST_DIR = DATA_DIR / "backtests"
 SOFASCORE_DIR = DATA_DIR / "sofascore"
 MONITORING_DIR = DATA_DIR / "monitoring"
 SNAPSHOT_DIR = DATA_DIR / "snapshots"
+ODDS_SNAPSHOT_DIR = DATA_DIR / "odds_snapshots"
 WEATHER_DIR = DATA_DIR / "weather"
 MODELS_DIR = PROJECT_ROOT / "models"
 SUPPORT_DATA_DIR = DATA_DIR / "support_faq"
@@ -62,6 +63,7 @@ for d in (
     SOFASCORE_DIR,
     MONITORING_DIR,
     SNAPSHOT_DIR,
+    ODDS_SNAPSHOT_DIR,
     WEATHER_DIR,
     MODELS_DIR,
     SUPPORT_MODELS_DIR,
@@ -274,6 +276,7 @@ class FeatureConfig:
     use_market_odds: bool = True
     use_squad_quality: bool = True  # v0.3
     use_market_movement: bool = True  # v0.3
+    use_market_microstructure: bool = False  # Phase 8 — opt-in, needs backfill
     use_weather: bool = (
         False  # v0.4: disabled pending unsupervised effect study (fb weather-effect-study)
     )
@@ -284,6 +287,9 @@ class FeatureConfig:
     real_xg: RealXgConfig = field(default_factory=RealXgConfig)
     squad_quality: SquadQualityConfig = field(default_factory=SquadQualityConfig)
     market_movement: MarketMovementConfig = field(default_factory=MarketMovementConfig)
+    market_microstructure: MarketMicrostructureConfig = field(
+        default_factory=lambda: MarketMicrostructureConfig()
+    )
     h2h: H2HConfig = field(default_factory=H2HConfig)
     rest_days: RestDaysConfig = field(default_factory=RestDaysConfig)
     home_adv: HomeAdvantageConfig = field(default_factory=HomeAdvantageConfig)
@@ -512,6 +518,83 @@ class OddsApiConfig:
     @property
     def api_key(self) -> str | None:
         return os.getenv("ODDS_API_KEY") or None
+
+
+# ───────────────────────── The Odds API — Historical (Phase 8) ─────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class OddsApiHistoricalConfig:
+    """Config for https://the-odds-api.com/ ``/v4/historical`` endpoint.
+
+    Each historical call costs ``10 × (regions × markets)`` credits and
+    returns **all upcoming events** for the sport at ``date``. With
+    ``regions=eu`` + ``markets=h2h`` the cost is 10 credits / call.
+
+    Opt-in via env var ``THEODDS_HISTORICAL_ENABLED=1``.
+    """
+
+    base_url: str = "https://api.the-odds-api.com/v4"
+    regions: str = "eu"
+    markets: str = "h2h"
+    odds_format: str = "decimal"
+    date_format: str = "iso"
+    timeout_seconds: float = 30.0
+    request_delay_seconds: float = 1.1  # polite: stays well under free-tier RPS
+
+    # Snapshot timestamps relative to kickoff (hours before).
+    # 168h ≈ opening line, 24h ≈ pre-weekend close, 2h ≈ closing.
+    snapshot_hours_before: tuple[int, ...] = (168, 24, 2)
+
+    # Budget guard (20 k credits / month @ h2h+eu → 2 k calls).
+    monthly_budget_credits: int = 20_000
+    # Bail out if this fraction of the monthly budget is consumed by a single run.
+    max_credits_per_run: int = 10_000
+
+    sport_keys: dict[str, str] = field(
+        default_factory=lambda: {
+            "PL": "soccer_epl",
+            "CH": "soccer_efl_champ",
+            "BL": "soccer_germany_bundesliga",
+            "SA": "soccer_italy_serie_a",
+            "LL": "soccer_spain_la_liga",
+        }
+    )
+
+    @property
+    def api_key(self) -> str | None:
+        # Prefer a dedicated key but fall back to the shared ODDS_API_KEY.
+        return os.getenv("THEODDS_HISTORICAL_API_KEY") or os.getenv("ODDS_API_KEY") or None
+
+    @property
+    def enabled(self) -> bool:
+        return os.getenv("THEODDS_HISTORICAL_ENABLED", "0") == "1"
+
+    def credits_per_call(self) -> int:
+        """10 × regions × markets per The Odds API pricing."""
+        n_regions = len([r for r in self.regions.split(",") if r.strip()])
+        n_markets = len([m for m in self.markets.split(",") if m.strip()])
+        return 10 * max(1, n_regions) * max(1, n_markets)
+
+
+# ───────────────────────── Market Microstructure (Phase 8) ─────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class MarketMicrostructureConfig:
+    """Feature-extractor config for the Family-D ``mm_*`` features.
+
+    Built from persisted historical snapshots under ``data/odds_snapshots/``.
+    Features describe odds drift, volatility and sharp/soft divergence
+    leading up to kickoff.
+    """
+
+    #: Window (hours) around kickoff used for the volatility estimator.
+    volatility_window_hours: int = 48
+    #: Minimum snapshots required to emit non-neutral features.
+    min_snapshots: int = 2
+    #: Hard cap: never include snapshots taken after kickoff (leakage guard).
+    max_snapshot_age_hours: int = 400
 
 
 # ───────────────────────── Calibration ─────────────────────────
@@ -772,6 +855,8 @@ TAB_TRANSFORMER_CFG = TabTransformerConfig()
 SOFASCORE_CFG = SofascoreConfig()
 WEATHER_CFG = WeatherConfig()
 ODDS_API_CFG = OddsApiConfig()
+ODDS_API_HISTORICAL_CFG = OddsApiHistoricalConfig()
+MARKET_MICROSTRUCTURE_CFG = MarketMicrostructureConfig()
 CALIBRATION_CFG = CalibrationConfig()
 MONITORING_CFG = MonitoringConfig()
 BETTING_CFG = BettingConfig()

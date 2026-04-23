@@ -49,11 +49,13 @@ from football_betting.data.models import Fixture, MatchOdds
 from football_betting.features.builder import FeatureBuilder
 from football_betting.predict.runtime import (
     LeagueModelProfile,
-    make_feature_builder as make_runtime_feature_builder,
     mlp_config_for_purpose,
     resolve_model_profile,
     save_model_profile,
     sequence_config_for_purpose,
+)
+from football_betting.predict.runtime import (
+    make_feature_builder as make_runtime_feature_builder,
 )
 
 
@@ -102,7 +104,9 @@ def _persist_profile(
             model_kind=existing.model_kind if preserve_members else model_kind,  # type: ignore[arg-type]
             active_members=existing.active_members if preserve_members else active_members,  # type: ignore[arg-type]
             calibration_method=calibration_method or existing.calibration_method,
-            weight_objective=weight_objective if weight_objective is not None else existing.weight_objective,
+            weight_objective=weight_objective
+            if weight_objective is not None
+            else existing.weight_objective,
             weight_blend=weight_blend if weight_blend is not None else existing.weight_blend,
             stacking=existing.stacking if stacking is None else stacking,
             betting=betting if betting is not None else existing.betting,
@@ -408,6 +412,116 @@ def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
     console.log(f"[green]Total opening snapshots persisted: {total}[/green]")
 
 
+# ───────────────────────── backfill-historical-odds (Phase 8) ─────────────
+
+
+@main.command("backfill-historical-odds")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    default="all",
+    help="League key or 'all' for every configured league.",
+)
+@click.option(
+    "--seasons",
+    "-s",
+    multiple=True,
+    required=True,
+    help="Seasons to backfill, e.g. --seasons 2023-24 --seasons 2024-25.",
+)
+@click.option(
+    "--markets",
+    default=None,
+    help="Comma-separated markets (default: cfg.markets, typically 'h2h').",
+)
+@click.option(
+    "--max-credits",
+    type=int,
+    default=None,
+    help="Cap credits spent in this run. Defaults to cfg.max_credits_per_run.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Plan snapshots + estimate credits, no API calls.",
+)
+def backfill_historical_odds(
+    league: str,
+    seasons: tuple[str, ...],
+    markets: str | None,
+    max_credits: int | None,
+    dry_run: bool,
+) -> None:
+    """Backfill historical TheOdds snapshots into data/odds_snapshots/*.parquet."""
+    from dataclasses import replace
+
+    from football_betting.config import ODDS_API_HISTORICAL_CFG
+    from football_betting.scraping.odds_api_historical import (
+        OddsApiHistoricalClient,
+        OddsApiHistoricalError,
+    )
+
+    cfg = ODDS_API_HISTORICAL_CFG
+    if markets:
+        cfg = replace(cfg, markets=markets)
+
+    if not dry_run and not cfg.enabled:
+        console.print(
+            "[red]Historical backfill disabled.[/red] "
+            "Enable with: set THEODDS_HISTORICAL_ENABLED=1 (or add to .env)."
+        )
+        raise click.Abort()
+    if not dry_run and not cfg.api_key:
+        console.print(
+            "[red]No API key.[/red] Set THEODDS_HISTORICAL_API_KEY (or ODDS_API_KEY) in .env."
+        )
+        raise click.Abort()
+
+    keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+    client = OddsApiHistoricalClient(cfg=cfg)
+
+    cpc = cfg.credits_per_call()
+    consumed_before = client.budget.consumed_this_month()
+    console.log(
+        f"[cyan]Credits/call: {cpc} (markets={cfg.markets}, regions={cfg.regions})"
+        f" | consumed this month: {consumed_before}/{cfg.monthly_budget_credits}[/cyan]"
+    )
+
+    totals = {"calls": 0, "credits": 0, "rows": 0, "skipped_cached": 0, "aborted": 0}
+    for key in keys:
+        for season in seasons:
+            console.rule(f"[bold]{key} — {season}[/bold]")
+            try:
+                counters = client.backfill_season(
+                    key,
+                    season,
+                    max_credits=max_credits,
+                    dry_run=dry_run,
+                )
+            except OddsApiHistoricalError as exc:
+                console.print(f"[red]{key}/{season}: {exc}[/red]")
+                continue
+            console.log(
+                f"{key}/{season}: calls={counters['calls']} credits={counters['credits']} "
+                f"rows={counters['rows']} skipped_cached={counters['skipped_cached']} "
+                f"aborted={counters['aborted']}"
+            )
+            for k, v in counters.items():
+                totals[k] = totals.get(k, 0) + v
+            if counters.get("aborted"):
+                console.print("[yellow]Budget cap hit — stopping this run.[/yellow]")
+                break
+        if totals["aborted"]:
+            break
+
+    consumed_after = client.budget.consumed_this_month()
+    console.print(
+        f"[green]Done.[/green] total={totals} | month-used {consumed_after}/"
+        f"{cfg.monthly_budget_credits}"
+    )
+
+
 # ───────────────────────── train ─────────────────────────
 
 
@@ -478,9 +592,7 @@ def train(
         calibration_cfg=calibration_cfg,
         purpose=purpose,
     )  # type: ignore[arg-type]
-    console.log(
-        f"[cyan]Training CatBoost for {LEAGUES[league].name} (purpose={purpose})…[/cyan]"
-    )
+    console.log(f"[cyan]Training CatBoost for {LEAGUES[league].name} (purpose={purpose})…[/cyan]")
     result = predictor.fit(matches, warmup_games=warmup, calibrate=calibrate)
 
     suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
@@ -609,8 +721,7 @@ def train_tab(
 
     tab = TabTransformerPredictor(feature_builder=fb, purpose=purpose)  # type: ignore[arg-type]
     console.log(
-        f"[cyan]Training FT-Transformer for {LEAGUES[league].name} "
-        f"(purpose={purpose})…[/cyan]"
+        f"[cyan]Training FT-Transformer for {LEAGUES[league].name} (purpose={purpose})…[/cyan]"
     )
     result = tab.fit(matches, warmup_games=warmup)
 
@@ -678,8 +789,7 @@ def train_sequence(
         purpose=purpose,  # type: ignore[arg-type]
     )
     console.log(
-        f"[cyan]Training Sequence head for {LEAGUES[league].name} "
-        f"(purpose={purpose})…[/cyan]"
+        f"[cyan]Training Sequence head for {LEAGUES[league].name} (purpose={purpose})…[/cyan]"
     )
     result = seq.fit(matches, warmup_games=warmup)
 

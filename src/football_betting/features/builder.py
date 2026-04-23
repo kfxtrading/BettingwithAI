@@ -27,6 +27,7 @@ from football_betting.features.home_advantage import (
     dynamic_home_advantage,
 )
 from football_betting.features.market_movement import MarketMovementTracker
+from football_betting.features.market_microstructure import MarketMicrostructureTracker
 from football_betting.features.real_xg import RealXgTracker
 from football_betting.features.rest_days import RestDaysTracker
 from football_betting.features.squad_quality import SquadQualityTracker
@@ -53,6 +54,9 @@ class FeatureBuilder:
     home_adv_tracker: HomeAdvantageTracker = field(default_factory=HomeAdvantageTracker)
     squad_tracker: SquadQualityTracker = field(default_factory=SquadQualityTracker)
     market_tracker: MarketMovementTracker = field(default_factory=MarketMovementTracker)
+    microstructure_tracker: MarketMicrostructureTracker = field(
+        default_factory=MarketMicrostructureTracker
+    )
     standings_tracker: SeasonStandingsTracker = field(default_factory=SeasonStandingsTracker)
     weather_tracker: WeatherTracker | None = None  # v0.4: optional, opt-in
     # Dual-model split: when set, any feature whose key starts with one of
@@ -150,6 +154,16 @@ class FeatureBuilder:
         if self.cfg.use_market_movement:
             feats.update(
                 self.market_tracker.features_for_fixture(
+                    home_team, away_team, match_date.isoformat()
+                )
+            )
+
+        # Market microstructure (Phase 8 — Family D, opt-in). When the flag
+        # is off we emit nothing, preserving the legacy feature schema so
+        # already-trained models remain callable.
+        if self.cfg.use_market_microstructure:
+            feats.update(
+                self.microstructure_tracker.features_for_match(
                     home_team, away_team, match_date.isoformat()
                 )
             )
