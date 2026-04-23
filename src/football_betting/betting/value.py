@@ -5,6 +5,7 @@ A value bet exists when the model's estimated probability of an outcome
 exceeds the bookmaker's implied (margin-adjusted) probability by at least
 a configured threshold.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,7 +15,6 @@ from football_betting.betting.kelly import kelly_fraction, kelly_stake
 from football_betting.betting.margin import remove_margin
 from football_betting.config import BETTING_CFG, BettingConfig
 from football_betting.data.models import Outcome, Prediction
-
 
 OUTCOME_LABELS: dict[Outcome, str] = {
     "H": "Heim",
@@ -47,10 +47,13 @@ class ValueBet:
         side = (
             self.home_team
             if self.outcome == "H"
-            else self.away_team if self.outcome == "A"
+            else self.away_team
+            if self.outcome == "A"
             else "Unentschieden"
         )
-        suffix = "Heimsieg" if self.outcome == "H" else "Auswärtssieg" if self.outcome == "A" else ""
+        suffix = (
+            "Heimsieg" if self.outcome == "H" else "Auswärtssieg" if self.outcome == "A" else ""
+        )
         return f"{side} {suffix}".strip()
 
     @property

@@ -1,43 +1,43 @@
 {
-  "n_input_rows": 31715,
-  "n_output_rows": 107200,
+  "n_input_rows": 1340,
+  "n_output_rows": 82806,
   "per_language": {
-    "en": 21440,
-    "de": 21440,
-    "es": 21440,
-    "fr": 21440,
-    "it": 21440
+    "en": 16418,
+    "de": 16451,
+    "es": 16717,
+    "fr": 16698,
+    "it": 16522
   },
   "per_source": {
-    "original": 1340,
-    "paraphrase": 30375,
-    "augment_v2:noise": 75485
+    "": 1340,
+    "augment_v2:paraphrase": 44280,
+    "augment_v2:noise": 37186
   },
   "variants_per_intent_lang": {
-    "min": 80.0,
-    "max": 80.0,
-    "avg": 80.0
+    "min": 43.0,
+    "max": 73.0,
+    "avg": 61.7955223880597
   },
   "per_intent_deficit_before_sample": {
-    "value-bet|en": 39,
-    "value-bet|de": 39,
-    "value-bet|es": 39,
-    "value-bet|fr": 39,
-    "value-bet|it": 39,
-    "accuracy|en": 45,
-    "accuracy|de": 39,
-    "accuracy|es": 45,
-    "accuracy|fr": 39,
-    "accuracy|it": 39,
-    "data-source|en": 47,
-    "data-source|de": 47,
-    "data-source|es": 47,
-    "data-source|fr": 47,
-    "data-source|it": 49,
-    "snapshot-update|en": 47,
-    "snapshot-update|de": 41,
-    "snapshot-update|es": 47,
-    "snapshot-update|fr": 47,
-    "snapshot-update|it": 47
+    "value-bet|en": 149,
+    "value-bet|de": 149,
+    "value-bet|es": 149,
+    "value-bet|fr": 149,
+    "value-bet|it": 149,
+    "accuracy|en": 149,
+    "accuracy|de": 149,
+    "accuracy|es": 149,
+    "accuracy|fr": 149,
+    "accuracy|it": 149,
+    "data-source|en": 149,
+    "data-source|de": 149,
+    "data-source|es": 149,
+    "data-source|fr": 149,
+    "data-source|it": 149,
+    "snapshot-update|en": 149,
+    "snapshot-update|de": 149,
+    "snapshot-update|es": 149,
+    "snapshot-update|fr": 149,
+    "snapshot-update|it": 149
   }
 }

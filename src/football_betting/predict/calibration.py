@@ -67,6 +67,8 @@ class ProbabilityCalibrator:
             elif self.cfg.method == "sigmoid":
                 cal = LogisticRegression(C=1e10)  # essentially no regularization
                 cal.fit(raw_p.reshape(-1, 1), is_class)
+            elif self.cfg.method == "auto":
+                cal = _fit_auto_calibrator(raw_p, is_class)
             else:
                 raise ValueError(f"Unknown calibration method: {self.cfg.method}")
 
@@ -105,6 +107,70 @@ class _IdentityCalibrator:
 
     def predict(self, x: np.ndarray) -> np.ndarray:
         return x
+
+
+def _fit_auto_calibrator(
+    raw_p: np.ndarray, is_class: np.ndarray
+) -> IsotonicRegression | LogisticRegression:
+    """Pick lowest held-out ECE across {isotonic, sigmoid, regularized-sigmoid}.
+
+    Rationale: isotonic is non-parametric and overfits on small samples
+    (<200 per class); unregularized sigmoid (Platt) helps; regularized
+    sigmoid acts like temperature scaling (1 effective dof) and wins
+    under temporal distribution shift. Auto lets the data pick.
+    """
+    from sklearn.model_selection import KFold
+
+    n = len(raw_p)
+    kf = KFold(n_splits=min(5, n), shuffle=True, random_state=42)
+
+    def _fold_ece(method: str) -> float:
+        total = 0.0
+        for tr, te in kf.split(raw_p):
+            p_tr, p_te = raw_p[tr], raw_p[te]
+            y_tr, y_te = is_class[tr], is_class[te]
+            if y_tr.sum() == 0 or y_tr.sum() == len(y_tr):
+                return float("inf")  # degenerate fold
+            if method == "isotonic":
+                m = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
+                m.fit(p_tr, y_tr)
+                pred = m.predict(p_te)
+            elif method == "sigmoid":
+                m = LogisticRegression(C=1e10)
+                m.fit(p_tr.reshape(-1, 1), y_tr)
+                pred = m.predict_proba(p_te.reshape(-1, 1))[:, 1]
+            else:  # regularized sigmoid (≈ temperature scaling)
+                m = LogisticRegression(C=0.1)
+                m.fit(p_tr.reshape(-1, 1), y_tr)
+                pred = m.predict_proba(p_te.reshape(-1, 1))[:, 1]
+            # Binary ECE with 10 bins
+            bins = np.linspace(0, 1, 11)
+            for i in range(10):
+                mask = (pred > bins[i]) & (pred <= bins[i + 1])
+                if mask.sum() == 0:
+                    continue
+                total += (mask.sum() / n) * abs(pred[mask].mean() - y_te[mask].mean())
+        return total
+
+    candidates: dict[str, float] = {
+        "isotonic": _fold_ece("isotonic"),
+        "sigmoid": _fold_ece("sigmoid"),
+        "regularized": _fold_ece("regularized"),
+    }
+    best = min(candidates, key=lambda k: candidates[k])
+
+    if best == "isotonic":
+        cal: IsotonicRegression | LogisticRegression = IsotonicRegression(
+            out_of_bounds="clip", y_min=0.0, y_max=1.0
+        )
+        cal.fit(raw_p, is_class)
+    elif best == "sigmoid":
+        cal = LogisticRegression(C=1e10)
+        cal.fit(raw_p.reshape(-1, 1), is_class)
+    else:
+        cal = LogisticRegression(C=0.1)
+        cal.fit(raw_p.reshape(-1, 1), is_class)
+    return cal
 
 
 # ───────────────────────── Reliability diagrams ─────────────────────────

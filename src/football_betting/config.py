@@ -473,7 +473,7 @@ class OddsApiConfig:
 
 @dataclass(frozen=True, slots=True)
 class CalibrationConfig:
-    method: str = "isotonic"
+    method: str = "auto"  # "isotonic" | "sigmoid" | "auto" (pick lower val-ECE)
     min_samples_per_class: int = 50
 
 

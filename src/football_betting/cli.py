@@ -1259,6 +1259,90 @@ def sweep_cushion(league: str, cushions: str, bankroll: float, no_ensemble: bool
     console.print(table)
 
 
+# ───────────────────────── calibration-audit ─────────────────────────
+
+
+@main.command("calibration-audit")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(list(LEAGUES.keys()), case_sensitive=False),
+    required=True,
+)
+@click.option("--n-bins", type=click.IntRange(5, 30), default=10, show_default=True)
+@click.option("--bankroll", default=1000.0, show_default=True)
+@click.option(
+    "--cb-only",
+    is_flag=True,
+    default=False,
+    help="Audit CatBoost head in isolation (bypass ensemble blending).",
+)
+def calibration_audit(league: str, n_bins: int, bankroll: float, cb_only: bool) -> None:
+    """ECE + reliability bins on the standard backtest holdout.
+
+    Runs the model through the holdout season and reports Expected
+    Calibration Error plus a per-bin breakdown of confidence vs realised
+    accuracy. ECE > 1.5% on any league flags a calibration issue that
+    will systematically bias value-bet selection.
+    """
+    import numpy as np
+
+    from football_betting.predict.calibration import (
+        expected_calibration_error,
+        reliability_diagram_data,
+    )
+
+    league = league.upper()
+    bt = Backtester(initial_bankroll=bankroll, use_ensemble=not cb_only)
+    result = bt.run(league)
+
+    rows = [r for r in result.rows if "prob_home" in r and "actual" in r]
+    if not rows:
+        console.print("[red]Backtest produced no per-match rows with prob/actual.[/red]")
+        raise click.Abort()
+
+    label_to_idx = {"H": 0, "D": 1, "A": 2}
+    probs = np.array([[r["prob_home"], r["prob_draw"], r["prob_away"]] for r in rows], dtype=float)
+    y_true = np.array([label_to_idx[str(r["actual"])] for r in rows], dtype=int)
+
+    ece = expected_calibration_error(probs, y_true, n_bins=n_bins)
+    rel = reliability_diagram_data(probs, y_true, n_bins=n_bins)
+
+    verdict = (
+        "[green]EXCELLENT[/green]"
+        if ece < 0.015
+        else "[yellow]ACCEPTABLE[/yellow]"
+        if ece < 0.03
+        else "[red]MISCALIBRATED — refit calibrator[/red]"
+    )
+    console.rule(f"[bold cyan]Calibration audit — {LEAGUES[league].name}[/bold cyan]")
+    console.print(f"  ECE ({n_bins} bins, n={len(rows)}): [bold]{ece:.4f}[/bold]  ->  {verdict}")
+
+    table = Table(title="Reliability bins")
+    table.add_column("conf bin", justify="right")
+    table.add_column("n", justify="right")
+    table.add_column("conf mean", justify="right")
+    table.add_column("acc", justify="right")
+    table.add_column("gap", justify="right")
+    for c, conf, acc, n in zip(
+        rel["bin_center"],
+        rel["bin_confidence"],
+        rel["bin_accuracy"],
+        rel["bin_count"],
+        strict=False,
+    ):
+        gap = float(conf) - float(acc)
+        colour = "red" if abs(gap) > 0.05 else "yellow" if abs(gap) > 0.02 else "green"
+        table.add_row(
+            f"{float(c):.2f}",
+            str(int(n)),
+            f"{float(conf):.3f}",
+            f"{float(acc):.3f}",
+            f"[{colour}]{gap:+.3f}[/{colour}]",
+        )
+    console.print(table)
+
+
 # ───────────────────────── tune-ensemble ─────────────────────────
 
 

@@ -1,4 +1,5 @@
 """Tests for the positive-EV cushion guard added to find_value_bets."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -9,8 +10,12 @@ from football_betting.data.models import Fixture, MatchOdds, Prediction
 
 
 def _make_prediction(
-    prob_home: float, prob_draw: float, prob_away: float,
-    odds_home: float, odds_draw: float, odds_away: float,
+    prob_home: float,
+    prob_draw: float,
+    prob_away: float,
+    odds_home: float,
+    odds_draw: float,
+    odds_away: float,
 ) -> Prediction:
     fx = Fixture(
         home_team="A",
@@ -36,8 +41,12 @@ def test_min_ev_pct_filters_thin_value_bets() -> None:
     # so we lower min_edge to let the bet through, then assert the EV
     # cushion kicks in.
     pred = _make_prediction(
-        prob_home=0.40, prob_draw=0.30, prob_away=0.30,
-        odds_home=2.60, odds_draw=3.40, odds_away=3.40,
+        prob_home=0.40,
+        prob_draw=0.30,
+        prob_away=0.30,
+        odds_home=2.60,
+        odds_draw=3.40,
+        odds_away=3.40,
     )
     permissive = BettingConfig(min_edge=0.0, min_ev_pct=0.0)
     tight = BettingConfig(min_edge=0.0, min_ev_pct=0.05)  # demand ≥5 % EV
@@ -54,8 +63,12 @@ def test_min_ev_pct_keeps_strong_positive_ev() -> None:
     # Model prob 50 %, odds 2.60 → raw EV = 0.30 (30 %). Must survive even a
     # strict 10 % cushion.
     pred = _make_prediction(
-        prob_home=0.50, prob_draw=0.25, prob_away=0.25,
-        odds_home=2.60, odds_draw=4.0, odds_away=4.0,
+        prob_home=0.50,
+        prob_draw=0.25,
+        prob_away=0.25,
+        odds_home=2.60,
+        odds_draw=4.0,
+        odds_away=4.0,
     )
     tight = BettingConfig(min_edge=0.0, min_ev_pct=0.10)
     bets = find_value_bets(pred, bankroll=1000.0, cfg=tight)

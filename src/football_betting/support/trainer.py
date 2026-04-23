@@ -590,10 +590,8 @@ def train_transformer_one_language(
     # ``train-support-transformer --lang <lg>`` (single-lang runs) leaves
     # the same v0.3.4 reproducibility trail as the aggregated ``--lang all``
     # path. The aggregator continues to write the combined report.
-    single_metrics_path = (
-        out / SUPPORT_CFG.transformer_metrics_filename.replace(
-            ".json", f"_{lang}.json"
-        )
+    single_metrics_path = out / SUPPORT_CFG.transformer_metrics_filename.replace(
+        ".json", f"_{lang}.json"
     )
     single_report = {
         "per_language": [payload],
