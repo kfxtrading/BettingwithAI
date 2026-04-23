@@ -836,7 +836,9 @@ class SupportConfig:
     # At inference: when the chapter head's top-1 prob exceeds this gate, we
     # zero out intent probabilities that do not belong to the predicted chapter
     # before re-normalising. Set to 1.0+ to disable chapter-masked inference.
-    two_head_chapter_gate: float = 0.6
+    # Tuned on DE v3 subsample (cf. models/support/tuning/twohead_sweep_de.csv):
+    # 0.7 beats 0.6 / 1.0 at cw=0.3 (winner) and cw=0.5.
+    two_head_chapter_gate: float = 0.7
     # ONNX export
     onnx_filename_template: str = "support_transformer_{lang}.onnx"
     onnx_opset: int = 17
