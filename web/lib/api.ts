@@ -63,6 +63,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     }),
+  supportAsk: (payload: SupportAskPayload) =>
+    request<SupportAskResponse>('/support/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
 };
 
 export type ConsentCategory = 'necessary' | 'analytics' | 'marketing';
@@ -79,6 +85,26 @@ export interface ConsentRecord {
   version: string;
   updated_at: string;
   first_seen_at: string;
+}
+
+export interface SupportAskPayload {
+  question: string;
+  lang: string;
+  top_k?: number;
+}
+
+export interface SupportPrediction {
+  intent_id: string;
+  chapter: string;
+  score: number;
+  chapter_score: number;
+}
+
+export interface SupportAskResponse {
+  lang: string;
+  question: string;
+  predictions: SupportPrediction[];
+  fallback: boolean;
 }
 
 export const queryKeys = {

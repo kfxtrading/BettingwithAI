@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Support chatbot wired to Railway backend (2026-04-24)
+
+- New endpoint `POST /support/ask` backed by `TwoHeadTransformerIntentClassifier`
+  (`src/football_betting/api/support_service.py`). Single-slot LRU cache keeps
+  at most one encoder in RAM (~1.1 GB / language) to fit Railway memory limits.
+- Applies per-language temperature calibration from `temperature.json` on top
+  of `predict_topk` (load path does not restore it yet).
+- Out-of-distribution (`__ood__`) or sub-threshold predictions return
+  `fallback=true` with an empty `predictions[]`; the frontend falls back to its
+  client-side Fuse.js FAQ search in that case so the chatbot never dead-ends.
+- Added `torch`, `transformers`, `sentencepiece` to the `api` extra so Railway
+  Docker images can run the two-head model. This enlarges the deployed image
+  from ~500 MB to ~7 GB (five 1 GB encoders + PyTorch CPU wheels).
+- `web/components/SupportChat.tsx` now calls `api.supportAsk({...})` first and
+  only uses Fuse.js as the fallback. The current locale from `useLocale()` is
+  forwarded so per-language fine-tuning is applied correctly.
+- 6 new tests in `tests/test_support_api.py` cover routing, OOD-fallback,
+  missing-model graceful degradation, empty-question rejection, and language
+  normalisation (monkey-patches `classify` to avoid the 1 GB model load on CI).
+
 ### Support two-head transformer — multilingual re-train (2026-04-24)
 
 Re-trained the two-head (intent + chapter) XLM-R transformer for all five languages on RunPod RTX 4090:

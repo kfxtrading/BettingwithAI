@@ -1,11 +1,12 @@
 """Public REST endpoints for the Betting with AI homepage."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 
 from football_betting.api import consent as consent_store
-from football_betting.api import services
+from football_betting.api import services, support_service
 from football_betting.api.schemas import (
     BankrollPoint,
     CalibrationBucketOut,
@@ -23,6 +24,9 @@ from football_betting.api.schemas import (
     PerformanceSummary,
     RatingRow,
     SeoSlugsOut,
+    SupportAskIn,
+    SupportAskOut,
+    SupportPredictionOut,
     TeamDetail,
     TodayPayload,
     TrackRecordCalibrationOut,
@@ -34,7 +38,6 @@ from football_betting.seo.track_record import (
     build_csv,
     load_records,
 )
-
 
 API_VERSION = "0.3.0"
 
@@ -307,3 +310,39 @@ def team_detail(league_key: str, team: str) -> TeamDetail:
     if detail is None:
         raise HTTPException(status_code=404, detail=f"Team '{team}' not found")
     return detail
+
+
+@router.post("/support/ask", response_model=SupportAskOut, tags=["support"])
+def support_ask(payload: SupportAskIn) -> SupportAskOut:
+    """Classify a support-chatbot question with the multilingual two-head transformer.
+
+    Returns an empty ``predictions`` list (with ``fallback=True``) when the
+    query is out-of-distribution or below the confidence gate — the frontend
+    is expected to fall back to its Fuse.js FAQ search in that case.
+
+    When the model directory is missing or torch/transformers are unavailable
+    the endpoint also reports ``fallback=True`` rather than HTTP 500, so the
+    chatbot UI keeps working during partial deploys.
+    """
+    try:
+        predictions = support_service.classify(
+            question=payload.question, lang=payload.lang, top_k=payload.top_k
+        )
+    except support_service.SupportModelUnavailable:
+        return SupportAskOut(
+            lang=payload.lang, question=payload.question, predictions=[], fallback=True
+        )
+    return SupportAskOut(
+        lang=payload.lang,
+        question=payload.question,
+        predictions=[
+            SupportPredictionOut(
+                intent_id=p.intent_id,
+                chapter=p.chapter,
+                score=p.score,
+                chapter_score=p.chapter_score,
+            )
+            for p in predictions
+        ],
+        fallback=not predictions,
+    )

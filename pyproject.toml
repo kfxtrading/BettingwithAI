@@ -39,6 +39,10 @@ ml-dml = [
 api = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
+    # Support-chatbot two-head transformer runtime (lazy-loaded per locale).
+    "torch>=2.2",
+    "transformers>=4.40",
+    "sentencepiece>=0.2",
 ]
 embedding = [
     "sentence-transformers>=3.0",

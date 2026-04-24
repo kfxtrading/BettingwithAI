@@ -376,3 +376,28 @@ class ConsentOut(BaseModel):
     version: str
     updated_at: str
     first_seen_at: str
+
+
+class SupportAskIn(BaseModel):
+    """Support-chatbot query payload."""
+
+    question: str = Field(min_length=1, max_length=500)
+    lang: str = Field(default="en", min_length=2, max_length=5)
+    top_k: int = Field(default=3, ge=1, le=10)
+
+
+class SupportPredictionOut(BaseModel):
+    intent_id: str
+    chapter: str
+    score: float = Field(ge=0.0, le=1.0)
+    chapter_score: float = Field(ge=0.0, le=1.0)
+
+
+class SupportAskOut(BaseModel):
+    """Response for `POST /support/ask`. Empty `predictions` signals OOD — clients should fall back to FAQ search."""
+
+    lang: str
+    question: str
+    predictions: list[SupportPredictionOut] = Field(default_factory=list)
+    fallback: bool = False
+

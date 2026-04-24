@@ -17,6 +17,7 @@ import {
   searchFaq,
   type FaqEntry,
 } from '@/lib/faq';
+import { api } from '@/lib/api';
 
 type Message =
   | { role: 'user'; text: string }
@@ -25,9 +26,12 @@ type Message =
 const SUGGESTION_LIMIT = 5;
 const MATCH_SCORE_THRESHOLD = 0.6;
 const FOLLOW_UP_CONFIDENCE_THRESHOLD = 0.4;
+// Transformer score gate — below this we still try the Fuse.js fallback so
+// the user never gets a dead-end answer when the top-1 intent is borderline.
+const TRANSFORMER_MIN_SCORE = 0.35;
 
 export function SupportChat() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const panelId = useId();
 
   const [open, setOpen] = useState(false);
@@ -54,25 +58,71 @@ export function SupportChat() {
     (question: string) => {
       const text = question.trim();
       if (!text) return;
-      const matches = searchFaq(text, fuse);
-      const top = matches[0];
-      const hit = top && top.score <= MATCH_SCORE_THRESHOLD ? top : undefined;
-      const answer = hit ? t(hit.entry.answerKey) : t('support.fallback');
-      const followUpEntryId =
-        hit &&
-        hit.score <= FOLLOW_UP_CONFIDENCE_THRESHOLD &&
-        hit.entry.followUpId &&
-        byId.has(hit.entry.followUpId)
-          ? hit.entry.followUpId
-          : undefined;
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', text },
-        { role: 'bot', text: answer, followUpEntryId },
-      ]);
+
+      // Optimistically push the user message, then resolve the answer.
+      setMessages((prev) => [...prev, { role: 'user', text }]);
       setInput('');
+
+      const fuseFallback = (): {
+        answer: string;
+        followUpEntryId: string | undefined;
+      } => {
+        const matches = searchFaq(text, fuse);
+        const top = matches[0];
+        const hit =
+          top && top.score <= MATCH_SCORE_THRESHOLD ? top : undefined;
+        const answer = hit ? t(hit.entry.answerKey) : t('support.fallback');
+        const followUpEntryId =
+          hit &&
+          hit.score <= FOLLOW_UP_CONFIDENCE_THRESHOLD &&
+          hit.entry.followUpId &&
+          byId.has(hit.entry.followUpId)
+            ? hit.entry.followUpId
+            : undefined;
+        return { answer, followUpEntryId };
+      };
+
+      const resolveFromPrediction = (
+        intentId: string,
+      ): { answer: string; followUpEntryId: string | undefined } | null => {
+        const entry = byId.get(intentId);
+        if (!entry) return null;
+        return {
+          answer: t(entry.answerKey),
+          followUpEntryId:
+            entry.followUpId && byId.has(entry.followUpId)
+              ? entry.followUpId
+              : undefined,
+        };
+      };
+
+      const appendBot = (answer: string, followUpEntryId?: string) => {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'bot', text: answer, followUpEntryId },
+        ]);
+      };
+
+      void api
+        .supportAsk({ question: text, lang: locale, top_k: 3 })
+        .then((res) => {
+          const top = res.predictions[0];
+          if (!res.fallback && top && top.score >= TRANSFORMER_MIN_SCORE) {
+            const resolved = resolveFromPrediction(top.intent_id);
+            if (resolved) {
+              appendBot(resolved.answer, resolved.followUpEntryId);
+              return;
+            }
+          }
+          const fb = fuseFallback();
+          appendBot(fb.answer, fb.followUpEntryId);
+        })
+        .catch(() => {
+          const fb = fuseFallback();
+          appendBot(fb.answer, fb.followUpEntryId);
+        });
     },
-    [byId, fuse, t],
+    [byId, fuse, locale, t],
   );
 
   const lastBot = [...messages].reverse().find((m) => m.role === 'bot') as
