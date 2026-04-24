@@ -46,6 +46,8 @@ models/*.joblib
 models/*.pt
 models/*.onnx
 models/*.features.txt
+# Promotion backups created by scripts/promote_kelly_models.py
+models/*.pre_kelly
 # Support transformer fine-tunes (large: ~1GB safetensors + ~1GB ONNX + ~266MB INT8)
 models/support/support_transformer_*/
 models/support/support_twohead_*/
