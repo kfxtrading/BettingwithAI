@@ -638,8 +638,18 @@ def train(
     show_default=True,
     help="Dual-model split: 1X2 (default) or value-bet specialist.",
 )
-def train_mlp(league: str, seasons: tuple[str, ...], warmup: int, purpose: str) -> None:
+@click.option(
+    "--kelly",
+    is_flag=True,
+    default=False,
+    help="Phase C: enable ShrinkageCombinedLoss + opening-odds Kelly growth early-stop.",
+)
+def train_mlp(
+    league: str, seasons: tuple[str, ...], warmup: int, purpose: str, kelly: bool
+) -> None:
     """Train PyTorch MLP classifier (v0.3)."""
+    import dataclasses
+
     from football_betting.config import artifact_suffix
 
     league = league.upper()
@@ -652,20 +662,31 @@ def train_mlp(league: str, seasons: tuple[str, ...], warmup: int, purpose: str) 
         if sf_data:
             fb.stage_sofascore_batch(sf_data)
 
+    cfg = mlp_config_for_purpose(purpose)  # type: ignore[arg-type]
+    if kelly:
+        cfg = dataclasses.replace(cfg, use_shrinkage_kelly=True)
     mlp = MLPPredictor(
         feature_builder=fb,
-        cfg=mlp_config_for_purpose(purpose),  # type: ignore[arg-type]
+        cfg=cfg,
         purpose=purpose,  # type: ignore[arg-type]
     )
-    console.log(f"[cyan]Training MLP for {LEAGUES[league].name} (purpose={purpose})…[/cyan]")
+    console.log(
+        f"[cyan]Training MLP for {LEAGUES[league].name} (purpose={purpose}, kelly={kelly})…[/cyan]"
+    )
     result = mlp.fit(matches, warmup_games=warmup)
 
     suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
-    path = MODELS_DIR / f"mlp_{league}{suffix}.pt"
+    kelly_infix = ".kelly" if kelly else ""
+    path = MODELS_DIR / f"mlp_{league}{suffix}{kelly_infix}.pt"
     mlp.save(path)
     console.log(f"[green]MLP saved: {path}[/green]")
     console.print(f"  n_train={result['n_train']}, n_val={result['n_val']}")
     console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
+    if kelly and result.get("best_val_growth") is not None:
+        console.print(
+            f"  best_val_growth={result['best_val_growth']:+.5f} "
+            f"(coverage={result['kelly_mask_coverage'] * 100:.1f}%)"
+        )
 
 
 # ───────────────────────── train-tab (v0.4) ─────────────────────────
@@ -699,13 +720,25 @@ def train_mlp(league: str, seasons: tuple[str, ...], warmup: int, purpose: str) 
     show_default=True,
     help="Dual-model split: 1X2 (default) or value-bet specialist.",
 )
+@click.option(
+    "--kelly",
+    is_flag=True,
+    default=False,
+    help="Phase C: enable ShrinkageCombinedLoss + opening-odds Kelly growth early-stop.",
+)
 def train_tab(
-    league: str, seasons: tuple[str, ...], warmup: int, device: str, purpose: str
+    league: str,
+    seasons: tuple[str, ...],
+    warmup: int,
+    device: str,
+    purpose: str,
+    kelly: bool,
 ) -> None:
     """Train FT-Transformer tabular classifier (v0.4, GPU-friendly)."""
+    import dataclasses
     import os as _os
 
-    from football_betting.config import artifact_suffix
+    from football_betting.config import TAB_TRANSFORMER_CFG, artifact_suffix
 
     league = league.upper()
     purpose = purpose.lower()
@@ -719,19 +752,33 @@ def train_tab(
         if sf_data:
             fb.stage_sofascore_batch(sf_data)
 
-    tab = TabTransformerPredictor(feature_builder=fb, purpose=purpose)  # type: ignore[arg-type]
+    cfg = TAB_TRANSFORMER_CFG
+    if kelly:
+        cfg = dataclasses.replace(cfg, use_shrinkage_kelly=True)
+    tab = TabTransformerPredictor(
+        feature_builder=fb,
+        cfg=cfg,
+        purpose=purpose,  # type: ignore[arg-type]
+    )
     console.log(
-        f"[cyan]Training FT-Transformer for {LEAGUES[league].name} (purpose={purpose})…[/cyan]"
+        f"[cyan]Training FT-Transformer for {LEAGUES[league].name} "
+        f"(purpose={purpose}, kelly={kelly})…[/cyan]"
     )
     result = tab.fit(matches, warmup_games=warmup)
 
     suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
-    path = MODELS_DIR / f"tabtransformer_{league}{suffix}.pt"
+    kelly_infix = ".kelly" if kelly else ""
+    path = MODELS_DIR / f"tabtransformer_{league}{suffix}{kelly_infix}.pt"
     tab.save(path)
     console.log(f"[green]TabTransformer saved: {path}[/green]")
     console.print(f"  n_train={result['n_train']}, n_val={result['n_val']}")
     console.print(f"  n_features={result['n_features']}, backend={result['backend']}")
     console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
+    if kelly and result.get("best_val_growth") is not None:
+        console.print(
+            f"  best_val_growth={result['best_val_growth']:+.5f} "
+            f"(coverage={result['kelly_mask_coverage'] * 100:.1f}%)"
+        )
 
 
 # ───────────────────────── train-sequence (v0.4) ─────────────────────────
@@ -765,14 +812,22 @@ def train_tab(
     show_default=True,
     help="Dual-model split: 1X2 (default) or value-bet specialist.",
 )
+@click.option(
+    "--kelly",
+    is_flag=True,
+    default=False,
+    help="Phase C: enable ShrinkageCombinedLoss + opening-odds Kelly growth early-stop.",
+)
 def train_sequence(
     league: str,
     seasons: tuple[str, ...],
     warmup: int,
     device: str,
     purpose: str,
+    kelly: bool,
 ) -> None:
     """Train 1D-CNN + Transformer sequence head (v0.4)."""
+    import dataclasses
     import os as _os
 
     from football_betting.config import artifact_suffix
@@ -784,22 +839,32 @@ def train_sequence(
 
     matches = load_league(league, seasons=list(seasons))
 
+    cfg = sequence_config_for_purpose(purpose)  # type: ignore[arg-type]
+    if kelly:
+        cfg = dataclasses.replace(cfg, use_shrinkage_kelly=True)
     seq = SequencePredictor(
-        cfg=sequence_config_for_purpose(purpose),  # type: ignore[arg-type]
+        cfg=cfg,
         purpose=purpose,  # type: ignore[arg-type]
     )
     console.log(
-        f"[cyan]Training Sequence head for {LEAGUES[league].name} (purpose={purpose})…[/cyan]"
+        f"[cyan]Training Sequence head for {LEAGUES[league].name} "
+        f"(purpose={purpose}, kelly={kelly})…[/cyan]"
     )
     result = seq.fit(matches, warmup_games=warmup)
 
     suffix = artifact_suffix(purpose)  # type: ignore[arg-type]
-    path = MODELS_DIR / f"sequence_{league}{suffix}.pt"
+    kelly_infix = ".kelly" if kelly else ""
+    path = MODELS_DIR / f"sequence_{league}{suffix}{kelly_infix}.pt"
     seq.save(path)
     console.log(f"[green]Sequence model saved: {path}[/green]")
     console.print(f"  n_train={result.get('n_train', '?')}, n_val={result.get('n_val', '?')}")
     if "best_val_loss" in result:
         console.print(f"  best_val_loss={result['best_val_loss']:.4f}")
+    if kelly and result.get("best_val_growth") is not None:
+        console.print(
+            f"  best_val_growth={result['best_val_growth']:+.5f} "
+            f"(coverage={result['kelly_mask_coverage'] * 100:.1f}%)"
+        )
 
 
 # ───────────────────────── train-support (v0.3.1) ─────────────────────────

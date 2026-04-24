@@ -147,10 +147,39 @@ class MLPPredictor:
         if len(X) < 200:
             raise ValueError(f"Too few samples: {len(X)}")
 
+        # Phase C: CLV-aware opening-odds + mask (aligned row-for-row with
+        # X/y/odds via identical warmup + sort ordering).
+        use_shrinkage = bool(getattr(self.cfg, "use_shrinkage_kelly", False))
+        opening_np: np.ndarray | None = None
+        mask_np: np.ndarray | None = None
+        if use_shrinkage:
+            from football_betting.predict.kelly_data import (
+                collect_opening_odds_and_mask,
+                coverage,
+            )
+
+            opening_np, mask_np = collect_opening_odds_and_mask(matches, warmup_games=warmup_games)
+            if opening_np.shape[0] != len(X):
+                raise RuntimeError(
+                    "opening/mask row count does not align with training rows "
+                    f"({opening_np.shape[0]} vs {len(X)}); Phase C invariant broken."
+                )
+            # Replace NaN (missing opening odds) with a safe placeholder — these
+            # rows are masked out of the Kelly+KL terms; placeholder must be
+            # > 1.0 to keep KellyLoss numerically finite.
+            opening_np = np.where(np.isfinite(opening_np), opening_np, 2.0).astype(np.float32)
+            cov = coverage(mask_np)
+            console.log(f"[cyan]MLP Kelly-mask coverage: {cov * 100:.1f}%[/cyan]")
+
         split = int(len(X) * (1 - val_fraction))
         X_train, X_val = X.iloc[:split].values, X.iloc[split:].values
         y_train, y_val = y[:split], y[split:]
         odds_train, odds_val = odds[:split], odds[split:]
+        if use_shrinkage and opening_np is not None and mask_np is not None:
+            opening_train, opening_val = opening_np[:split], opening_np[split:]
+            mask_train, mask_val = mask_np[:split], mask_np[split:]
+        else:
+            opening_train = opening_val = mask_train = mask_val = None  # type: ignore[assignment]
 
         # Fit scaler on train only
         self.scaler = StandardScaler()
@@ -173,7 +202,26 @@ class MLPPredictor:
         )
 
         use_kelly = bool(getattr(self.cfg, "use_kelly_loss", False))
-        if use_kelly:
+        shrinkage_loss: Any = None
+        lambda_schedule: Any = None
+        if use_shrinkage:
+            from football_betting.predict.losses import (
+                LambdaSchedule,
+                ShrinkageCombinedLoss,
+            )
+
+            shrinkage_loss = ShrinkageCombinedLoss(
+                lam=0.0,  # scheduled per epoch
+                beta=self.cfg.kelly_beta,
+                f_cap=self.cfg.kelly_f_cap,
+            )
+            lambda_schedule = LambdaSchedule(
+                warmup=self.cfg.kelly_warmup_epochs,
+                lam_max=self.cfg.kelly_lam_max,
+            )
+            combined = None
+            ce_only = nn.CrossEntropyLoss()
+        elif use_kelly:
             from football_betting.predict.losses import CombinedLoss
 
             combined = CombinedLoss(
@@ -195,26 +243,44 @@ class MLPPredictor:
             # (and scatter) which are unsupported on the DirectML backend.
             return _eye3[yb]
 
-        train_ds = TensorDataset(
+        train_tensors = [
             torch.tensor(X_train_s, dtype=torch.float32, device=device),
             torch.tensor(y_train, dtype=torch.long, device=device),
             torch.tensor(odds_train, dtype=torch.float32, device=device),
-        )
-        val_ds = TensorDataset(
+        ]
+        val_tensors = [
             torch.tensor(X_val_s, dtype=torch.float32, device=device),
             torch.tensor(y_val, dtype=torch.long, device=device),
             torch.tensor(odds_val, dtype=torch.float32, device=device),
-        )
+        ]
+        if use_shrinkage and opening_train is not None and mask_train is not None:
+            train_tensors.extend(
+                [
+                    torch.tensor(opening_train, dtype=torch.float32, device=device),
+                    torch.tensor(mask_train, dtype=torch.bool, device=device),
+                ]
+            )
+            val_tensors.extend(
+                [
+                    torch.tensor(opening_val, dtype=torch.float32, device=device),
+                    torch.tensor(mask_val, dtype=torch.bool, device=device),
+                ]
+            )
+        train_ds = TensorDataset(*train_tensors)
+        val_ds = TensorDataset(*val_tensors)
         train_loader = DataLoader(train_ds, batch_size=self.cfg.batch_size, shuffle=True)
         val_loader = DataLoader(val_ds, batch_size=self.cfg.batch_size)
 
         best_val_loss = float("inf")
+        best_val_growth = -float("inf")
         patience_counter = 0
         best_state = None
 
         for epoch in range(self.cfg.epochs):
-            # λ-schedule: warmup 3 epochs → full λ (only when Kelly enabled)
-            if use_kelly and combined is not None:
+            # λ-schedule
+            if use_shrinkage and shrinkage_loss is not None and lambda_schedule is not None:
+                shrinkage_loss.set_lambda(lambda_schedule(epoch))
+            elif use_kelly and combined is not None:
                 if epoch < 3:
                     combined.set_lambda(0.0)
                 else:
@@ -223,39 +289,95 @@ class MLPPredictor:
             # Train
             self.model.train()
             train_loss = 0.0
-            for xb, yb, ob in train_loader:
+            for batch in train_loader:
+                if use_shrinkage:
+                    xb, yb, _ob, op_b, mask_b = batch
+                else:
+                    xb, yb, ob = batch
                 optimizer.zero_grad()
                 logits = self.model(xb)
-                if use_kelly and combined is not None:
+                if use_shrinkage and shrinkage_loss is not None:
+                    loss = shrinkage_loss(
+                        logits,
+                        yb,
+                        odds=op_b,
+                        y_onehot=_onehot(yb),
+                        kelly_mask=mask_b,
+                    )
+                elif use_kelly and combined is not None:
                     loss = combined(logits, yb, odds=ob, y_onehot=_onehot(yb))
                 else:
                     loss = ce_only(logits, yb)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                 optimizer.step()
                 train_loss += loss.item() * xb.size(0)
             train_loss /= len(train_ds)
 
-            # Validate (always CE-only for comparability)
+            # Validate — Phase C: early-stop on Kelly-growth if shrinkage mode.
             self.model.eval()
             val_loss = 0.0
+            val_growth_accum = 0.0
+            val_mask_rows = 0
             with torch.no_grad():
-                for xb, yb, _ob in val_loader:
+                for batch in val_loader:
+                    if use_shrinkage:
+                        xb, yb, _ob, op_b, mask_b = batch
+                    else:
+                        xb, yb, _ob = batch
                     logits = self.model(xb)
                     val_loss += ce_only(logits, yb).item() * xb.size(0)
-            val_loss /= len(val_ds)
+                    if use_shrinkage:
+                        from football_betting.predict.losses import kelly_growth_metric
 
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                best_state = {k: v.clone() for k, v in self.model.state_dict().items()}
-                patience_counter = 0
+                        probs = torch.softmax(logits, dim=1)
+                        g = kelly_growth_metric(
+                            probs,
+                            op_b,
+                            _onehot(yb),
+                            mask=mask_b,
+                            f_cap=self.cfg.kelly_f_cap,
+                        )
+                        m_sum = int(mask_b.sum().item())
+                        if m_sum > 0:
+                            val_growth_accum += g * m_sum
+                            val_mask_rows += m_sum
+            val_loss /= len(val_ds)
+            val_growth = (val_growth_accum / val_mask_rows) if val_mask_rows > 0 else 0.0
+
+            if use_shrinkage:
+                # Maximise Kelly-growth; secondary sanity: val_loss must not
+                # blow up beyond +0.05 of its best-so-far.
+                improved = val_growth > best_val_growth
+                if improved:
+                    best_val_growth = val_growth
+                    best_val_loss = min(best_val_loss, val_loss)
+                    best_state = {k: v.clone() for k, v in self.model.state_dict().items()}
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
+                    if patience_counter >= self.cfg.early_stopping_patience:
+                        console.log(f"Early stopping at epoch {epoch}")
+                        break
             else:
-                patience_counter += 1
-                if patience_counter >= self.cfg.early_stopping_patience:
-                    console.log(f"Early stopping at epoch {epoch}")
-                    break
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    best_state = {k: v.clone() for k, v in self.model.state_dict().items()}
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
+                    if patience_counter >= self.cfg.early_stopping_patience:
+                        console.log(f"Early stopping at epoch {epoch}")
+                        break
 
             if epoch % 10 == 0:
-                console.log(f"Epoch {epoch}: train={train_loss:.4f} val={val_loss:.4f}")
+                if use_shrinkage:
+                    console.log(
+                        f"Epoch {epoch}: train={train_loss:.4f} "
+                        f"val={val_loss:.4f} growth={val_growth:+.5f}"
+                    )
+                else:
+                    console.log(f"Epoch {epoch}: train={train_loss:.4f} val={val_loss:.4f}")
 
         # Restore best weights
         if best_state is not None:
@@ -277,6 +399,10 @@ class MLPPredictor:
             "n_val": len(X_val),
             "n_features": len(self.feature_names),
             "best_val_loss": best_val_loss,
+            "best_val_growth": best_val_growth if use_shrinkage else None,
+            "kelly_mask_coverage": (
+                float(mask_np.mean()) if use_shrinkage and mask_np is not None else None
+            ),
             "val_predictions": val_probs,
             "val_labels": y_val,
         }

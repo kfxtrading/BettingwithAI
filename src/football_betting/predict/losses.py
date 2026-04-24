@@ -210,11 +210,7 @@ class ShrinkageCombinedLoss:
         torch = self._torch
         # Preserve float64 inputs (needed for gradcheck); only upcast
         # half-precision to float32 for numerical stability.
-        logits_f = (
-            logits.float()
-            if logits.dtype in (torch.float16, torch.bfloat16)
-            else logits
-        )
+        logits_f = logits.float() if logits.dtype in (torch.float16, torch.bfloat16) else logits
         odds_f = odds.to(dtype=logits_f.dtype)
         y_f = y_onehot.to(dtype=logits_f.dtype)
         log_probs = torch.log_softmax(logits_f, dim=1)
@@ -282,3 +278,36 @@ class LambdaSchedule:
             return self.lam_max
         frac = min(max(epoch, 0) / float(self.warmup), 1.0)
         return frac * self.lam_max
+
+
+def kelly_growth_metric(
+    probs: Any,
+    odds: Any,
+    y_onehot: Any,
+    mask: Any | None = None,
+    f_cap: float = 0.25,
+    eps: float = 1e-6,
+) -> float:
+    """Validation metric: mean realised log-bankroll-growth under clamped Kelly.
+
+    Higher is better (log-growth per bet). Used as early-stopping criterion
+    in Phase C training loops. Masked rows are excluded from the average;
+    if no row is unmasked the function returns ``0.0`` (neutral).
+    """
+    torch, _ = _import_torch()
+    with torch.no_grad():
+        p = probs.clamp(eps, 1.0 - eps)
+        b = (odds - 1.0).clamp(min=eps)
+        f_star = ((b * p - (1.0 - p)) / b).clamp(0.0, f_cap)
+        r = odds * y_onehot - 1.0
+        growth = (1.0 + f_star * r).clamp(min=eps)
+        # Realised per-sample log-growth on the actual outcome.
+        per_sample = (y_onehot * torch.log(growth)).sum(dim=1)
+        if mask is None:
+            return float(per_sample.mean().item())
+        mask_f = mask.to(dtype=per_sample.dtype)
+        denom = mask_f.sum().clamp(min=1.0)
+        val = (per_sample * mask_f).sum() / denom
+        if mask_f.sum().item() == 0.0:
+            return 0.0
+        return float(val.item())

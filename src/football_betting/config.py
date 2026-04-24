@@ -344,6 +344,12 @@ class MLPConfig:
     kelly_lambda: float = 0.3
     kelly_f_cap: float = 0.25
     use_amp: bool = True
+    # Phase C of gpu_kelly_training_plan: CLV-aware training on opening odds
+    # + KL-shrinkage to market, masked on rows without opening odds.
+    use_shrinkage_kelly: bool = False
+    kelly_beta: float = 0.1
+    kelly_warmup_epochs: int = 5
+    kelly_lam_max: float = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -380,6 +386,12 @@ class SequenceConfig:
     weight_decay: float = 1e-4
     use_kelly_loss: bool = False
     kelly_lambda: float = 0.3
+    kelly_f_cap: float = 0.25
+    # Phase C: CLV-aware opening-odds training + KL shrinkage.
+    use_shrinkage_kelly: bool = False
+    kelly_beta: float = 0.1
+    kelly_warmup_epochs: int = 5
+    kelly_lam_max: float = 0.5
     random_seed: int = 42
 
 
@@ -405,6 +417,14 @@ class TabTransformerConfig:
     early_stopping_patience: int = 15
     label_smoothing: float = 0.02
     random_seed: int = 42
+    # Phase C: CLV-aware opening-odds training + KL shrinkage.
+    use_kelly_loss: bool = False
+    kelly_lambda: float = 0.3
+    kelly_f_cap: float = 0.25
+    use_shrinkage_kelly: bool = False
+    kelly_beta: float = 0.1
+    kelly_warmup_epochs: int = 5
+    kelly_lam_max: float = 0.5
 
 
 @dataclass(frozen=True, slots=True)

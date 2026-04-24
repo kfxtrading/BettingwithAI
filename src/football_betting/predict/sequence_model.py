@@ -189,6 +189,26 @@ class SequencePredictor:
         if len(y) < 200:
             raise ValueError(f"Too few sequence samples: {len(y)}")
 
+        # Phase C: CLV-aware opening-odds + mask.
+        use_shrinkage = bool(getattr(self.cfg, "use_shrinkage_kelly", False))
+        opening_np: np.ndarray | None = None
+        mask_np: np.ndarray | None = None
+        if use_shrinkage:
+            from football_betting.predict.kelly_data import (
+                collect_opening_odds_and_mask,
+                coverage,
+            )
+
+            opening_np, mask_np = collect_opening_odds_and_mask(matches, warmup_games=warmup_games)
+            if opening_np.shape[0] != len(y):
+                raise RuntimeError(
+                    "opening/mask rows do not align with sequence dataset rows "
+                    f"({opening_np.shape[0]} vs {len(y)})."
+                )
+            opening_np = np.where(np.isfinite(opening_np), opening_np, 2.0).astype(np.float32)
+            cov = coverage(mask_np)
+            console.log(f"[cyan]Sequence Kelly-mask coverage: {cov * 100:.1f}%[/cyan]")
+
         split = int(len(y) * (1 - val_fraction))
         tr = slice(0, split)
         va = slice(split, len(y))
@@ -208,48 +228,81 @@ class SequencePredictor:
         )
         ce = nn.CrossEntropyLoss()
 
-        if self.cfg.use_kelly_loss:
+        shrinkage_loss: Any = None
+        lambda_schedule: Any = None
+        if use_shrinkage:
+            from football_betting.predict.losses import (
+                LambdaSchedule,
+                ShrinkageCombinedLoss,
+            )
+
+            shrinkage_loss = ShrinkageCombinedLoss(
+                lam=0.0,
+                beta=self.cfg.kelly_beta,
+                f_cap=self.cfg.kelly_f_cap,
+            )
+            lambda_schedule = LambdaSchedule(
+                warmup=self.cfg.kelly_warmup_epochs,
+                lam_max=self.cfg.kelly_lam_max,
+            )
+            combined: Any = None
+        elif self.cfg.use_kelly_loss:
             from football_betting.predict.losses import CombinedLoss
 
-            combined: Any = CombinedLoss(lam=self.cfg.kelly_lambda)
+            combined = CombinedLoss(lam=self.cfg.kelly_lambda)
         else:
             combined = None
 
         def _to(t: np.ndarray, dtype: Any) -> Any:
             return torch.tensor(t, dtype=dtype, device=device)
 
-        train_ds = TensorDataset(
+        train_tensors = [
             _to(H[tr], torch.float32),
             _to(HM[tr], torch.float32),
             _to(A[tr], torch.float32),
             _to(AM[tr], torch.float32),
             _to(y[tr], torch.long),
             _to(odds[tr], torch.float32),
-        )
-        val_ds = TensorDataset(
+        ]
+        val_tensors = [
             _to(H[va], torch.float32),
             _to(HM[va], torch.float32),
             _to(A[va], torch.float32),
             _to(AM[va], torch.float32),
             _to(y[va], torch.long),
             _to(odds[va], torch.float32),
-        )
+        ]
+        if use_shrinkage and opening_np is not None and mask_np is not None:
+            train_tensors.extend([_to(opening_np[tr], torch.float32), _to(mask_np[tr], torch.bool)])
+            val_tensors.extend([_to(opening_np[va], torch.float32), _to(mask_np[va], torch.bool)])
+
+        train_ds = TensorDataset(*train_tensors)
+        val_ds = TensorDataset(*val_tensors)
         train_loader = DataLoader(train_ds, batch_size=self.cfg.batch_size, shuffle=True)
         val_loader = DataLoader(val_ds, batch_size=self.cfg.batch_size)
 
         best_val = float("inf")
+        best_growth = -float("inf")
         best_state: Any = None
         for epoch in range(self.cfg.epochs):
-            if combined is not None:
+            if use_shrinkage and shrinkage_loss is not None and lambda_schedule is not None:
+                shrinkage_loss.set_lambda(lambda_schedule(epoch))
+            elif combined is not None:
                 combined.set_lambda(0.0 if epoch < 3 else self.cfg.kelly_lambda)
 
             self.model.train()
             tloss = 0.0
-            for hs, hm, as_, am, yb, ob in train_loader:
+            for batch in train_loader:
+                if use_shrinkage:
+                    hs, hm, as_, am, yb, _ob, op_b, mask_b = batch
+                else:
+                    hs, hm, as_, am, yb, ob = batch
                 optimizer.zero_grad()
                 logits = self.model(hs, hm, as_, am)
-                if combined is not None:
-                    yh = nn.functional.one_hot(yb, num_classes=3).float()
+                yh = nn.functional.one_hot(yb, num_classes=3).float()
+                if use_shrinkage and shrinkage_loss is not None:
+                    loss = shrinkage_loss(logits, yb, odds=op_b, y_onehot=yh, kelly_mask=mask_b)
+                elif combined is not None:
                     loss = combined(logits, yb, odds=ob, y_onehot=yh)
                 else:
                     loss = ce(logits, yb)
@@ -261,18 +314,52 @@ class SequencePredictor:
 
             self.model.eval()
             vloss = 0.0
+            val_growth_accum = 0.0
+            val_mask_rows = 0
             with torch.no_grad():
-                for hs, hm, as_, am, yb, _ob in val_loader:
+                for batch in val_loader:
+                    if use_shrinkage:
+                        hs, hm, as_, am, yb, _ob, op_b, mask_b = batch
+                    else:
+                        hs, hm, as_, am, yb, _ob = batch
                     logits = self.model(hs, hm, as_, am)
                     vloss += ce(logits, yb).item() * hs.size(0)
-            vloss /= len(val_ds)
+                    if use_shrinkage:
+                        from football_betting.predict.losses import kelly_growth_metric
 
-            if vloss < best_val:
-                best_val = vloss
+                        probs = torch.softmax(logits, dim=1)
+                        yh = nn.functional.one_hot(yb, num_classes=3).float()
+                        g = kelly_growth_metric(
+                            probs,
+                            op_b,
+                            yh,
+                            mask=mask_b,
+                            f_cap=self.cfg.kelly_f_cap,
+                        )
+                        m_sum = int(mask_b.sum().item())
+                        if m_sum > 0:
+                            val_growth_accum += g * m_sum
+                            val_mask_rows += m_sum
+            vloss /= len(val_ds)
+            val_growth = (val_growth_accum / val_mask_rows) if val_mask_rows > 0 else 0.0
+
+            improved = val_growth > best_growth if use_shrinkage else vloss < best_val
+            if improved:
+                if use_shrinkage:
+                    best_growth = val_growth
+                    best_val = min(best_val, vloss)
+                else:
+                    best_val = vloss
                 best_state = {k: v.detach().clone() for k, v in self.model.state_dict().items()}
 
             if epoch % 5 == 0:
-                console.log(f"SeqModel epoch {epoch}: train={tloss:.4f} val={vloss:.4f}")
+                if use_shrinkage:
+                    console.log(
+                        f"SeqModel epoch {epoch}: train={tloss:.4f} "
+                        f"val={vloss:.4f} growth={val_growth:+.5f}"
+                    )
+                else:
+                    console.log(f"SeqModel epoch {epoch}: train={tloss:.4f} val={vloss:.4f}")
 
         if best_state is not None:
             self.model.load_state_dict(best_state)
@@ -281,6 +368,10 @@ class SequencePredictor:
             "n_train": split,
             "n_val": len(y) - split,
             "best_val_loss": best_val,
+            "best_val_growth": best_growth if use_shrinkage else None,
+            "kelly_mask_coverage": (
+                float(mask_np.mean()) if use_shrinkage and mask_np is not None else None
+            ),
             "backend": backend,
         }
 
