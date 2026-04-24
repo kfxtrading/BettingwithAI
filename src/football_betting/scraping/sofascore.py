@@ -117,11 +117,13 @@ class SofascoreClient:
     # ───────────────────────── HTTP layer ─────────────────────────
 
     def _build_headers(self) -> dict[str, str]:
-        ua = random.choice(self.cfg.user_agents)
+        # NOTE: do not override User-Agent — curl_cffi sets a UA that
+        # matches the impersonated TLS/JA3 fingerprint. A mismatched UA
+        # is the easiest way for Cloudflare to fingerprint us as a bot.
         return {
-            "User-Agent": ua,
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
             "Referer": "https://www.sofascore.com/",
             "Origin": "https://www.sofascore.com",
             "Sec-Fetch-Dest": "empty",
@@ -173,15 +175,21 @@ class SofascoreClient:
                     params=params,
                     headers=self._build_headers(),
                     timeout=self.cfg.timeout_seconds,
-                    impersonate="chrome120",
+                    impersonate="chrome146",
                 )
                 if response.status_code == 200:
                     if use_cache:
                         self.cache.set(url, response.text, params=params, ttl_seconds=cache_ttl)
                     return response.json()
-                if response.status_code in (429, 503):
+                # 403 = Cloudflare challenge / bot wall; 429/503 = rate-limit.
+                # Both deserve a back-off retry with a fresh TLS fingerprint
+                # rather than immediate failure.
+                if response.status_code in (403, 429, 503):
                     wait = self.cfg.retry_backoff_base ** (attempt + 1)
-                    console.log(f"[yellow]Rate limited ({response.status_code}), sleeping {wait}s[/yellow]")
+                    console.log(
+                        f"[yellow]Sofascore HTTP {response.status_code}, "
+                        f"sleeping {wait}s and retrying[/yellow]"
+                    )
                     import time
                     time.sleep(wait)
                     continue
