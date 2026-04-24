@@ -89,6 +89,11 @@ export async function GET(): Promise<Response> {
   lines.push('## Sitemap');
   lines.push(`- ${SITE_URL.replace(/\/$/, '')}/sitemap.xml`);
   lines.push('');
+  lines.push('## Full corpus (llms-full)');
+  lines.push(
+    `- [Full Markdown corpus](${SITE_URL.replace(/\/$/, '')}/llms-full.txt): glossary + Learn articles + homepage FAQ in a single file for AI ingestion`,
+  );
+  lines.push('');
 
   return new Response(lines.join('\n'), {
     headers: {

@@ -14,6 +14,7 @@ import {
   SITE_URL,
   absoluteUrl,
   buildLanguageAlternates,
+  organizationLd,
   softwareApplicationLd,
   webApplicationLd,
 } from '@/lib/seo';
@@ -115,14 +116,6 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const organizationLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: SITE_NAME,
-  url: SITE_URL,
-  logo: absoluteUrl('/og.png'),
-};
-
 const websiteLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
@@ -155,7 +148,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href={API_URL} crossOrigin="anonymous" />
         <JsonLd
-          data={[organizationLd, websiteLd, softwareApplicationLd(), webApplicationLd()]}
+          data={[organizationLd(), websiteLd, softwareApplicationLd(), webApplicationLd()]}
         />
         <script
           dangerouslySetInnerHTML={{

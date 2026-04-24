@@ -3,7 +3,13 @@ import Link from 'next/link';
 import { EditorialPage } from '@/components/EditorialPage';
 import { JsonLd } from '@/components/JsonLd';
 import { KellyCalculator } from '@/components/KellyCalculator';
-import { absoluteUrl, buildMetadata, faqPageLd, localizedPath } from '@/lib/seo';
+import {
+  absoluteUrl,
+  buildMetadata,
+  faqPageLd,
+  howToLd,
+  localizedPath,
+} from '@/lib/seo';
 import { localizedHref } from '@/lib/localizedHref';
 import { locales, type Locale } from '@/lib/i18n';
 
@@ -92,7 +98,41 @@ export default function KellyCalculatorPage({ params }: PageProps) {
         { name: 'Kelly Calculator', path: '/tools/kelly-calculator' },
       ]}
     >
-      <JsonLd data={[webAppLd, faqPageLd(KELLY_FAQS)]} />
+      <JsonLd
+        data={[
+          webAppLd,
+          faqPageLd(KELLY_FAQS),
+          howToLd({
+            name: 'How to size a sports bet with the Kelly criterion',
+            description:
+              'Step-by-step guide to converting bookmaker odds and a calibrated win probability into a recommended fractional-Kelly stake.',
+            totalTime: 'PT3M',
+            url,
+            steps: [
+              {
+                name: 'Pick the odds format',
+                text: 'Switch the calculator between decimal (e.g. 2.10), American (+110, -120) and fractional (11/10) — all formats are converted to decimal internally.',
+              },
+              {
+                name: 'Enter the bookmaker odds',
+                text: 'Use the best available price across your bookmakers. Even small odds improvements compound meaningfully across hundreds of bets.',
+              },
+              {
+                name: 'Enter your win probability',
+                text: 'Use a calibrated probability from a model — not gut feel. The implied probability of the bookmaker odds is shown for comparison.',
+              },
+              {
+                name: 'Set bankroll and Kelly fraction',
+                text: 'Half-Kelly (50%) is the industry-standard default and captures roughly 75% of long-term growth at about 50% of the volatility of full Kelly.',
+              },
+              {
+                name: 'Read the recommended stake',
+                text: 'If the full Kelly stake is zero or negative, the bet is not value — pass. Otherwise, the slider returns the fractional-Kelly stake to wager.',
+              },
+            ],
+          }),
+        ]}
+      />
 
       <p>
         Enter the bookmaker odds and your estimated win probability. The calculator

@@ -12,6 +12,208 @@ export const SITE_URL =
 
 export const SITE_NAME = 'Betting with AI';
 
+/**
+ * Public sameAs profile URLs for the project / founder. Used by Organization
+ * and Person JSON-LD to anchor the brand entity across the web (Wikidata,
+ * Crunchbase, LinkedIn, X, GitHub, …). Configure via env vars so deployments
+ * can override per environment without code changes.
+ */
+function readEnvList(name: string): string[] {
+  const raw = process.env[name];
+  if (!raw) return [];
+  return raw
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+const ORG_SAME_AS_DEFAULT: readonly string[] = [
+  'https://kirchhof.ai',
+];
+
+const PERSON_SAME_AS_DEFAULT: readonly string[] = [];
+
+export const ORG_LEGAL_NAME =
+  process.env.NEXT_PUBLIC_ORG_LEGAL_NAME ?? 'Kirchhof.ai';
+export const ORG_FOUNDER_NAME =
+  process.env.NEXT_PUBLIC_ORG_FOUNDER_NAME ?? 'Marcel Kirchhof';
+export const ORG_FOUNDER_URL =
+  process.env.NEXT_PUBLIC_ORG_FOUNDER_URL ?? absoluteUrl('/about');
+export const ORG_LOGO_URL =
+  process.env.NEXT_PUBLIC_ORG_LOGO_URL ?? absoluteUrl('/og.png');
+export const ORG_LOCATION_LOCALITY =
+  process.env.NEXT_PUBLIC_ORG_LOCALITY ?? 'Wiesenfelden';
+export const ORG_LOCATION_REGION =
+  process.env.NEXT_PUBLIC_ORG_REGION ?? 'Bavaria';
+export const ORG_LOCATION_COUNTRY =
+  process.env.NEXT_PUBLIC_ORG_COUNTRY ?? 'DE';
+
+export function orgSameAs(): readonly string[] {
+  const fromEnv = readEnvList('NEXT_PUBLIC_ORG_SAMEAS');
+  return fromEnv.length > 0 ? fromEnv : ORG_SAME_AS_DEFAULT;
+}
+
+export function personSameAs(): readonly string[] {
+  const fromEnv = readEnvList('NEXT_PUBLIC_PERSON_SAMEAS');
+  return fromEnv.length > 0 ? fromEnv : PERSON_SAME_AS_DEFAULT;
+}
+
+/**
+ * Schema.org Organization JSON-LD describing the publisher entity.
+ * Includes founder, logo, location and sameAs to anchor the brand
+ * across the web for Generative Engine Optimization (GEO).
+ */
+export function organizationLd(): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    legalName: ORG_LEGAL_NAME,
+    url: SITE_URL,
+    logo: ORG_LOGO_URL,
+    description:
+      'Independent publisher of AI-driven football match analytics: calibrated probabilities, value bets and Kelly-sized stake recommendations for the Top 5 European leagues.',
+    foundingDate: process.env.NEXT_PUBLIC_ORG_FOUNDING_DATE,
+    founder: {
+      '@type': 'Person',
+      name: ORG_FOUNDER_NAME,
+      url: ORG_FOUNDER_URL,
+      jobTitle: 'Founder',
+      sameAs: personSameAs(),
+    },
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: ORG_LOCATION_LOCALITY,
+      addressRegion: ORG_LOCATION_REGION,
+      addressCountry: ORG_LOCATION_COUNTRY,
+    },
+    sameAs: orgSameAs(),
+  };
+}
+
+/** Schema.org Person JSON-LD for the founder / About page. */
+export function personLd(): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: ORG_FOUNDER_NAME,
+    url: ORG_FOUNDER_URL,
+    jobTitle: 'Founder',
+    worksFor: {
+      '@type': 'Organization',
+      name: ORG_LEGAL_NAME,
+      url: SITE_URL,
+    },
+    sameAs: personSameAs(),
+  };
+}
+
+type HowToStep = { name: string; text: string; url?: string };
+type HowToInput = {
+  name: string;
+  description: string;
+  steps: readonly HowToStep[];
+  totalTime?: string;
+  url?: string;
+};
+
+/** Schema.org HowTo JSON-LD for tutorial / step-by-step pages. */
+export function howToLd(input: HowToInput): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: input.name,
+    description: input.description,
+    ...(input.totalTime ? { totalTime: input.totalTime } : {}),
+    ...(input.url ? { url: input.url } : {}),
+    step: input.steps.map((step, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: step.name,
+      text: step.text,
+      ...(step.url ? { url: step.url } : {}),
+    })),
+  };
+}
+
+type ArticleInput = {
+  headline: string;
+  description: string;
+  url: string;
+  datePublished: string;
+  dateModified: string;
+  authorName?: string;
+  authorUrl?: string;
+  image?: string;
+  inLanguage?: string;
+};
+
+/** Schema.org Article JSON-LD for blog posts and editorial content. */
+export function articleLd(input: ArticleInput): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: input.headline,
+    description: input.description,
+    url: input.url,
+    datePublished: input.datePublished,
+    dateModified: input.dateModified,
+    inLanguage: input.inLanguage ?? 'en',
+    author: {
+      '@type': 'Person',
+      name: input.authorName ?? ORG_FOUNDER_NAME,
+      url: input.authorUrl ?? ORG_FOUNDER_URL,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: ORG_LEGAL_NAME,
+      url: SITE_URL,
+      logo: { '@type': 'ImageObject', url: ORG_LOGO_URL },
+    },
+    image: input.image ?? absoluteUrl('/og.png'),
+    mainEntityOfPage: input.url,
+  };
+}
+
+type SportsEventInput = {
+  homeTeam: string;
+  awayTeam: string;
+  startDate: string;
+  url?: string;
+  venueName?: string;
+  venueAddress?: string;
+  status?:
+    | 'EventScheduled'
+    | 'EventPostponed'
+    | 'EventCancelled'
+    | 'EventMovedOnline'
+    | 'EventRescheduled';
+};
+
+/** Schema.org SportsEvent JSON-LD for match-preview pages. */
+export function sportsEventLd(input: SportsEventInput): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    name: `${input.homeTeam} vs ${input.awayTeam}`,
+    sport: 'Association football',
+    startDate: input.startDate,
+    eventStatus: `https://schema.org/${input.status ?? 'EventScheduled'}`,
+    homeTeam: { '@type': 'SportsTeam', name: input.homeTeam },
+    awayTeam: { '@type': 'SportsTeam', name: input.awayTeam },
+    ...(input.url ? { url: input.url } : {}),
+    ...(input.venueName
+      ? {
+          location: {
+            '@type': 'Place',
+            name: input.venueName,
+            ...(input.venueAddress ? { address: input.venueAddress } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 /** Schema.org JSON-LD snippet describing the product as a SoftwareApplication. */
 export function softwareApplicationLd(): Record<string, unknown> {
   return {
