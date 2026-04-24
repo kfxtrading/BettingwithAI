@@ -26,8 +26,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -146,10 +144,7 @@ def main() -> int:
             print(f"  [{lg}] FAILED: {exc}")
             continue
 
-        print(
-            f"  val={rep['n_val']}  errors={rep['n_errors']}  "
-            f"top1={rep['top1_accuracy']:.3f}"
-        )
+        print(f"  val={rep['n_val']}  errors={rep['n_errors']}  top1={rep['top1_accuracy']:.3f}")
         print(
             f"  Top {args.top} pairs cover "
             f"{rep['top_pairs_cover_share_of_errors'] * 100:.1f}% of errors"
@@ -161,8 +156,7 @@ def main() -> int:
         print(f"\n  --- Bottom {args.top} intents by recall ---")
         for wi in rep["worst_intents"]:
             print(
-                f"    {wi['intent']:<40} recall={wi['recall']:.2f} "
-                f"({wi['correct']}/{wi['total']})"
+                f"    {wi['intent']:<40} recall={wi['recall']:.2f} ({wi['correct']}/{wi['total']})"
             )
 
         if not args.no_write:

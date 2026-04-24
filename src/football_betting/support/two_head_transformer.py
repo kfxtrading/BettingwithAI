@@ -643,9 +643,7 @@ class TwoHeadTransformerIntentClassifier:
         model.encoder = transformers.AutoModel.from_pretrained(
             directory / "encoder", attn_implementation="eager"
         )
-        heads = torch.load(
-            directory / "heads.pt", map_location="cpu", weights_only=True
-        )
+        heads = torch.load(directory / "heads.pt", map_location="cpu", weights_only=True)
         model.chapter_head.load_state_dict(heads["chapter_head"])
         model.intent_head.load_state_dict(heads["intent_head"])
         inst._model = model

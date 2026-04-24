@@ -1,4 +1,5 @@
 """Aggregate cross-lang chapter-level confusion stats from per-lang JSONs."""
+
 from __future__ import annotations
 
 import json
@@ -65,7 +66,9 @@ def main() -> None:
     print(f"{'=' * 70}")
     summary = json.loads((SUPPORT / "confusion_summary.json").read_text(encoding="utf-8"))
     cross_pairs = summary["cross_lang_top_pairs"]
-    within = sum(pp["count_all_langs"] for pp in cross_pairs if chapter(pp["gold"]) == chapter(pp["pred"]))
+    within = sum(
+        pp["count_all_langs"] for pp in cross_pairs if chapter(pp["gold"]) == chapter(pp["pred"])
+    )
     total = sum(pp["count_all_langs"] for pp in cross_pairs)
     print(
         f"Top-20 cross-lang pairs: {total} total confusions, "
