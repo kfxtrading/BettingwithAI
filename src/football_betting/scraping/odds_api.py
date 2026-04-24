@@ -96,22 +96,36 @@ class FixtureOdds:
         return payload
 
 
+# Process-lifetime set of API keys that have already returned a quota
+# error. We skip them on subsequent requests instead of burning a round
+# trip just to learn they are still exhausted. Cleared on process restart.
+_EXHAUSTED_KEYS: set[str] = set()
+
+
+def _mask_key(key: str) -> str:
+    if len(key) <= 8:
+        return "***"
+    return f"{key[:4]}…{key[-4:]}"
+
+
 @dataclass(slots=True)
 class OddsApiClient:
     cfg: OddsApiConfig = ODDS_API_CFG
 
-    def _require_key(self) -> str:
-        key = self.cfg.api_key
-        if not key:
+    def _candidate_keys(self) -> list[str]:
+        keys = [k for k in self.cfg.api_keys if k not in _EXHAUSTED_KEYS]
+        if not keys:
             raise OddsApiError(
-                "ODDS_API_KEY env var is not set. Get a free key at "
-                "https://the-odds-api.com/ and export ODDS_API_KEY=<key>."
+                "No usable Odds-API key available. Set ODDS_API_KEY and/or "
+                "ODDS_API_FALLBACK_KEYS — every known key is currently "
+                "marked quota-exhausted for this process."
             )
-        return key
+        return keys
 
-    def _get(self, path: str, params: dict[str, Any]) -> Any:
-        url = f"{self.cfg.base_url}{path}"
-        merged = {"apiKey": self._require_key(), **params}
+    def _try_request(
+        self, url: str, params: dict[str, Any], api_key: str
+    ) -> Any:
+        merged = {"apiKey": api_key, **params}
         try:
             r = requests.get(url, params=merged, timeout=self.cfg.timeout_seconds)
         except requests.RequestException as e:
@@ -134,6 +148,37 @@ class OddsApiClient:
         if r.status_code != 200:
             raise OddsApiError(f"Odds API HTTP {r.status_code}: {r.text[:240]}")
         return r.json()
+
+    def _get(self, path: str, params: dict[str, Any]) -> Any:
+        """Execute the request, transparently rotating to a fallback key on
+        quota exhaustion. Only re-raises ``OddsApiQuotaError`` once *every*
+        configured key has been exhausted.
+        """
+        url = f"{self.cfg.base_url}{path}"
+        keys = self._candidate_keys()
+        last_quota_exc: OddsApiQuotaError | None = None
+        for idx, key in enumerate(keys):
+            try:
+                return self._try_request(url, params, key)
+            except OddsApiQuotaError as exc:
+                _EXHAUSTED_KEYS.add(key)
+                last_quota_exc = exc
+                remaining = len(keys) - idx - 1
+                if remaining > 0:
+                    next_key = keys[idx + 1]
+                    import logging as _logging
+                    _logging.getLogger(__name__).warning(
+                        "[odds-api] key %s quota-exhausted — rotating to "
+                        "fallback %s (%d candidate(s) remaining).",
+                        _mask_key(key), _mask_key(next_key), remaining,
+                    )
+                    continue
+                # All keys exhausted — propagate.
+                raise
+        # Defensive — loop always either returns or raises.
+        if last_quota_exc is not None:
+            raise last_quota_exc
+        raise OddsApiError("Odds API request failed: no candidate keys executed")
 
     # ───────────────────────── High-level API ─────────────────────────
 

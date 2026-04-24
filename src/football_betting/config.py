@@ -519,6 +519,32 @@ class OddsApiConfig:
     def api_key(self) -> str | None:
         return os.getenv("ODDS_API_KEY") or None
 
+    @property
+    def fallback_api_keys(self) -> list[str]:
+        """Additional Odds-API keys tried when the primary one is exhausted.
+
+        Comma-separated via env var ``ODDS_API_FALLBACK_KEYS``. The default
+        ships one shared free-tier key so quota exhaustion on the primary
+        key never silently breaks the live-score loop.
+        """
+        raw = os.getenv(
+            "ODDS_API_FALLBACK_KEYS",
+            "b94acc93535fc7a76b87b326a1b71f5c",
+        )
+        return [k.strip() for k in raw.split(",") if k.strip()]
+
+    @property
+    def api_keys(self) -> list[str]:
+        """Ordered list of usable keys: primary first, then fallbacks."""
+        keys: list[str] = []
+        primary = self.api_key
+        if primary:
+            keys.append(primary)
+        for k in self.fallback_api_keys:
+            if k and k not in keys:
+                keys.append(k)
+        return keys
+
 
 # ───────────────────────── The Odds API — Historical (Phase 8) ─────────────────────────
 

@@ -51,37 +51,6 @@ def _refresh_hour_utc() -> int:
     return max(0, min(23, h))
 
 
-def _fetch_fixtures_from_sofascore(
-    today: date, tomorrow: date
-) -> tuple[list[dict], date | None]:
-    """Free fallback: pull fixtures (no odds) from the Sofascore widget.
-
-    Used when the Odds API is missing/exhausted so the landing-page snapshot
-    still has predictions. Odds-dependent value bets will be empty.
-    """
-    try:
-        from football_betting.scraping.sofascore import SofascoreClient
-    except Exception:  # noqa: BLE001
-        logger.exception("[scheduler] Sofascore client unavailable")
-        return ([], None)
-
-    sofa = SofascoreClient()
-    try:
-        fixtures = sofa.fetch_all_leagues_fixtures_for_date(today)
-        target = today
-        if not fixtures:
-            logger.info(
-                "[scheduler] Sofascore: no fixtures for %s — trying %s.",
-                today.isoformat(), tomorrow.isoformat(),
-            )
-            fixtures = sofa.fetch_all_leagues_fixtures_for_date(tomorrow)
-            target = tomorrow
-    except Exception:  # noqa: BLE001
-        logger.exception("[scheduler] Sofascore fixture fetch failed")
-        return ([], None)
-    return (fixtures, target if fixtures else None)
-
-
 def _refresh_blocking() -> None:
     """Sync refresh — call via asyncio.to_thread so it doesn't block the loop."""
     today = date.today()
@@ -89,40 +58,36 @@ def _refresh_blocking() -> None:
 
     payload: list[dict] = []
     target_date: date | None = None
-    source_tag = "odds-api"
 
-    if not ODDS_API_CFG.api_key:
-        logger.info(
-            "[scheduler] ODDS_API_KEY not set — using Sofascore widget for fixtures."
+    if not ODDS_API_CFG.api_keys:
+        logger.warning(
+            "[scheduler] No Odds-API keys configured (ODDS_API_KEY / "
+            "ODDS_API_FALLBACK_KEYS). Skipping snapshot refresh."
         )
-    else:
-        client = OddsApiClient()
-        try:
-            fixtures = client.fetch_all_leagues_for_date(today)
-            target_date = today
-            if not fixtures:
-                logger.info(
-                    "[scheduler] No Odds-API fixtures for %s — trying %s.",
-                    today.isoformat(), tomorrow.isoformat(),
-                )
-                fixtures = client.fetch_all_leagues_for_date(tomorrow)
-                target_date = tomorrow
-            payload = [f.to_fixture_dict() for f in fixtures]
-        except OddsApiQuotaError as exc:
-            logger.error("[scheduler] %s", exc)
-            payload = []
-            target_date = None
-        except OddsApiError as exc:
-            logger.error("[scheduler] Odds API call failed: %s", exc)
-            return
+        return
 
-    if not payload:
-        payload, target_date = _fetch_fixtures_from_sofascore(today, tomorrow)
-        source_tag = "sofascore"
+    client = OddsApiClient()
+    try:
+        fixtures = client.fetch_all_leagues_for_date(today)
+        target_date = today
+        if not fixtures:
+            logger.info(
+                "[scheduler] No Odds-API fixtures for %s — trying %s.",
+                today.isoformat(), tomorrow.isoformat(),
+            )
+            fixtures = client.fetch_all_leagues_for_date(tomorrow)
+            target_date = tomorrow
+        payload = [f.to_fixture_dict() for f in fixtures]
+    except OddsApiQuotaError as exc:
+        logger.error("[scheduler] All Odds-API keys exhausted: %s", exc)
+        return
+    except OddsApiError as exc:
+        logger.error("[scheduler] Odds API call failed: %s", exc)
+        return
 
     if not payload or target_date is None:
         logger.warning(
-            "[scheduler] No fixtures from any source for %s or %s.",
+            "[scheduler] No fixtures from Odds-API for %s or %s.",
             today.isoformat(), tomorrow.isoformat(),
         )
         return
@@ -130,8 +95,8 @@ def _refresh_blocking() -> None:
     fixtures_path = DATA_DIR / f"fixtures_{target_date.isoformat()}.json"
     fixtures_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     logger.info(
-        "[scheduler] (%s) Wrote %d fixtures -> %s",
-        source_tag, len(payload), fixtures_path.name,
+        "[scheduler] (odds-api) Wrote %d fixtures -> %s",
+        len(payload), fixtures_path.name,
     )
 
     snapshot = build_predictions_for_fixtures(payload)
@@ -313,43 +278,28 @@ def _live_display_league_codes() -> set[str]:
 def _settle_live_blocking() -> None:
     """Poll live scores for leagues with pending bets or live matches and re-grade.
 
-    Tries Odds-API /scores first (when a key is configured) and falls back
-    to Sofascore's public scheduled-events widget on quota errors or when
-    no key is set.
+    Uses Odds-API /scores; ``OddsApiClient`` transparently rotates through
+    fallback keys (``ODDS_API_FALLBACK_KEYS``) when the primary key is
+    quota-exhausted.
     """
     try:
         from football_betting.evaluation.pipeline import settle_live
 
         force = _live_display_league_codes()
-        if not ODDS_API_CFG.api_key:
-            try:
-                added, settled = settle_live(
-                    force_leagues=force, use_sofascore=True,
-                )
-            except Exception:  # noqa: BLE001
-                logger.exception("[live-settle] Sofascore fallback failed")
-                return
-            source_tag = "sofascore"
-        else:
-            try:
-                added, settled = settle_live(force_leagues=force)
-                source_tag = "odds-api"
-            except OddsApiQuotaError as exc:
-                logger.error("[live-settle] %s", exc)
-                # Retry via Sofascore so the current iteration still surfaces
-                # fresh live scores to the UI.
-                try:
-                    added, settled = settle_live(
-                        force_leagues=force, use_sofascore=True,
-                    )
-                    source_tag = "sofascore"
-                except Exception:  # noqa: BLE001
-                    logger.exception("[live-settle] Sofascore fallback failed")
-                    return
+        if not ODDS_API_CFG.api_keys:
+            logger.debug(
+                "[live-settle] No Odds-API keys configured — skipping iteration."
+            )
+            return
+        try:
+            added, settled = settle_live(force_leagues=force)
+        except OddsApiQuotaError as exc:
+            logger.error("[live-settle] All Odds-API keys exhausted: %s", exc)
+            return
         if added or settled:
             logger.info(
-                "[live-settle] (%s) +%d live results, %d bet(s) newly settled.",
-                source_tag, added, settled,
+                "[live-settle] +%d live results, %d bet(s) newly settled.",
+                added, settled,
             )
             try:
                 from football_betting.api.services import (
