@@ -595,9 +595,10 @@ def build_predictions_for_fixtures(
     from football_betting.betting.prediction_stakes import allocate_prediction_stakes
     from football_betting.config import PREDICTION_STAKING_CFG
 
+    daily_budget = bankroll * PREDICTION_STAKING_CFG.daily_bankroll_pct
     staking_cfg = replace(
         PREDICTION_STAKING_CFG,
-        daily_bankroll=bankroll,
+        daily_bankroll=daily_budget,
         **({"strategy": staking_strategy} if staking_strategy else {}),
     )
     stakes = allocate_prediction_stakes(predictions, staking_cfg)

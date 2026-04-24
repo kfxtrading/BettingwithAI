@@ -675,6 +675,7 @@ class PredictionStakingConfig:
 
     strategy: Literal["flat", "conf", "power", "hybrid", "entropy"] = "hybrid"
     daily_bankroll: float = 1000.0
+    daily_bankroll_pct: float = 0.05
     power_k: float = 2.0
     odds_floor: float = 2.0
     min_p: float = 0.40
