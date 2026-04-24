@@ -1,4 +1,5 @@
 """Tests for probability calibration."""
+
 from __future__ import annotations
 
 import joblib
@@ -156,9 +157,7 @@ class TestTemperatureCalibrator:
             cal.transform(np.ones((2, 3)) / 3)
 
     def test_tiny_input_safe(self) -> None:
-        cal = TemperatureCalibrator().fit(
-            np.array([[0.5, 0.3, 0.2]]), np.array([0])
-        )
+        cal = TemperatureCalibrator().fit(np.array([[0.5, 0.3, 0.2]]), np.array([0]))
         assert cal.is_fitted
         assert cal.temperature == pytest.approx(1.0)
 

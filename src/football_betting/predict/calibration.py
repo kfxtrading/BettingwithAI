@@ -339,9 +339,7 @@ class TemperatureCalibrator:
         out: np.ndarray = e / e.sum(axis=1, keepdims=True)
         return out
 
-    def transform_single(
-        self, raw_probs: tuple[float, float, float]
-    ) -> tuple[float, float, float]:
+    def transform_single(self, raw_probs: tuple[float, float, float]) -> tuple[float, float, float]:
         arr = np.array([raw_probs])
         out = self.transform(arr)[0]
         return float(out[0]), float(out[1]), float(out[2])

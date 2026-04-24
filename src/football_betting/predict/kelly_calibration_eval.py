@@ -133,7 +133,9 @@ def _mlp_val_slice(league: str) -> ValSlice:
         raw_probs = torch.softmax(logits, dim=1).cpu().numpy()
 
     opening_val, mask_val = _opening_val(matches, split, len(X))
-    return ValSlice(raw_probs=raw_probs, y_val=y[split:], opening_val=opening_val, mask_val=mask_val)
+    return ValSlice(
+        raw_probs=raw_probs, y_val=y[split:], opening_val=opening_val, mask_val=mask_val
+    )
 
 
 def _tab_val_slice(league: str) -> ValSlice:
@@ -157,7 +159,9 @@ def _tab_val_slice(league: str) -> ValSlice:
     raw_probs = predictor._forward_np(X_val_s)
 
     opening_val, mask_val = _opening_val(matches, split, len(X))
-    return ValSlice(raw_probs=raw_probs, y_val=y[split:], opening_val=opening_val, mask_val=mask_val)
+    return ValSlice(
+        raw_probs=raw_probs, y_val=y[split:], opening_val=opening_val, mask_val=mask_val
+    )
 
 
 def _sequence_val_slice(league: str) -> ValSlice:
@@ -191,7 +195,9 @@ def _sequence_val_slice(league: str) -> ValSlice:
         raw_probs = torch.softmax(logits, dim=1).cpu().numpy()
 
     opening_val, mask_val = _opening_val(matches, split, len(y))
-    return ValSlice(raw_probs=raw_probs, y_val=y[split:], opening_val=opening_val, mask_val=mask_val)
+    return ValSlice(
+        raw_probs=raw_probs, y_val=y[split:], opening_val=opening_val, mask_val=mask_val
+    )
 
 
 VAL_LOADERS: dict[str, Any] = {
@@ -238,6 +244,66 @@ def _nll(probs: np.ndarray, y: np.ndarray, eps: float = 1e-12) -> float:
     return float(-np.log(np.clip(probs[rows, y], eps, 1.0)).mean())
 
 
+def _staking_roi_np(
+    probs: np.ndarray,
+    opening_odds: np.ndarray,
+    y: np.ndarray,
+    mask: np.ndarray,
+    f_cap: float = KELLY_F_CAP,
+    min_edge: float = 0.02,
+    eps: float = 1e-6,
+) -> dict[str, float]:
+    """Simulate per-outcome value betting on the eval slice.
+
+    For each row with ``mask=True`` and each of the three outcomes, the
+    Kelly fraction ``f*`` is computed from the opening odds and the model
+    probability. A bet is placed (of size ``f*`` of a unit bankroll) only
+    when the implied edge ``b*p - (1-p)`` exceeds ``min_edge``. Both
+    Kelly-stake ROI and flat-stake ROI (stake=1 if f* > 0) are returned.
+    """
+    if probs.shape[0] == 0 or not mask.any():
+        return {
+            "kelly_roi": 0.0,
+            "flat_roi": 0.0,
+            "n_bets": 0.0,
+            "total_stake": 0.0,
+            "total_profit": 0.0,
+        }
+    p = np.clip(probs, eps, 1.0 - eps)
+    b = np.clip(opening_odds - 1.0, eps, None)  # net odds b = o - 1
+    edge = b * p - (1.0 - p)  # expected value of unit stake
+    f_star = np.clip(edge / b, 0.0, f_cap)
+
+    y_onehot = np.zeros_like(probs)
+    y_onehot[np.arange(probs.shape[0]), y] = 1.0
+    returns = opening_odds * y_onehot - 1.0  # +b on win, -1 on loss
+
+    # Bet mask: row is in-scope (mask) AND edge above threshold.
+    bet_on = (mask[:, None].astype(bool)) & (edge > min_edge) & (f_star > 0.0)
+
+    # Kelly-stake simulation.
+    stakes_k = np.where(bet_on, f_star, 0.0)
+    profits_k = stakes_k * returns
+    total_stake_k = float(stakes_k.sum())
+    total_profit_k = float(profits_k.sum())
+    kelly_roi = total_profit_k / total_stake_k if total_stake_k > 0.0 else 0.0
+
+    # Flat-stake simulation (1 unit per bet flagged).
+    stakes_f = bet_on.astype(np.float64)
+    profits_f = stakes_f * returns
+    total_stake_f = float(stakes_f.sum())
+    total_profit_f = float(profits_f.sum())
+    flat_roi = total_profit_f / total_stake_f if total_stake_f > 0.0 else 0.0
+
+    return {
+        "kelly_roi": float(kelly_roi),
+        "flat_roi": float(flat_roi),
+        "n_bets": float(bet_on.sum()),
+        "total_stake": total_stake_k,
+        "total_profit": total_profit_k,
+    }
+
+
 # ───────────────────────── Calibration variants ─────────────────────────
 
 
@@ -247,10 +313,14 @@ def _score(
     opening: np.ndarray,
     mask: np.ndarray,
 ) -> dict[str, float]:
+    roi = _staking_roi_np(probs, opening, y, mask)
     return {
         "ece": float(expected_calibration_error(probs, y)),
         "kelly_growth": _kelly_growth_np(probs, opening, y, mask),
         "nll": _nll(probs, y),
+        "kelly_roi": roi["kelly_roi"],
+        "flat_roi": roi["flat_roi"],
+        "n_bets": roi["n_bets"],
     }
 
 
@@ -263,9 +333,7 @@ def _fit_variants(
     # min_samples_per_class=50 guard and silently fall back to identity for
     # the rarest class (draws). Lower the threshold so isotonic gets a fair
     # chance; this is a per-method fit on the same data as the other variants.
-    iso = ProbabilityCalibrator(
-        cfg=CalibrationConfig(method="isotonic", min_samples_per_class=10)
-    )
+    iso = ProbabilityCalibrator(cfg=CalibrationConfig(method="isotonic", min_samples_per_class=10))
     iso.fit(calib_probs, calib_y)
     temp = TemperatureCalibrator().fit(calib_probs, calib_y)
     return {"none": None, "isotonic": iso, "temperature": temp}
@@ -301,10 +369,7 @@ def _pick_winner(metrics: dict[str, dict[str, float]]) -> tuple[str, str]:
     else:
         delta_g = metrics[best_method]["kelly_growth"] - base["kelly_growth"]
         delta_e = metrics[best_method]["ece"] - base["ece"]
-        reason = (
-            f"{best_method} beats baseline by +{delta_g:.5f} growth "
-            f"(ECE delta {delta_e:+.4f})"
-        )
+        reason = f"{best_method} beats baseline by +{delta_g:.5f} growth (ECE delta {delta_e:+.4f})"
     return best_method, reason
 
 
@@ -333,9 +398,7 @@ def _persist(
 # ───────────────────────── Driver ─────────────────────────
 
 
-def evaluate_one(
-    league: str, architecture: str, *, verbose: bool = True
-) -> dict[str, Any]:
+def evaluate_one(league: str, architecture: str, *, verbose: bool = True) -> dict[str, Any]:
     ckpt = MODELS_DIR / f"{architecture}_{league}.kelly.pt"
     if not ckpt.exists():
         return {"league": league, "architecture": architecture, "status": "skipped-missing"}
