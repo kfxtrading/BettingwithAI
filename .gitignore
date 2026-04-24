@@ -18,6 +18,9 @@ htmlcov/
 # Training artifacts
 catboost_info/
 
+# Cloud-upload packaging (scripts/pack_cloud_dataset.ps1)
+build/
+
 # Logs
 *.log
 
