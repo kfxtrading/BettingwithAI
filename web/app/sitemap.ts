@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { absoluteUrl, buildLanguageAlternates, localizedPath } from '@/lib/seo';
 import { defaultLocale, locales } from '@/lib/i18n';
 import { LEARN_SLUGS } from '@/content/learn';
+import { GLOSSARY_SLUGS } from '@/content/glossary/en';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -49,6 +50,7 @@ const STATIC_ROUTES: StaticEntry[] = [
   { path: '/leagues', changeFrequency: 'daily', priority: 0.8 },
   { path: '/performance', changeFrequency: 'daily', priority: 0.7 },
   { path: '/learn', changeFrequency: 'weekly', priority: 0.7 },
+  { path: '/glossary', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/responsible-gambling', changeFrequency: 'yearly', priority: 0.4 },
   { path: '/legal/terms', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/legal/privacy', changeFrequency: 'yearly', priority: 0.3 },
@@ -129,6 +131,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: now,
         changeFrequency: 'monthly',
         priority: locale === defaultLocale ? 0.6 : 0.5,
+        alternates: { languages: buildLanguageAlternates(path) },
+      });
+    }
+  }
+
+  for (const slug of GLOSSARY_SLUGS) {
+    const path = `/glossary/${slug}`;
+    for (const locale of locales) {
+      entries.push({
+        url: absoluteUrl(localizedPath(locale, path)),
+        lastModified: now,
+        changeFrequency: 'monthly',
+        priority: locale === defaultLocale ? 0.5 : 0.4,
         alternates: { languages: buildLanguageAlternates(path) },
       });
     }

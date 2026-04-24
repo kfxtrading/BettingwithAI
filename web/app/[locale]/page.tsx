@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { HomeClient } from '@/app/HomeClient';
 import { JsonLd } from '@/components/JsonLd';
+import { FaqSection } from '@/components/FaqSection';
+import { HOME_FAQ, HOME_FAQ_LAST_UPDATED } from '@/content/home-faq';
 import {
   buildMetadata,
   SITE_NAME,
@@ -57,6 +59,12 @@ export default async function HomePage({ params }: PageProps) {
       <HomeClient
         initialToday={initialToday}
         initialLeagues={initialLeagues}
+      />
+      <FaqSection
+        heading="Frequently asked questions"
+        intro="Concise answers to the questions we get most often about the model, the data and how to use the value bets."
+        items={HOME_FAQ}
+        lastUpdated={HOME_FAQ_LAST_UPDATED}
       />
     </>
   );

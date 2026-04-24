@@ -9,7 +9,14 @@ import { CookieConsent } from '@/components/CookieConsent';
 import { SupportChat } from '@/components/SupportChat';
 import { JsonLd } from '@/components/JsonLd';
 import { Providers } from './providers';
-import { SITE_NAME, SITE_URL, absoluteUrl, buildLanguageAlternates } from '@/lib/seo';
+import {
+  SITE_NAME,
+  SITE_URL,
+  absoluteUrl,
+  buildLanguageAlternates,
+  softwareApplicationLd,
+  webApplicationLd,
+} from '@/lib/seo';
 import { defaultLocale, locales, ogLocaleMap } from '@/lib/i18n';
 import { getServerLocale } from '@/lib/i18n/server';
 import { Footer } from '@/components/Footer';
@@ -81,6 +88,15 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+    other: {
+      ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+        ? { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION }
+        : {}),
+    },
+  },
   icons: {
     icon: [
       { url: '/icon', type: 'image/png', sizes: '512x512' },
@@ -138,7 +154,9 @@ export default function RootLayout({
     >
       <head>
         <link rel="preconnect" href={API_URL} crossOrigin="anonymous" />
-        <JsonLd data={[organizationLd, websiteLd]} />
+        <JsonLd
+          data={[organizationLd, websiteLd, softwareApplicationLd(), webApplicationLd()]}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('theme');var m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var d=s?s==='dark':m;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,

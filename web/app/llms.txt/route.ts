@@ -1,6 +1,7 @@
 import { SITE_NAME, SITE_URL, absoluteUrl, localizedPath } from '@/lib/seo';
 import { defaultLocale, locales } from '@/lib/i18n';
 import { LEARN_SLUGS } from '@/content/learn';
+import { GLOSSARY_ENTRIES } from '@/content/glossary/en';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -35,9 +36,21 @@ export async function GET(): Promise<Response> {
   );
   lines.push('');
   lines.push('## Core pages');
-  lines.push(bullet('Today\'s predictions and value bets', '/'));
+  lines.push(bullet('Today\'s predictions and value bets (includes homepage FAQ)', '/'));
   lines.push(bullet('League hub', '/leagues'));
   lines.push(bullet('Performance and accuracy tracker', '/performance'));
+  lines.push(bullet('Glossary — canonical definitions of betting and AI terms', '/glossary'));
+  lines.push('');
+  lines.push('## Methodology signals');
+  lines.push(
+    '- Ensemble: CatBoost gradient boosting + Dixon-Coles Poisson + PyTorch MLP, blended with Dirichlet-tuned weights and isotonic-calibrated.',
+  );
+  lines.push(
+    '- Staking: fractional Kelly (25–50% of full Kelly) on value bets with positive expected value after margin removal.',
+  );
+  lines.push(
+    '- Transparency: every closed bet is tracked with ROI and Closing Line Value on the performance page.',
+  );
   lines.push('');
   lines.push('## Responsible gambling');
   lines.push(bullet('Responsible gambling — helplines and self-exclusion tools', '/responsible-gambling'));
@@ -57,6 +70,15 @@ export async function GET(): Promise<Response> {
   lines.push('## Learn (educational pillar)');
   for (const slug of LEARN_SLUGS) {
     lines.push(bullet(slug.replace(/-/g, ' '), `/learn/${slug}`));
+  }
+  lines.push('');
+  lines.push('## Glossary (canonical definitions)');
+  for (const entry of GLOSSARY_ENTRIES) {
+    lines.push(
+      `- [${entry.term}](${absoluteUrl(
+        localizedPath(defaultLocale, `/glossary/${entry.slug}`),
+      )}): ${entry.shortDefinition}`,
+    );
   }
   lines.push('');
   lines.push('## Localized variants');

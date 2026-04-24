@@ -84,6 +84,20 @@ export default function LearnHubPage({ params }: PageProps) {
             </li>
           ))}
         </ul>
+
+        <aside className="mt-10 border-t border-white/10 pt-6">
+          <p className="text-sm text-muted">
+            Looking for a quick definition instead of a long read?{' '}
+            <Link
+              href={localizedPath(locale, '/glossary')}
+              hrefLang={locale}
+              className="text-accent underline-offset-4 hover:underline"
+            >
+              Browse the glossary
+            </Link>{' '}
+            for concise, citable explanations of every key term.
+          </p>
+        </aside>
       </section>
     </>
   );

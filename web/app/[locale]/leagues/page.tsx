@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { LeaguesClient } from '@/app/leagues/LeaguesClient';
 import { JsonLd } from '@/components/JsonLd';
+import { FaqSection } from '@/components/FaqSection';
+import { LEAGUES_INDEX_FAQ } from '@/content/feature-faq';
 import {
   buildMetadata,
   SITE_NAME,
@@ -68,6 +70,7 @@ export default async function LeaguesPage({ params }: PageProps) {
     <>
       <JsonLd data={[breadcrumbLd, itemListLd]} />
       <LeaguesClient initialSummaries={summaries} />
+      <FaqSection items={LEAGUES_INDEX_FAQ} />
     </>
   );
 }

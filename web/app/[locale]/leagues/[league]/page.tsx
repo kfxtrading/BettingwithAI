@@ -9,6 +9,8 @@ import {
   localizedPath,
 } from '@/lib/seo';
 import { LeagueFixturesWidget } from '@/components/LeagueFixturesWidget';
+import { FaqSection } from '@/components/FaqSection';
+import { LEAGUE_DETAIL_FAQ } from '@/content/feature-faq';
 import {
   fetchLeagueFixturesServer,
   fetchLeagueRatingsServer,
@@ -120,6 +122,10 @@ export default async function LeagueDetailPage({ params }: PageProps) {
           fixtures={fixtures}
         />
       </div>
+      <FaqSection
+        heading={`About the ${name} model`}
+        items={LEAGUE_DETAIL_FAQ}
+      />
     </>
   );
 }

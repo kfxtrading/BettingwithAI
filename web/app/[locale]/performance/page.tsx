@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { PerformanceClient } from '@/app/performance/PerformanceClient';
 import { JsonLd } from '@/components/JsonLd';
+import { FaqSection } from '@/components/FaqSection';
+import { PERFORMANCE_FAQ } from '@/content/feature-faq';
 import { buildMetadata, absoluteUrl, localizedPath } from '@/lib/seo';
 import { getServerDictionary } from '@/lib/i18n/server';
 import type { Locale } from '@/lib/i18n';
@@ -53,6 +55,7 @@ export default async function PerformancePage({ params }: PageProps) {
         initialSummary={initialSummary}
         initialBankroll={initialBankroll}
       />
+      <FaqSection items={PERFORMANCE_FAQ} />
     </>
   );
 }
