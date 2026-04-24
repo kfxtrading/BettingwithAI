@@ -3055,5 +3055,47 @@ def stress_test(
     console.print(table)
 
 
+# ───────────────────────── evaluate-kelly-calibration (Phase D) ─────────────────────────
+
+
+@main.command("evaluate-kelly-calibration")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    default="all",
+    show_default=True,
+    help="League key or 'all' for every supported league.",
+)
+@click.option(
+    "--architecture",
+    "-a",
+    type=click.Choice(["all", "mlp", "tabtransformer", "sequence"], case_sensitive=False),
+    default="all",
+    show_default=True,
+    help="Model family to evaluate (or 'all').",
+)
+def evaluate_kelly_calibration(league: str, architecture: str) -> None:
+    """Phase D — pick best calibration (none/isotonic/temperature) per Kelly model.
+
+    Re-runs each league's val split, scores ECE + Kelly-growth + NLL for
+    all three calibration variants on a held-out half of the val slice,
+    and persists the winner to ``models/<arch>_<league>.kelly.calibrator.joblib``
+    (or deletes it when baseline 'none' wins). Audit JSON lands in
+    ``models/_runs/``.
+    """
+    from football_betting.predict.kelly_calibration_eval import (
+        DEFAULT_ARCHITECTURES,
+        DEFAULT_LEAGUES,
+    )
+    from football_betting.predict.kelly_calibration_eval import (
+        main as run_eval,
+    )
+
+    leagues = DEFAULT_LEAGUES if league.lower() == "all" else (league.upper(),)
+    archs = DEFAULT_ARCHITECTURES if architecture.lower() == "all" else (architecture.lower(),)
+    run_eval(leagues=leagues, architectures=archs)
+
+
 if __name__ == "__main__":
     main()

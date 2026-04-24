@@ -193,12 +193,8 @@ def test_shrinkage_kl_pulls_posterior_toward_market():
 
     # When posterior == market, KL ≈ 0 → beta contribution vanishes.
     aligned_logits = market.log().clone().detach()
-    v_ce_aligned = loss_ce(
-        aligned_logits, labels, odds=odds, y_onehot=yh
-    ).item()
-    v_kl_aligned = loss_kl(
-        aligned_logits, labels, odds=odds, y_onehot=yh
-    ).item()
+    v_ce_aligned = loss_ce(aligned_logits, labels, odds=odds, y_onehot=yh).item()
+    v_kl_aligned = loss_kl(aligned_logits, labels, odds=odds, y_onehot=yh).item()
     assert v_kl_aligned == pytest.approx(v_ce_aligned, abs=1e-5)
 
 

@@ -319,9 +319,7 @@ class TabTransformerPredictor:
                 logits = self.model(xb)
                 if use_shrinkage and shrinkage_loss is not None:
                     yh = nn.functional.one_hot(yb, num_classes=3).float()
-                    loss = shrinkage_loss(
-                        logits, yb, odds=op_b, y_onehot=yh, kelly_mask=mask_b
-                    )
+                    loss = shrinkage_loss(logits, yb, odds=op_b, y_onehot=yh, kelly_mask=mask_b)
                 else:
                     loss = loss_fn(logits, yb)
                 loss.backward()
@@ -365,9 +363,7 @@ class TabTransformerPredictor:
                 if val_growth > best_growth:
                     best_growth = val_growth
                     best_val = min(best_val, val_loss)
-                    best_state = {
-                        k: v.detach().clone() for k, v in self.model.state_dict().items()
-                    }
+                    best_state = {k: v.detach().clone() for k, v in self.model.state_dict().items()}
                     patience = 0
                 else:
                     patience += 1
@@ -377,9 +373,7 @@ class TabTransformerPredictor:
             else:
                 if val_loss < best_val - 1e-5:
                     best_val = val_loss
-                    best_state = {
-                        k: v.detach().clone() for k, v in self.model.state_dict().items()
-                    }
+                    best_state = {k: v.detach().clone() for k, v in self.model.state_dict().items()}
                     patience = 0
                 else:
                     patience += 1

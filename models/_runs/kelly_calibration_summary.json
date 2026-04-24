@@ -1,0 +1,494 @@
+{
+  "summary": {
+    "processed": 15,
+    "by_winner": {
+      "none": 10,
+      "isotonic": 4,
+      "temperature": 1
+    },
+    "skipped": 0,
+    "errors": 0
+  },
+  "runs": [
+    {
+      "league": "BL",
+      "architecture": "mlp",
+      "n_val_total": 169,
+      "n_calib": 84,
+      "n_eval": 85,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.054558202799628745,
+          "kelly_growth": 0.10388582454299253,
+          "nll": 1.0715537071228027
+        },
+        "isotonic": {
+          "ece": 0.1783206799451043,
+          "kelly_growth": 0.06773566476562444,
+          "nll": 1.7161779403686523
+        },
+        "temperature": {
+          "ece": 0.05916201191789963,
+          "kelly_growth": 0.08117518229410052,
+          "nll": 1.067573070526123
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 0.48708894353558235,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "BL",
+      "architecture": "tabtransformer",
+      "n_val_total": 169,
+      "n_calib": 84,
+      "n_eval": 85,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.06982382886550005,
+          "kelly_growth": 0.13888571823070592,
+          "nll": 1.1055861711502075
+        },
+        "isotonic": {
+          "ece": 0.0773393732659957,
+          "kelly_growth": 0.1549403554212083,
+          "nll": 1.7091575860977173
+        },
+        "temperature": {
+          "ece": 0.048922174818375554,
+          "kelly_growth": 0.13829256184399127,
+          "nll": 1.1031770706176758
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 1.1957849065629491,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "BL",
+      "architecture": "sequence",
+      "n_val_total": 169,
+      "n_calib": 84,
+      "n_eval": 85,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.04465169135261983,
+          "kelly_growth": 0.1107249059029581,
+          "nll": 1.0284889936447144
+        },
+        "isotonic": {
+          "ece": 0.11363348680384021,
+          "kelly_growth": 0.11095092213842744,
+          "nll": 1.029718279838562
+        },
+        "temperature": {
+          "ece": 0.034557113226722246,
+          "kelly_growth": 0.11057459030519513,
+          "nll": 1.0296967029571533
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 1.0960549973973723,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "CH",
+      "architecture": "mlp",
+      "n_val_total": 317,
+      "n_calib": 158,
+      "n_eval": 159,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.2607464580415929,
+          "kelly_growth": 0.1094874100301652,
+          "nll": 1.3112481832504272
+        },
+        "isotonic": {
+          "ece": 0.07222276551168669,
+          "kelly_growth": 0.0729004823274723,
+          "nll": 1.8765639066696167
+        },
+        "temperature": {
+          "ece": 0.11850589026445113,
+          "kelly_growth": 0.09045104598538634,
+          "nll": 1.1000068187713623
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 3.936754312046525,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "CH",
+      "architecture": "tabtransformer",
+      "n_val_total": 317,
+      "n_calib": 158,
+      "n_eval": 159,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.059091534442121875,
+          "kelly_growth": 0.10381213025594095,
+          "nll": 1.054187536239624
+        },
+        "isotonic": {
+          "ece": 0.051784793348432334,
+          "kelly_growth": 0.08320316074955286,
+          "nll": 1.199390172958374
+        },
+        "temperature": {
+          "ece": 0.045429058794705386,
+          "kelly_growth": 0.08243985042421136,
+          "nll": 1.0421637296676636
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 1.6232420367426867,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "CH",
+      "architecture": "sequence",
+      "n_val_total": 317,
+      "n_calib": 158,
+      "n_eval": 159,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.1028371367064662,
+          "kelly_growth": 0.08718059649515264,
+          "nll": 1.109044075012207
+        },
+        "isotonic": {
+          "ece": 0.08497123954431063,
+          "kelly_growth": 0.06699411146512618,
+          "nll": 1.2206681966781616
+        },
+        "temperature": {
+          "ece": 0.03151587776418003,
+          "kelly_growth": 0.07993272806769647,
+          "nll": 1.0741016864776611
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 2.927553445425081,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "LL",
+      "architecture": "mlp",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.16672113872020047,
+          "kelly_growth": 0.08107532757534602,
+          "nll": 0.9901000261306763
+        },
+        "isotonic": {
+          "ece": 0.07780585695649975,
+          "kelly_growth": 0.0747097065219673,
+          "nll": 1.2169935703277588
+        },
+        "temperature": {
+          "ece": 0.1387682100322759,
+          "kelly_growth": 0.08098743670559097,
+          "nll": 0.9679044485092163
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 0.7614234685825939,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "LL",
+      "architecture": "tabtransformer",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.16976395750714238,
+          "kelly_growth": 0.08281298013943657,
+          "nll": 1.0644443035125732
+        },
+        "isotonic": {
+          "ece": 0.08983234880126525,
+          "kelly_growth": 0.10379590285576393,
+          "nll": 1.778552532196045
+        },
+        "temperature": {
+          "ece": 0.13667476567152503,
+          "kelly_growth": 0.08190647697633255,
+          "nll": 1.0632944107055664
+        }
+      },
+      "winner": "isotonic",
+      "reason": "isotonic beats baseline by +0.02098 growth (ECE delta -0.0799)",
+      "temperature": 0.9139813360094308,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "LL",
+      "architecture": "sequence",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.13109322296124754,
+          "kelly_growth": 0.08338908712101108,
+          "nll": 1.0236345529556274
+        },
+        "isotonic": {
+          "ece": 0.10806200938804128,
+          "kelly_growth": 0.08593357302178846,
+          "nll": 1.0445476770401
+        },
+        "temperature": {
+          "ece": 0.05520949603241182,
+          "kelly_growth": 0.07963566991248142,
+          "nll": 1.0082852840423584
+        }
+      },
+      "winner": "isotonic",
+      "reason": "isotonic beats baseline by +0.00254 growth (ECE delta -0.0230)",
+      "temperature": 1.8249185723078327,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "PL",
+      "architecture": "mlp",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.06223143205464442,
+          "kelly_growth": 0.09789171648673087,
+          "nll": 1.035685420036316
+        },
+        "isotonic": {
+          "ece": 0.11291830645543392,
+          "kelly_growth": 0.07640427671303258,
+          "nll": 1.053821325302124
+        },
+        "temperature": {
+          "ece": 0.04499106680121376,
+          "kelly_growth": 0.09955096684361452,
+          "nll": 1.0311836004257202
+        }
+      },
+      "winner": "temperature",
+      "reason": "temperature beats baseline by +0.00166 growth (ECE delta -0.0172)",
+      "temperature": 0.5725271997831656,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "PL",
+      "architecture": "tabtransformer",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.1115477188168285,
+          "kelly_growth": 0.09067789371186327,
+          "nll": 1.0601232051849365
+        },
+        "isotonic": {
+          "ece": 0.058027795263539995,
+          "kelly_growth": 0.09582764196653511,
+          "nll": 1.0582585334777832
+        },
+        "temperature": {
+          "ece": 0.07898685753902544,
+          "kelly_growth": 0.0827371386167045,
+          "nll": 1.0554977655410767
+        }
+      },
+      "winner": "isotonic",
+      "reason": "isotonic beats baseline by +0.00515 growth (ECE delta -0.0535)",
+      "temperature": 0.7754346827906898,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "PL",
+      "architecture": "sequence",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.06799972252310994,
+          "kelly_growth": 0.06934282108793192,
+          "nll": 1.0230854749679565
+        },
+        "isotonic": {
+          "ece": 0.101432557696494,
+          "kelly_growth": 0.0596085675408907,
+          "nll": 1.2446377277374268
+        },
+        "temperature": {
+          "ece": 0.06920600271670618,
+          "kelly_growth": 0.06965278038781171,
+          "nll": 1.0214933156967163
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 1.048924247614775,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "SA",
+      "architecture": "mlp",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.08178073446327283,
+          "kelly_growth": 0.11297106915197083,
+          "nll": 1.033572793006897
+        },
+        "isotonic": {
+          "ece": 0.03980708679306173,
+          "kelly_growth": 0.09261607611987079,
+          "nll": 0.9907723665237427
+        },
+        "temperature": {
+          "ece": 0.12920810825356813,
+          "kelly_growth": 0.10266443987803481,
+          "nll": 1.0711849927902222
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 4.274558963954676,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "SA",
+      "architecture": "tabtransformer",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.12107330310010463,
+          "kelly_growth": 0.07797084941102245,
+          "nll": 1.058644413948059
+        },
+        "isotonic": {
+          "ece": 0.06480572992396132,
+          "kelly_growth": 0.08796732357450734,
+          "nll": 1.069404125213623
+        },
+        "temperature": {
+          "ece": 0.10002848617384368,
+          "kelly_growth": 0.07640301657266149,
+          "nll": 1.0572195053100586
+        }
+      },
+      "winner": "isotonic",
+      "reason": "isotonic beats baseline by +0.01000 growth (ECE delta -0.0563)",
+      "temperature": 0.9147117958080482,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    },
+    {
+      "league": "SA",
+      "architecture": "sequence",
+      "n_val_total": 213,
+      "n_calib": 106,
+      "n_eval": 107,
+      "mask_coverage_eval": 1.0,
+      "metrics": {
+        "none": {
+          "ece": 0.05211500475339802,
+          "kelly_growth": 0.08328642816909493,
+          "nll": 0.9985001683235168
+        },
+        "isotonic": {
+          "ece": 0.10219678254885092,
+          "kelly_growth": 0.08808652031296324,
+          "nll": 1.2733187675476074
+        },
+        "temperature": {
+          "ece": 0.06631344166871543,
+          "kelly_growth": 0.07304481499628207,
+          "nll": 0.9875436425209045
+        }
+      },
+      "winner": "none",
+      "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+      "temperature": 1.4070598930814007,
+      "selection": {
+        "growth_margin": 0.0005,
+        "ece_margin": 0.005
+      }
+    }
+  ]
+}

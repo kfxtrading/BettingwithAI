@@ -241,3 +241,107 @@ def reliability_diagram_data(
         "bin_accuracy": np.array(accuracies),
         "bin_count": np.array(counts),
     }
+
+
+# ───────────────────────── Temperature Scaling ─────────────────────────
+
+
+@dataclass(slots=True)
+class TemperatureCalibrator:
+    """Single-parameter temperature scaling for multi-class probabilities.
+
+    Drop-in replacement for :class:`ProbabilityCalibrator` with the same
+    ``fit`` / ``transform`` / ``transform_single`` interface, but fits a
+    **single scalar** ``T > 0`` that divides pseudo-logits ``log(p)``
+    before re-softmax. One degree of freedom → cannot overfit on the
+    small post-Kelly validation slices where isotonic collapses the Kelly
+    edge (Phase D of ``_plans/gpu_kelly_training_plan.md``).
+
+    ``T`` is fit by minimising multi-class NLL on (raw_probs, labels) via
+    a scalar bounded search (no torch dependency — works on CPU in ms).
+
+    Reference: Guo et al. (2017), "On Calibration of Modern Neural Networks".
+    """
+
+    temperature: float = 1.0
+    n_classes: int = 3
+    n_fit: int = 0
+    is_fitted: bool = False
+    ece_before: float | None = None
+    ece_after: float | None = None
+
+    # ───────────────────────── Fit ─────────────────────────
+
+    def fit(self, raw_probs: np.ndarray, y_true: np.ndarray) -> TemperatureCalibrator:
+        """Fit ``T`` on (raw_probs, y_true) by NLL minimisation.
+
+        Parameters
+        ----------
+        raw_probs:
+            ``(n, C)`` post-softmax probabilities.
+        y_true:
+            ``(n,)`` integer class labels in ``[0, C)``.
+        """
+        from scipy.optimize import minimize_scalar
+
+        if raw_probs.ndim != 2:
+            raise ValueError(f"Expected 2-D probs, got shape {raw_probs.shape}")
+        if y_true.ndim != 1 or y_true.shape[0] != raw_probs.shape[0]:
+            raise ValueError(
+                f"labels must be 1D of length {raw_probs.shape[0]}, got {y_true.shape}"
+            )
+
+        self.n_classes = int(raw_probs.shape[1])
+        self.n_fit = int(raw_probs.shape[0])
+
+        # ECE before scaling (raw).
+        self.ece_before = expected_calibration_error(raw_probs, y_true)
+
+        if self.n_fit < 2:
+            # Cannot fit meaningfully; keep T=1.
+            self.temperature = 1.0
+            self.is_fitted = True
+            self.ece_after = self.ece_before
+            return self
+
+        # Pseudo-logits from probs (clipped to avoid log(0)).
+        logits = np.log(np.clip(raw_probs, 1e-12, 1.0)).astype(np.float64)
+        labels = y_true.astype(np.int64)
+
+        def _nll(t: float) -> float:
+            scaled = logits / max(t, 1e-3)
+            # Numerically stable softmax → NLL.
+            z = scaled - scaled.max(axis=1, keepdims=True)
+            e = np.exp(z)
+            log_norm = np.log(e.sum(axis=1)) + scaled.max(axis=1)
+            row_logits = scaled[np.arange(self.n_fit), labels]
+            return float(-(row_logits - log_norm).mean())
+
+        result = minimize_scalar(_nll, bounds=(1e-2, 1e2), method="bounded")
+        self.temperature = float(result.x)
+        self.is_fitted = True
+
+        self.ece_after = expected_calibration_error(self.transform(raw_probs), y_true)
+        return self
+
+    # ───────────────────────── Apply ─────────────────────────
+
+    def transform(self, raw_probs: np.ndarray) -> np.ndarray:
+        """Return temperature-scaled, re-softmaxed probabilities."""
+        if not self.is_fitted:
+            raise RuntimeError("TemperatureCalibrator not fitted.")
+        if raw_probs.ndim != 2:
+            raise ValueError(f"Expected 2-D probs, got shape {raw_probs.shape}")
+
+        logits = np.log(np.clip(raw_probs, 1e-12, 1.0)) / max(self.temperature, 1e-3)
+        z = logits - logits.max(axis=1, keepdims=True)
+        e = np.exp(z)
+        out: np.ndarray = e / e.sum(axis=1, keepdims=True)
+        return out
+
+    def transform_single(
+        self, raw_probs: tuple[float, float, float]
+    ) -> tuple[float, float, float]:
+        arr = np.array([raw_probs])
+        out = self.transform(arr)[0]
+        return float(out[0]), float(out[1]), float(out[2])

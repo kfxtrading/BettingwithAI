@@ -1,0 +1,32 @@
+{
+  "architecture": "tabtransformer",
+  "league": "BL",
+  "mask_coverage_eval": 1.0,
+  "metrics": {
+    "isotonic": {
+      "ece": 0.0773393732659957,
+      "kelly_growth": 0.1549403554212083,
+      "nll": 1.7091575860977173
+    },
+    "none": {
+      "ece": 0.06982382886550005,
+      "kelly_growth": 0.13888571823070592,
+      "nll": 1.1055861711502075
+    },
+    "temperature": {
+      "ece": 0.048922174818375554,
+      "kelly_growth": 0.13829256184399127,
+      "nll": 1.1031770706176758
+    }
+  },
+  "n_calib": 84,
+  "n_eval": 85,
+  "n_val_total": 169,
+  "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+  "selection": {
+    "ece_margin": 0.005,
+    "growth_margin": 0.0005
+  },
+  "temperature": 1.1957849065629491,
+  "winner": "none"
+}

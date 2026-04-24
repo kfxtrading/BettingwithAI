@@ -4,6 +4,7 @@ The real two-head model weighs ~1 GB per language and is slow to load on CI,
 so the tests monkey-patch :func:`football_betting.api.support_service.classify`
 to exercise the routing layer without touching torch.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -55,9 +56,7 @@ def test_support_ask_returns_predictions(
     assert body["predictions"][0]["intent_id"] == "value-bet"
 
 
-def test_support_ask_ood_falls_back(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_support_ask_ood_falls_back(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "football_betting.api.routes.support_service.classify",
         lambda question, lang, top_k: [],

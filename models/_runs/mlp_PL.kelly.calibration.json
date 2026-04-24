@@ -1,0 +1,32 @@
+{
+  "architecture": "mlp",
+  "league": "PL",
+  "mask_coverage_eval": 1.0,
+  "metrics": {
+    "isotonic": {
+      "ece": 0.11291830645543392,
+      "kelly_growth": 0.07640427671303258,
+      "nll": 1.053821325302124
+    },
+    "none": {
+      "ece": 0.06223143205464442,
+      "kelly_growth": 0.09789171648673087,
+      "nll": 1.035685420036316
+    },
+    "temperature": {
+      "ece": 0.04499106680121376,
+      "kelly_growth": 0.09955096684361452,
+      "nll": 1.0311836004257202
+    }
+  },
+  "n_calib": 106,
+  "n_eval": 107,
+  "n_val_total": 213,
+  "reason": "temperature beats baseline by +0.00166 growth (ECE delta -0.0172)",
+  "selection": {
+    "ece_margin": 0.005,
+    "growth_margin": 0.0005
+  },
+  "temperature": 0.5725271997831656,
+  "winner": "temperature"
+}

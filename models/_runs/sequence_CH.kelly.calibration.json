@@ -1,0 +1,32 @@
+{
+  "architecture": "sequence",
+  "league": "CH",
+  "mask_coverage_eval": 1.0,
+  "metrics": {
+    "isotonic": {
+      "ece": 0.08497123954431063,
+      "kelly_growth": 0.06699411146512618,
+      "nll": 1.2206681966781616
+    },
+    "none": {
+      "ece": 0.1028371367064662,
+      "kelly_growth": 0.08718059649515264,
+      "nll": 1.109044075012207
+    },
+    "temperature": {
+      "ece": 0.03151587776418003,
+      "kelly_growth": 0.07993272806769647,
+      "nll": 1.0741016864776611
+    }
+  },
+  "n_calib": 158,
+  "n_eval": 159,
+  "n_val_total": 317,
+  "reason": "kept baseline: no method beats 'none' by +0.0005 growth while staying within 0.005 ECE",
+  "selection": {
+    "ece_margin": 0.005,
+    "growth_margin": 0.0005
+  },
+  "temperature": 2.927553445425081,
+  "winner": "none"
+}

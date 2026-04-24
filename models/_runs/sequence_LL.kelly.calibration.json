@@ -1,0 +1,32 @@
+{
+  "architecture": "sequence",
+  "league": "LL",
+  "mask_coverage_eval": 1.0,
+  "metrics": {
+    "isotonic": {
+      "ece": 0.10806200938804128,
+      "kelly_growth": 0.08593357302178846,
+      "nll": 1.0445476770401
+    },
+    "none": {
+      "ece": 0.13109322296124754,
+      "kelly_growth": 0.08338908712101108,
+      "nll": 1.0236345529556274
+    },
+    "temperature": {
+      "ece": 0.05520949603241182,
+      "kelly_growth": 0.07963566991248142,
+      "nll": 1.0082852840423584
+    }
+  },
+  "n_calib": 106,
+  "n_eval": 107,
+  "n_val_total": 213,
+  "reason": "isotonic beats baseline by +0.00254 growth (ECE delta -0.0230)",
+  "selection": {
+    "ece_margin": 0.005,
+    "growth_margin": 0.0005
+  },
+  "temperature": 1.8249185723078327,
+  "winner": "isotonic"
+}

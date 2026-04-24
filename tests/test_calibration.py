@@ -1,11 +1,13 @@
 """Tests for probability calibration."""
 from __future__ import annotations
 
+import joblib
 import numpy as np
 import pytest
 
 from football_betting.predict.calibration import (
     ProbabilityCalibrator,
+    TemperatureCalibrator,
     expected_calibration_error,
     reliability_diagram_data,
 )
@@ -121,3 +123,63 @@ class TestECE:
         assert "bin_confidence" in data
         # Arrays align
         assert len(data["bin_center"]) == len(data["bin_accuracy"])
+
+
+class TestTemperatureCalibrator:
+    def test_fit_and_transform_shape(self) -> None:
+        probs, labels = _overconfident_probs(300)
+        cal = TemperatureCalibrator().fit(probs, labels)
+        out = cal.transform(probs)
+        assert out.shape == probs.shape
+        np.testing.assert_allclose(out.sum(axis=1), np.ones(out.shape[0]), atol=1e-6)
+        assert cal.is_fitted
+
+    def test_preserves_argmax(self) -> None:
+        """Temperature scaling is monotone → ranking must be preserved."""
+        probs, labels = _overconfident_probs(400)
+        cal = TemperatureCalibrator().fit(probs, labels)
+        before = probs.argmax(axis=1)
+        after = cal.transform(probs).argmax(axis=1)
+        np.testing.assert_array_equal(before, after)
+
+    def test_softens_overconfident(self) -> None:
+        """Overconfident input should yield T > 1 (softening) + lower ECE."""
+        probs, labels = _overconfident_probs(600)
+        cal = TemperatureCalibrator().fit(probs, labels)
+        assert cal.temperature > 1.0
+        assert cal.ece_before is not None and cal.ece_after is not None
+        assert cal.ece_after <= cal.ece_before + 1e-6
+
+    def test_not_fitted_raises(self) -> None:
+        cal = TemperatureCalibrator()
+        with pytest.raises(RuntimeError):
+            cal.transform(np.ones((2, 3)) / 3)
+
+    def test_tiny_input_safe(self) -> None:
+        cal = TemperatureCalibrator().fit(
+            np.array([[0.5, 0.3, 0.2]]), np.array([0])
+        )
+        assert cal.is_fitted
+        assert cal.temperature == pytest.approx(1.0)
+
+    def test_fit_requires_2d(self) -> None:
+        cal = TemperatureCalibrator()
+        with pytest.raises(ValueError):
+            cal.fit(np.array([0.5, 0.3, 0.2]), np.array([0]))
+
+    def test_transform_single(self) -> None:
+        probs, labels = _overconfident_probs(300)
+        cal = TemperatureCalibrator().fit(probs, labels)
+        out = cal.transform_single((0.8, 0.1, 0.1))
+        assert isinstance(out, tuple) and len(out) == 3
+        assert sum(out) == pytest.approx(1.0, abs=1e-6)
+
+    def test_joblib_roundtrip(self, tmp_path) -> None:
+        probs, labels = _overconfident_probs(300)
+        cal = TemperatureCalibrator().fit(probs, labels)
+        path = tmp_path / "temp.joblib"
+        joblib.dump(cal, path)
+        loaded = joblib.load(path)
+        assert loaded.temperature == pytest.approx(cal.temperature)
+        assert loaded.is_fitted
+        np.testing.assert_allclose(loaded.transform(probs), cal.transform(probs))
