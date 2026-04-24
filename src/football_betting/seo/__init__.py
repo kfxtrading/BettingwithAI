@@ -9,6 +9,12 @@ from .match_slugs import (
     find_match_in_snapshot,
     list_upcoming_slugs,
 )
+from .tipster_export import (
+    TipsterPick,
+    export_from_snapshot,
+    render,
+    select_picks,
+)
 from .track_record import (
     CalibrationBucket,
     build_calibration,
@@ -28,4 +34,8 @@ __all__ = [
     "build_wrapper",
     "find_match_in_snapshot",
     "list_upcoming_slugs",
+    "TipsterPick",
+    "export_from_snapshot",
+    "render",
+    "select_picks",
 ]

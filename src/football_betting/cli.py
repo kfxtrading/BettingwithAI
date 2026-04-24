@@ -19,6 +19,7 @@ Commands:
     fb stats             — Show betting performance
     fb update-performance — Refresh public performance-index JSONs
     fb snapshot          — Generate JSON snapshot for the web UI
+    fb tipster-export    — Render today's value bets as tipster-platform posts
     fb serve             — Run the FastAPI server for the web UI
 """
 
@@ -2670,6 +2671,96 @@ def snapshot(fixtures: str | None, bankroll: float, staking_strategy: str | None
             console.log(f"[green]IndexNow notified ({len(urls)} URLs)[/green]")
     except Exception as exc:  # pragma: no cover - never block snapshotting
         console.log(f"[yellow]IndexNow skipped: {exc}[/yellow]")
+
+
+# ───────────────────── tipster-export (Week 3-4 SEO sprint) ─────────────────────
+
+
+@main.command("tipster-export")
+@click.option(
+    "--snapshot",
+    "snapshot_path",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to today.json (defaults to data/snapshots/today.json).",
+)
+@click.option(
+    "--out-dir",
+    "out_dir",
+    type=click.Path(),
+    default="data/tipster",
+    show_default=True,
+    help="Directory to write tipster-<date>.{md,txt,csv,json} files into.",
+)
+@click.option(
+    "--limit",
+    type=int,
+    default=5,
+    show_default=True,
+    help="Maximum number of picks to include (3-5 recommended per playbook).",
+)
+@click.option(
+    "--min-edge-pct",
+    type=float,
+    default=3.0,
+    show_default=True,
+    help="Minimum edge in percentage points for a value bet to qualify.",
+)
+@click.option(
+    "--format",
+    "formats",
+    type=click.Choice(["markdown", "plain", "csv", "json", "all"]),
+    multiple=True,
+    default=("all",),
+    show_default=True,
+    help="Output format(s) to render. Pass --format multiple times.",
+)
+def tipster_export(
+    snapshot_path: str | None,
+    out_dir: str,
+    limit: int,
+    min_edge_pct: float,
+    formats: tuple[str, ...],
+) -> None:
+    """Render today's snapshot as tipster-platform posts (Week 3-4 SEO sprint).
+
+    Produces ready-to-paste markdown / plain text / CSV / JSON variants for
+    Oddspedia, OLBG, ProTipster, Tipstrr, Typersi and Sportytrader. Falls
+    back to top-confidence 1X2 picks when no value bets meet the edge floor.
+
+    A human still reviews and posts the output — auto-posting violates the
+    platforms' TOS.
+    """
+    from football_betting.api.snapshots import today_path
+    from football_betting.seo.tipster_export import export_from_snapshot
+
+    path = Path(snapshot_path) if snapshot_path else Path(today_path())
+    if not path.exists():
+        console.print(f"[red]Snapshot not found: {path}[/red]")
+        raise click.Abort()
+
+    if "all" in formats or not formats:
+        chosen: tuple[str, ...] = ("markdown", "plain", "csv", "json")
+    else:
+        chosen = formats
+
+    written = export_from_snapshot(
+        path,
+        formats=chosen,  # type: ignore[arg-type]
+        output_dir=Path(out_dir),
+        limit=limit,
+        min_edge_pct=min_edge_pct,
+    )
+    if not written:
+        console.print("[yellow]No tipster files written.[/yellow]")
+        return
+
+    table = Table(title="Tipster export", show_lines=False)
+    table.add_column("Format")
+    table.add_column("Path")
+    for fmt, p in written.items():
+        table.add_row(fmt, str(p))
+    console.print(table)
 
 
 # ───────────────────── resolve-sofascore-ids ─────────────────────

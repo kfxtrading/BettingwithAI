@@ -38,6 +38,7 @@ data/monitoring/*.json
 data/backtests/*.json
 data/odds_snapshots/*.parquet
 data/odds_snapshots/_credits.json
+data/tipster/
 # Support FAQ: v3 LLM-paraphrase dataset (39 MB) — reproducible via
 # scripts/augment_support_llm.py (Ollama qwen2.5:7b-instruct, ~7-8 h)
 data/support_faq/dataset_augmented_v3.jsonl
