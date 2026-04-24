@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Support two-head transformer — multilingual re-train (2026-04-24)
+
+Re-trained the two-head (intent + chapter) XLM-R transformer for all five languages on RunPod RTX 4090:
+
+| Lang | macro_f1 | chapter_head_top1 |
+|------|----------|-------------------|
+| de   | 0.5112   | 0.9815 |
+| en   | 0.5135   | 0.9902 |
+| es   | 0.5088   | 0.9832 |
+| fr   | 0.5107   | 0.9792 |
+| it   | 0.5097   | 0.9795 |
+
+- 8 epochs, SupCon loss active, per-language temperature calibration (IT example: T=0.638, ECE 0.0616 → 0.0098).
+- Chapter head at ~98 % top-1 across all languages; intent head ~51 % on the 269-way label space (~52 samples/class).
+- `[WARN] two_head: top1 0.515 below hard floor 0.75` — aspirational hard-floor in `trainer.py`, not blocking; chapter head is the reliable signal.
+- Artefacts (encoder + tokenizer + `heads.pt` + `temperature.json` per language, ~1 GB each) stored locally under `models/support/support_twohead_{de,en,es,fr,it}/`.
+- Added `models/support/support_twohead_*/` to `.gitignore` (size); per-language metrics JSONs (`support_intent_twohead_metrics_{lang}.json`) + combined `support_intent_twohead_metrics.json` are committed for reproducibility.
+
 ## v0.4.0 — Phase 3–5 ML Pipeline Modernization
 
 ### 🚀 New Features
