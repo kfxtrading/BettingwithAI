@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
 
-const STORAGE_KEY = 'theme';
+const STORAGE_KEY = 'theme_v2';
 
 function readInitialTheme(): Theme {
   if (typeof document === 'undefined') return 'light';
