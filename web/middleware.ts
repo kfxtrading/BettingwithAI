@@ -58,6 +58,13 @@ export function middleware(request: NextRequest) {
   const proto = forwardedProto ?? request.nextUrl.protocol.replace(':', '');
   const hostname = host.split(':')[0].toLowerCase();
   const onInternal = isInternalHostname(hostname);
+  // Local dev convenience: when DEV_INTERNAL=1 on localhost, serve both
+  // public and admin routes on the same origin so a single dev server is
+  // enough. Production keeps the strict host-gate (gated on NODE_ENV).
+  const isLocalDev =
+    process.env.NODE_ENV !== 'production' &&
+    process.env.DEV_INTERNAL === '1' &&
+    (hostname === 'localhost' || hostname === '127.0.0.1');
 
   // (0a) HTTPS upgrade applies to everything in production.
   if (FORCE_HTTPS && proto === 'http') {
@@ -80,7 +87,7 @@ export function middleware(request: NextRequest) {
   }
 
   // ── Internal host (dashboard) ────────────────────────────────────────
-  if (onInternal) {
+  if (onInternal && !isLocalDev) {
     // Allow only admin surfaces on the internal hostname. Everything else
     // returns a 404 so the internal origin reveals nothing about the
     // public site.
@@ -103,8 +110,20 @@ export function middleware(request: NextRequest) {
 
   // ── Public host ──────────────────────────────────────────────────────
   // Hide /admin entirely from the public origin: 404 instead of 302.
-  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+  // In local dev (isLocalDev) we keep /admin reachable on the same port.
+  if (
+    !isLocalDev &&
+    (pathname.startsWith('/admin') || pathname.startsWith('/api/admin'))
+  ) {
     return notFound(request);
+  }
+
+  // API routes and /admin pages never take a locale prefix. Without this
+  // guard, a POST to /api/investors would 308 to /de/api/investors and the
+  // browser would re-POST to a non-existent route (404), breaking the
+  // public form. /admin is also locale-free.
+  if (pathname.startsWith('/api/') || pathname.startsWith('/admin')) {
+    return NextResponse.next();
   }
 
   const firstSegment = pathname.split('/')[1] ?? '';

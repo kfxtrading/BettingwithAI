@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { kv } from '@vercel/kv';
 
 export type InquiryStatus = 'new' | 'replied' | 'archived';
 
@@ -38,13 +39,46 @@ export type InquiryInput = {
   user_agent?: string;
 };
 
-const DEFAULT_STORE =
+// KV is used in production (Vercel injects KV_REST_API_*). Local dev without
+// those env vars falls back to a JSON file so `npm run dev` works offline.
+function useKv(): boolean {
+  return !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
+}
+
+const INDEX_KEY = 'inquiries:index';
+const itemKey = (id: string) => `inquiries:item:${id}`;
+
+async function kvList(): Promise<Inquiry[]> {
+  const ids = (await kv.zrange<string[]>(INDEX_KEY, 0, -1, { rev: true })) ?? [];
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => kv.get<Inquiry>(itemKey(id))),
+  );
+  return items.filter((x): x is Inquiry => x !== null);
+}
+
+async function kvGet(id: string): Promise<Inquiry | null> {
+  const v = await kv.get<Inquiry>(itemKey(id));
+  return v ?? null;
+}
+
+async function kvAdd(entry: Inquiry): Promise<void> {
+  const score = Date.parse(entry.created_at);
+  await kv.set(itemKey(entry.id), entry);
+  await kv.zadd(INDEX_KEY, { score, member: entry.id });
+}
+
+async function kvPut(entry: Inquiry): Promise<void> {
+  await kv.set(itemKey(entry.id), entry);
+}
+
+const FILE_STORE =
   process.env.INVESTOR_INQUIRY_STORE ??
   path.join(process.cwd(), 'data', 'investor-inquiries.json');
 
-async function readAll(storePath: string): Promise<Inquiry[]> {
+async function fileReadAll(): Promise<Inquiry[]> {
   try {
-    const raw = await fs.readFile(storePath, 'utf8');
+    const raw = await fs.readFile(FILE_STORE, 'utf8');
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as Inquiry[]) : [];
   } catch (err) {
@@ -53,25 +87,26 @@ async function readAll(storePath: string): Promise<Inquiry[]> {
   }
 }
 
-async function writeAll(storePath: string, items: Inquiry[]): Promise<void> {
-  await fs.mkdir(path.dirname(storePath), { recursive: true });
-  const tmp = `${storePath}.tmp`;
+async function fileWriteAll(items: Inquiry[]): Promise<void> {
+  await fs.mkdir(path.dirname(FILE_STORE), { recursive: true });
+  const tmp = `${FILE_STORE}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(items, null, 2), 'utf8');
-  await fs.rename(tmp, storePath);
+  await fs.rename(tmp, FILE_STORE);
 }
 
 export async function listInquiries(): Promise<Inquiry[]> {
-  const items = await readAll(DEFAULT_STORE);
+  if (useKv()) return kvList();
+  const items = await fileReadAll();
   return items.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 }
 
 export async function getInquiry(id: string): Promise<Inquiry | null> {
-  const items = await readAll(DEFAULT_STORE);
+  if (useKv()) return kvGet(id);
+  const items = await fileReadAll();
   return items.find((x) => x.id === id) ?? null;
 }
 
 export async function addInquiry(input: InquiryInput): Promise<Inquiry> {
-  const items = await readAll(DEFAULT_STORE);
   const entry: Inquiry = {
     id: randomUUID(),
     created_at: new Date().toISOString(),
@@ -87,8 +122,13 @@ export async function addInquiry(input: InquiryInput): Promise<Inquiry> {
     status: 'new',
     replies: [],
   };
-  items.push(entry);
-  await writeAll(DEFAULT_STORE, items);
+  if (useKv()) {
+    await kvAdd(entry);
+  } else {
+    const items = await fileReadAll();
+    items.push(entry);
+    await fileWriteAll(items);
+  }
   return entry;
 }
 
@@ -96,11 +136,18 @@ export async function updateInquiryStatus(
   id: string,
   status: InquiryStatus,
 ): Promise<Inquiry | null> {
-  const items = await readAll(DEFAULT_STORE);
+  if (useKv()) {
+    const existing = await kvGet(id);
+    if (!existing) return null;
+    const updated: Inquiry = { ...existing, status };
+    await kvPut(updated);
+    return updated;
+  }
+  const items = await fileReadAll();
   const idx = items.findIndex((x) => x.id === id);
   if (idx < 0) return null;
   items[idx] = { ...items[idx], status };
-  await writeAll(DEFAULT_STORE, items);
+  await fileWriteAll(items);
   return items[idx];
 }
 
@@ -108,15 +155,26 @@ export async function appendReply(
   id: string,
   reply: Omit<InquiryReply, 'at'>,
 ): Promise<Inquiry | null> {
-  const items = await readAll(DEFAULT_STORE);
+  const full: InquiryReply = { ...reply, at: new Date().toISOString() };
+  if (useKv()) {
+    const existing = await kvGet(id);
+    if (!existing) return null;
+    const updated: Inquiry = {
+      ...existing,
+      status: 'replied',
+      replies: [...existing.replies, full],
+    };
+    await kvPut(updated);
+    return updated;
+  }
+  const items = await fileReadAll();
   const idx = items.findIndex((x) => x.id === id);
   if (idx < 0) return null;
-  const full: InquiryReply = { ...reply, at: new Date().toISOString() };
   items[idx] = {
     ...items[idx],
     status: 'replied',
     replies: [...items[idx].replies, full],
   };
-  await writeAll(DEFAULT_STORE, items);
+  await fileWriteAll(items);
   return items[idx];
 }
