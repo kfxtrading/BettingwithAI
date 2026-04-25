@@ -43,14 +43,19 @@ def snapshot_exists() -> bool:
 
 
 def snapshot_is_stale(refresh_hour_utc: int, now: datetime | None = None) -> bool:
-    """True if today.json is missing or older than the last expected refresh.
+    """True if today.json is missing, empty, or older than the last expected refresh.
 
     The scheduler runs daily at `refresh_hour_utc`. After a restart we want
     to catch up on any missed refresh (crash, port conflict, deploy) instead
-    of idling until the next scheduled run.
+    of idling until the next scheduled run. We also treat an empty snapshot
+    (zero predictions) as stale so a broken morning refresh — e.g. Odds-API
+    outage that returned no fixtures — gets retried automatically on the
+    next deploy/restart instead of leaving the homepage empty all day.
     """
     payload = load_today()
     if payload is None:
+        return True
+    if not payload.predictions:
         return True
     generated = payload.generated_at
     if generated.tzinfo is None:

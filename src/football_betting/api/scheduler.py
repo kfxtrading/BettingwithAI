@@ -481,11 +481,22 @@ async def _prekickoff_loop() -> None:
             logger.exception("[prekickoff] loop iteration failed")
 
 
+def _force_refresh_on_start() -> bool:
+    raw = os.environ.get("FORCE_REFRESH_ON_START", "0").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
 async def start(run_initial_if_stale: bool = True) -> None:
     """Install as a FastAPI startup hook."""
-    if run_initial_if_stale and snapshot_is_stale(_refresh_hour_utc()):
+    force = _force_refresh_on_start()
+    if force:
         logger.info(
-            "[scheduler] Snapshot missing or stale — refreshing now (background)."
+            "[scheduler] FORCE_REFRESH_ON_START=1 — refreshing now (background)."
+        )
+        asyncio.create_task(_refresh_with_verify())
+    elif run_initial_if_stale and snapshot_is_stale(_refresh_hour_utc()):
+        logger.info(
+            "[scheduler] Snapshot missing, empty or stale — refreshing now (background)."
         )
         asyncio.create_task(_refresh_with_verify())
     asyncio.create_task(_daily_loop())
