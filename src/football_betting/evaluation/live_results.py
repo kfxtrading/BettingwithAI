@@ -33,6 +33,7 @@ from football_betting.scraping.odds_api import (
     OddsApiError,
     OddsApiQuotaError,
     ScoreResult,
+    looks_like_quota_error,
 )
 
 logger = logging.getLogger(__name__)
@@ -295,6 +296,8 @@ def poll_and_store_scores(
             # the same key would fail for all of them.
             raise
         except OddsApiError as e:
+            if looks_like_quota_error(e):
+                raise OddsApiQuotaError(str(e)) from e
             logger.warning("[live] Odds API scores failed for %s: %s", league_key, e)
             continue
         for s in scores:

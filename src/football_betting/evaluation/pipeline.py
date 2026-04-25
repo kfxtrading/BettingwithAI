@@ -62,6 +62,7 @@ def settle_live(
         poll_and_store_scores,
         poll_and_store_scores_football_data,
     )
+    from football_betting.scraping.odds_api import OddsApiError, looks_like_quota_error
 
     pending = pending_league_codes()
     forced = set(force_leagues) if force_leagues else set()
@@ -77,7 +78,17 @@ def settle_live(
     if source == "football_data":
         added = poll_and_store_scores_football_data(codes, days_from=days_from)
     else:
-        added = poll_and_store_scores(codes, days_from=days_from)
+        try:
+            added = poll_and_store_scores(codes, days_from=days_from)
+        except OddsApiError as exc:
+            if not looks_like_quota_error(exc):
+                raise
+            logger.warning(
+                "[live] Odds API unavailable/quota exhausted; "
+                "falling back to Football-Data: %s",
+                exc,
+            )
+            added = poll_and_store_scores_football_data(codes, days_from=days_from)
     if pending:
         regrade_all()
         after_pending = len([g for g in _load_current_graded() if g.status == "pending"])

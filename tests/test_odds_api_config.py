@@ -53,15 +53,24 @@ def test_odds_api_disabled_routes_automatic_sources_to_football_data(
     assert live_score_source() == "football_data"
 
 
-def test_explicit_source_overrides_odds_api_disabled(
+def test_odds_api_disabled_blocks_explicit_odds_api_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("ODDS_API_DISABLED", "1")
     monkeypatch.setenv("SNAPSHOT_FIXTURE_SOURCE", "odds_api")
     monkeypatch.setenv("LIVE_SCORE_SOURCE", "odds_api")
 
-    assert snapshot_fixture_source() == "odds_api"
-    assert live_score_source() == "odds_api"
+    assert snapshot_fixture_source() == "football_data"
+    assert live_score_source() == "football_data"
+
+
+def test_non_odds_fixture_source_still_overrides_odds_api_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ODDS_API_DISABLED", "1")
+    monkeypatch.setenv("SNAPSHOT_FIXTURE_SOURCE", "sofascore")
+
+    assert snapshot_fixture_source() == "sofascore"
 
 
 def test_sofascore_can_be_selected_for_fixture_snapshots(

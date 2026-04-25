@@ -120,6 +120,8 @@ def test_settle_live_polls_forced_leagues_without_pending_bets(
         "football_betting.evaluation.grader.GRADED_FILE", tmp_path / "no_graded.jsonl",
     )
     monkeypatch.setattr(live_results, "GRADED_FILE", tmp_path / "no_graded.jsonl")
+    monkeypatch.setenv("ODDS_API_DISABLED", "0")
+    monkeypatch.setenv("LIVE_SCORE_SOURCE", "odds_api")
 
     regrade_calls = {"n": 0}
 

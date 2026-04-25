@@ -79,15 +79,19 @@ def _normalise_score_provider(raw: str | None, default: ScoreProvider) -> ScoreP
 def snapshot_fixture_source() -> FixtureProvider:
     """Provider used by the scheduler / CLI for the daily fixture snapshot."""
     raw = os.getenv("SNAPSHOT_FIXTURE_SOURCE") or os.getenv("FIXTURE_SOURCE")
-    default: FixtureProvider = "football_data" if odds_api_disabled() else "odds_api"
-    return _normalise_fixture_provider(raw, default)
+    selected = _normalise_fixture_provider(raw, "odds_api")
+    if odds_api_disabled() and selected == "odds_api":
+        return "football_data"
+    return selected
 
 
 def live_score_source() -> ScoreProvider:
     """Provider used by the live/result settlement loop."""
     raw = os.getenv("LIVE_SCORE_SOURCE") or os.getenv("SCORE_SOURCE")
-    default: ScoreProvider = "football_data" if odds_api_disabled() else "odds_api"
-    return _normalise_score_provider(raw, default)
+    selected = _normalise_score_provider(raw, "odds_api")
+    if odds_api_disabled() and selected == "odds_api":
+        return "football_data"
+    return selected
 
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
