@@ -134,7 +134,7 @@ export const es: Dictionary = {
   'rail.quick.learn': 'Aprender',
   'rail.quick.trackRecord': 'Historial',
   'footer.text':
-    'Betting with AI · Ensamble CatBoost + Poisson + MLP · Modelo v0.3',
+    'Betting with AI · powered by NOMEN · Football Intelligence v0.3  · Modelo v0.3',
   'footer.col.product': 'Producto',
   'footer.col.about': 'Acerca de',
   'footer.col.legal': 'Aviso legal',
