@@ -38,7 +38,7 @@ export function Nav() {
     <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
       <div className="mx-auto flex w-full max-w-page items-center justify-between gap-2 px-3 py-4 sm:gap-3 sm:px-6 md:gap-8 md:px-12">
         {/* Mobile: logo + primary links */}
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex flex-col items-start gap-1 lg:hidden">
           <Link
             href={href('/')}
             hrefLang={locale}
