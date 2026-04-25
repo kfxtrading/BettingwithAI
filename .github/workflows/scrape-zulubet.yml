@@ -1,0 +1,87 @@
+name: Scrape Zulubet daily tips
+
+# Daily refresh of zulubet.com 1X2 picks for ML training. Past dates never
+# change → we only rescrape the last 3 days (today + yesterday + day-before)
+# so picks updated up to kickoff and tips entered late are captured. The
+# merge step in scripts/scrape_zulubet.py dedupes on (date, home, away) and
+# keeps the latest tip, so the run is idempotent and stays fast (~6 s).
+
+on:
+  schedule:
+    # 23:30 UTC every day — after the European matchday window closes
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: "Number of trailing days to rescrape (incl. today)"
+        required: false
+        default: "3"
+      full_backfill:
+        description: "Re-run full backfill from 2024-01-01 (slow, ~28 min)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape-zulubet
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install package (baseline deps only)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Compute scrape window
+        id: window
+        run: |
+          if [ "${{ github.event.inputs.full_backfill }}" = "true" ]; then
+            echo "start=2024-01-01" >> "$GITHUB_OUTPUT"
+          else
+            days="${{ github.event.inputs.days_back || 3 }}"
+            # bash arithmetic via date -d; days_back=3 -> today minus 2 days
+            offset=$((days - 1))
+            echo "start=$(date -u -d "$offset days ago" +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          fi
+          echo "end=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Scrape Zulubet (${{ steps.window.outputs.start }} → ${{ steps.window.outputs.end }})
+        env:
+          SCRAPING_ENABLED: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          python scripts/scrape_zulubet.py \
+            --start "${{ steps.window.outputs.start }}" \
+            --end   "${{ steps.window.outputs.end }}"
+
+      - name: Commit updated parquet
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/zulubet/zulubet_tips.parquet
+          if git diff --cached --quiet; then
+            echo "No new tips to commit."
+          else
+            stamp=$(date -u +"%Y-%m-%dT%H:%MZ")
+            rows=$(python -c "import pandas as pd; print(len(pd.read_parquet('data/zulubet/zulubet_tips.parquet')))")
+            git commit -m "chore(zulubet): daily tip refresh ${stamp} (rows=${rows}) [skip ci]"
+            git push
+          fi

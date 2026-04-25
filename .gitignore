@@ -32,6 +32,7 @@ data/snapshots/*.json
 !data/snapshots/today.json
 data/sofascore/*.sqlite
 data/sofascore/*.json
+data/zulubet/*.sqlite
 data/weather/*.sqlite
 data/fixtures_*.json
 data/monitoring/*.json

@@ -61,6 +61,7 @@ PROCESSED_DIR = DATA_DIR / "processed"
 PREDICTIONS_DIR = DATA_DIR / "predictions"
 BACKTEST_DIR = DATA_DIR / "backtests"
 SOFASCORE_DIR = DATA_DIR / "sofascore"
+ZULUBET_DIR = DATA_DIR / "zulubet"
 MONITORING_DIR = DATA_DIR / "monitoring"
 SNAPSHOT_DIR = DATA_DIR / "snapshots"
 ODDS_SNAPSHOT_DIR = DATA_DIR / "odds_snapshots"
@@ -75,6 +76,7 @@ for d in (
     PREDICTIONS_DIR,
     BACKTEST_DIR,
     SOFASCORE_DIR,
+    ZULUBET_DIR,
     MONITORING_DIR,
     SNAPSHOT_DIR,
     ODDS_SNAPSHOT_DIR,
@@ -487,6 +489,43 @@ class SofascoreConfig:
     @property
     def enabled(self) -> bool:
         """Opt-in via env var for safety."""
+        return os.getenv("SCRAPING_ENABLED", "0") == "1"
+
+
+# ───────────────────────── Zulubet (1X2 tip archive) ─────────────────────────
+
+
+@dataclass(frozen=True, slots=True)
+class ZulubetConfig:
+    """Scraper config for zulubet.com daily tip pages.
+
+    The site exposes per-day pages at ``/tips-DD-MM-YYYY.html``. The live
+    archive only goes back to 2024-01-01 — earlier dates return HTTP 410.
+    The TLS certificate is currently expired, so requests must skip cert
+    verification.
+    """
+
+    base_url: str = "https://www.zulubet.com"
+    request_delay_seconds: float = 2.0  # ~480 dates ≈ 16 min full backfill
+    timeout_seconds: float = 30.0
+    max_retries: int = 3
+    retry_backoff_base: float = 2.0
+    # Past tip pages never change → cache for a year.
+    cache_ttl_days: int = 365
+    # The page for *today* keeps adding matches throughout the day, so we
+    # must not pin a cache entry to the long TTL — refresh every 30 min.
+    cache_ttl_today_seconds: int = 30 * 60
+    # Earliest date the live server still serves (older URLs return 410).
+    earliest_date: date = date(2024, 1, 1)
+    # curl_cffi browser fingerprint (same as Sofascore — anti-Cloudflare).
+    impersonate: str = field(
+        default_factory=lambda: os.getenv("ZULUBET_IMPERSONATE", "chrome120")
+    )
+    # Cert is expired; we have to skip TLS verification.
+    verify_tls: bool = False
+
+    @property
+    def enabled(self) -> bool:
         return os.getenv("SCRAPING_ENABLED", "0") == "1"
 
 
@@ -932,6 +971,7 @@ SEQUENCE_CFG = SequenceConfig()
 STACKING_CFG = StackingConfig()
 TAB_TRANSFORMER_CFG = TabTransformerConfig()
 SOFASCORE_CFG = SofascoreConfig()
+ZULUBET_CFG = ZulubetConfig()
 WEATHER_CFG = WeatherConfig()
 ODDS_API_CFG = OddsApiConfig()
 ODDS_API_HISTORICAL_CFG = OddsApiHistoricalConfig()
