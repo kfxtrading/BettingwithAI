@@ -24,7 +24,7 @@ export const it: Dictionary = {
   'home.section.predictions.empty.title': 'Nessun pronostico disponibile',
   'home.section.predictions.empty.hint':
     'Genera uno snapshot con `fb snapshot` o inserisci un file di partite in “data/”.',
-  'home.stale.title': 'I pronostici di oggi sono in fase di generazione',
+  'home.stale.title': 'I pronostici di oggi saranno generati tra qualche ora',
   'home.stale.hint':
     'Le quote e i pronostici del modello vengono aggiornati ogni mattina. Ricarica tra qualche minuto.',
   'leagues.label': 'Campionati',

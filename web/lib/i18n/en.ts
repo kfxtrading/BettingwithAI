@@ -935,7 +935,7 @@ export const en: Dictionary = {
   'home.section.predictions.empty.title': 'No predictions available',
   'home.section.predictions.empty.hint':
     'Generate a snapshot with `fb snapshot` or drop a fixtures file into "data/".',
-  'home.stale.title': "Today's predictions are being generated",
+  'home.stale.title': "Today's predictions will be generated in a few hours",
   'home.stale.hint':
     'Fresh odds and model predictions are refreshed every morning. Please reload in a few minutes.',
   'leagues.label': 'Leagues',

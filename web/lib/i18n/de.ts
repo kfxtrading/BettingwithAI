@@ -25,7 +25,7 @@ export const de: Dictionary = {
   'home.section.predictions.empty.title': 'Keine Prognosen verfügbar',
   'home.section.predictions.empty.hint':
     'Erzeuge einen Snapshot mit `fb snapshot` oder lege eine Spielplandatei in „data/“ ab.',
-  'home.stale.title': 'Die Prognosen für heute werden gerade erstellt',
+  'home.stale.title': 'Die Prognosen für heute werden in ein paar Stunden erstellt',
   'home.stale.hint':
     'Aktuelle Quoten und Modell-Prognosen werden jeden Morgen aktualisiert. Bitte in wenigen Minuten neu laden.',
   'leagues.label': 'Ligen',

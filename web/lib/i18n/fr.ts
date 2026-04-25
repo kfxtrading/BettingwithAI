@@ -26,7 +26,7 @@ export const fr: Dictionary = {
   'home.section.predictions.empty.title': 'Aucune prédiction disponible',
   'home.section.predictions.empty.hint':
     'Génère un snapshot avec `fb snapshot` ou dépose un fichier de matchs dans « data/ ».',
-  'home.stale.title': "Les prédictions du jour sont en cours de génération",
+  'home.stale.title': "Les prédictions du jour seront générées dans quelques heures",
   'home.stale.hint':
     'Les cotes et les prédictions du modèle sont actualisées chaque matin. Merci de recharger dans quelques minutes.',
   'leagues.label': 'Championnats',
