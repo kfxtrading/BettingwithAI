@@ -606,7 +606,7 @@ def build_predictions_for_fixtures(
         p.model_copy(
             update={
                 "stake": s,
-                "stake_pct": round(s / bankroll * 100.0, 2) if bankroll > 0 else None,
+                "stake_pct": round(s / daily_budget * 100.0, 2) if daily_budget > 0 else None,
             }
         )
         for p, s in zip(predictions, stakes)

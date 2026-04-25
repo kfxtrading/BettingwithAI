@@ -105,7 +105,7 @@ export function PredictionCard({ prediction }: { prediction: Prediction }) {
           <span>{t('predictionCard.stake')}</span>
           <span className="font-mono text-text">
             {prediction.stake_pct != null
-              ? prediction.stake_pct.toFixed(1)
+              ? `${prediction.stake_pct.toFixed(1)}%`
               : prediction.stake.toFixed(2)}
           </span>
         </div>
