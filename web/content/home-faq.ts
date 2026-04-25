@@ -12,51 +12,46 @@ export const HOME_FAQ: readonly FaqItem[] = [
   {
     question: 'What is Betting with AI?',
     answer:
-      'Betting with AI is an independent, non-affiliate football analytics platform. It publishes calibrated 1X2 probabilities, expected-value bets and Kelly-sized stake recommendations for the Top 5 European leagues — Premier League, La Liga, Bundesliga, Serie A and Ligue 1. The model is a CatBoost gradient-boosting classifier combined with a Dixon-Coles Poisson goal model and a PyTorch MLP, blended through a Dirichlet-tuned ensemble and calibrated with isotonic regression. All predictions are generated from the same pipeline publicly tracked on the performance page.',
+      'Betting with AI is an independent football analytics platform that turns complex match data into clear, structured insights. Instead of relying on gut feeling or hype, the platform provides data-driven probability estimates and identifies selected opportunities where the numbers may suggest potential value. All insights are designed to support smarter decision-making — not to guarantee outcomes. Football remains unpredictable, and every user is responsible for their own choices.',
   },
   {
     question: 'How does AI-based football prediction work on this site?',
     answer:
-      'The pipeline ingests ~10 years of historical match data, current-season form, Pi-Ratings (an Elo successor tuned for football), market odds and optional Sofascore context. Each model outputs home / draw / away probabilities. A Dirichlet-weighted ensemble blends them, and isotonic calibration rescales the distribution so that the stated probabilities match observed frequencies (Expected Calibration Error < 1.5%). Value bets are flagged when the model probability exceeds the market-implied probability (after margin removal) by at least 3 percentage points.',
+      'Our AI-based football prediction system analyzes a wide range of football and market signals to estimate how likely different match outcomes are. The goal is not to predict the future with certainty, but to create a more structured view of a match than simple intuition or public opinion can provide. When the system detects a meaningful difference between its own assessment and the market view, it may highlight the match as a potential value opportunity. All predictions should be seen as analytical guidance, not guaranteed results.',
   },
   {
     question: 'What is a value bet?',
     answer:
-      'A value bet is any wager whose true probability of winning exceeds the bookmaker’s implied probability. Mathematically, (probability × decimal odds) must be greater than 1 — the product is the expected value. Value bets are positive in expectation, not in any single match, and only profitable over hundreds of bets. The platform surfaces value bets after removing the 4–8% bookmaker margin from the market odds, so what is shown is the genuine edge versus the fair price.',
+      'A value bet is a situation where the available odds may be higher than what the data suggests they should be. In simple terms: the platform looks for matches where the market may be underestimating a certain outcome. These opportunities are not guarantees — even strong value bets can lose. The idea is not to win every single bet, but to identify decisions that may be more favorable over time when handled responsibly.',
   },
   {
     question: 'How accurate are the predictions?',
     answer:
-      'Accuracy is measured with the Ranked Probability Score (RPS), Brier score and log-loss, all reported on out-of-sample walk-forward backtests. The current ensemble hits an RPS between 0.195 and 0.210 depending on the league — competitive with the best publicly known models. A transparent live tracker on the performance page shows every closed bet, Closing Line Value (CLV) and rolling ROI, updated after each completed matchday so nothing is cherry-picked.',
+      'Prediction quality is measured over time, not by the result of a single match. Betting with AI focuses on producing well-balanced probability estimates and tracking performance transparently across completed matches. This helps users understand how the platform performs in real conditions rather than relying on isolated wins or losses. Football will always involve uncertainty, so predictions should be viewed as data-driven guidance — not as guaranteed outcomes.',
   },
   {
     question: 'Which data sources are used?',
     answer:
-      'Primary data comes from Football-Data.co.uk match results and market closing odds. Pi-Ratings are computed in-house. Optional enrichment from Sofascore (lineups, missing players, referee) runs only when explicitly enabled and rate-limited to 25 seconds per request. Weather context, where relevant, is pulled from public forecast APIs. No scraping runs without the `SCRAPING_ENABLED=1` opt-in, so data use is conservative and the model remains reproducible from the public CSV feeds alone.',
+      'Betting with AI uses trusted football, match and market-related data to create structured pre-match insights. The platform combines historical results, current football context and available market signals to support its probability assessments. Data is handled carefully and selectively, with the goal of keeping the analysis consistent, responsible and focused on quality rather than noise. We do not disclose every internal data process publicly, but the purpose remains simple: provide clearer, data-driven football insights while respecting uncertainty.',
   },
   {
     question: 'How is the Kelly criterion used for stakes?',
     answer:
-      'Every value bet gets a fractional Kelly stake, capped at 25–50 % of full Kelly. Full Kelly maximises the long-run geometric growth rate of the bankroll but is too volatile for a real human to stomach and too aggressive when model probabilities are uncertain. Fractional Kelly preserves most of the growth advantage while keeping drawdowns manageable. Stakes are expressed in percentage of bankroll, never in currency, so the system scales to any bankroll size.',
+      'The Kelly criterion is used as a responsible staking framework to suggest stake sizes in relation to the user’s bankroll. Instead of recommending fixed amounts, the platform expresses stakes as percentages. This keeps the approach scalable and helps avoid oversized positions. Stake suggestions are designed to support disciplined decision-making, not aggressive risk-taking. Users should always adjust stakes to their own risk tolerance and never bet more than they can afford to lose.',
   },
   {
     question: 'Is the service free?',
     answer:
-      'Yes. Core features — today’s predictions, value bets, Kelly stakes, league overview and the full performance tracker — are free to use without registration and without affiliate redirects. The site does not sell tips, does not take a cut from bookmakers, and does not place bets for users. It is an analytics tool, not a wagering platform.',
+      'Yes — the core version of Betting with AI is currently free to use. Users can access daily football insights, match probabilities and selected value opportunities without registration. The platform is designed as an analytics tool, not as a bookmaker, betting service or affiliate-driven tipster site. In the future, additional premium features may be introduced for users who want deeper analysis, advanced filters or more detailed performance insights. The main goal remains the same: making football data easier to understand and use responsibly.',
   },
   {
     question: 'How does Betting with AI compare to Forebet and Sofascore?',
     answer:
-      'Forebet is a long-running prediction site optimised for hand-written Poisson previews and SEO volume; Sofascore is a scores and stats aggregator, not a prediction tool. Betting with AI is narrower in scope: only the Top 5 European leagues, but every prediction is a calibrated probability distribution from an ensemble model, every value bet has an explicit Kelly stake, and every past bet is tracked publicly with ROI and CLV. The aim is methodological transparency, not content volume.',
-  },
-  {
-    question: 'Why CatBoost instead of XGBoost or logistic regression?',
-    answer:
-      'CatBoost handles categorical features (team, referee, stadium, kickoff day-of-week) natively without lossy one-hot encoding and is robust to the class imbalance typical in 1X2 football markets. On our walk-forward backtests, CatBoost beats XGBoost by roughly 0.003 RPS and logistic regression by roughly 0.012 RPS, with identical calibration and shorter training time. The gradient-boosted output is further blended with the Dixon-Coles Poisson model, which anchors predictions to the goal-generating process.',
+      'Betting with AI is built with a different focus. Many football platforms are designed around live scores, broad statistics or high-volume match previews. Betting with AI focuses more narrowly on structured football analysis, probability-based insights and selected value opportunities. The goal is not to cover everything, but to make each prediction easier to understand, easier to compare and more transparent over time. It is designed for users who want a clean, data-driven view rather than generic football content.',
   },
   {
     question: 'How often is the snapshot updated?',
     answer:
-      'A fresh snapshot is generated each day, typically between 08:00 and 09:00 UTC once the latest odds are available. Value bets use the closing odds from the snapshot time, so displayed edges are conservative rather than optimistic. If you arrive before the daily snapshot has finished, an explicit stale-notice is shown and no stale numbers are served. Live matches are refreshed every 20–30 seconds while a game is in progress.',
+      'Betting with AI is updated regularly to keep match insights as current and useful as possible. Predictions are typically refreshed once new daily football and market information becomes available. During active match periods, selected information may update more frequently where relevant. If an update is still in progress or data is not fully current, the platform aims to make this clear instead of showing outdated insights without context.',
   },
 ];
