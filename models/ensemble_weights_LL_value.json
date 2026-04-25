@@ -15,7 +15,8 @@
       "mlp",
       "sequence"
     ],
+    "calibration_method": "auto",
     "score_key": "best_clv_mean",
-    "score_value": -0.004762152523450668
+    "score_value": -0.004559583393139627
   }
 }

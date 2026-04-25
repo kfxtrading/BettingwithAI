@@ -1,6 +1,6 @@
 {
-  "league_key": "BL",
-  "purpose": "1x2",
+  "league_key": "CH",
+  "purpose": "value",
   "model_kind": "ensemble",
   "active_members": [
     "catboost",

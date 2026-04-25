@@ -1,8 +1,8 @@
 {
-  "w_catboost": 0.11374157884621605,
-  "w_poisson": 0.7455224608974832,
-  "w_mlp": 0.031236252008694843,
-  "w_sequence": 0.10949970824760591,
+  "w_catboost": 0.6739315046213843,
+  "w_poisson": 0.256249210195972,
+  "w_mlp": 0.03587030506541315,
+  "w_sequence": 0.03394898011723049,
   "metadata": {
     "league": "PL",
     "purpose": "1x2",
@@ -15,7 +15,8 @@
       "mlp",
       "sequence"
     ],
+    "calibration_method": "auto",
     "score_key": "best_clv_mean",
-    "score_value": 5.129847432911088e-05
+    "score_value": 0.006646129017222187
   }
 }

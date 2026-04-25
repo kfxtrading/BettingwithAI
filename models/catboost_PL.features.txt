@@ -82,3 +82,12 @@ market_margin
 market_fav_ratio
 home_point_ded
 away_point_ded
+weather_temp_c
+weather_wbgt
+weather_precip_mm
+weather_wind_kmh
+weather_wind_gust_kmh
+weather_humidity_pct
+weather_pressure_hpa
+weather_cloud_cover_pct
+weather_is_extreme

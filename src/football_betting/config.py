@@ -278,7 +278,7 @@ class FeatureConfig:
     use_market_movement: bool = True  # v0.3
     use_market_microstructure: bool = False  # Phase 8 — opt-in, needs backfill
     use_weather: bool = (
-        False  # v0.4: disabled pending unsupervised effect study (fb weather-effect-study)
+        True  # v0.4 Phase 1: Familie A match-day weather enabled (Roadmap 2026-04-23)
     )
     use_standings: bool = False  # v0.4: A/B test — disabled to isolate CLV regression
 
