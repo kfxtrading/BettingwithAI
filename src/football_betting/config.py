@@ -479,7 +479,7 @@ class WeatherConfig:
 
     enabled: bool = True
     use_match_day_weather: bool = True  # Familie A — active
-    use_weather_shock: bool = False  # Familie B — inactive (regresses CLV on 2024-25; needs permutation-importance filter before re-enabling)
+    use_weather_shock: bool = False  # Familie B — Phase 3 evaluated 2026-04-25: net CLV −101 bp on 2024-25 (PL 1x2 −61 bp, SA value −43 bp). Importance present but markets price it in. Rolled back; re-evaluate after Phase 5/6 walk-forward.
     use_simons_signal: bool = False  # Familie C — inactive (control hypothesis; re-enable only for the Phase 6 permutation test)
 
     # ±hours around kickoff to average hourly observations
