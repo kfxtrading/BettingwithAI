@@ -102,3 +102,8 @@ logs/
 
 # Local model rollback backups (e.g. models/_backup_phase1_YYYYMMDD_HHMMSS/)
 models/_backup_*/
+
+# Runtime PII / consent data (locally generated, never commit)
+data/consents.json
+web/data/
+
