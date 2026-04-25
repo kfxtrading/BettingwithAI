@@ -1,14 +1,10 @@
 {
-  "w_catboost": 0.02070833099384603,
-  "w_poisson": 0.013718750102280646,
-  "w_mlp": 0.9229399243706706,
-  "w_sequence": 0.04263299453320276,
   "metadata": {
-    "league": "CH",
+    "note": "Original 25.04 weights gave w_mlp=0.92 with broken MLP -> uniform output. Manual rebalance favoring CatBoost (best raw spread).",
+    "objective": "manual",
     "purpose": "1x2",
-    "val_season": "2024-25",
-    "objective": "clv",
-    "blend": null,
+    "league": "CH",
+    "val_season": "manual_override_2026-04-25",
     "active_members": [
       "catboost",
       "poisson",
@@ -16,7 +12,12 @@
       "sequence"
     ],
     "calibration_method": "auto",
-    "score_key": "best_clv_mean",
-    "score_value": -0.014670282193081863
-  }
+    "blend": null,
+    "score_key": "manual",
+    "score_value": 0.0
+  },
+  "w_catboost": 0.5,
+  "w_poisson": 0.2,
+  "w_mlp": 0.15,
+  "w_sequence": 0.15
 }
