@@ -29,9 +29,13 @@ function pickUpcoming(
       return { p, t };
     })
     .filter((x) => {
-      // Hide matches that ended more than 105 min ago; keep entries without
-      // a parseable kickoff_utc so at least the pairing is visible.
-      if (Number.isFinite(x.t) && x.t < now.getTime() - 105 * 60_000) return false;
+      // Never hide matches the backend still flags as live — kickoff+offset
+      // misses long halftimes and injury time (drops games at ~min 85).
+      if (
+        !x.p.is_live
+        && Number.isFinite(x.t)
+        && x.t < now.getTime() - 150 * 60_000
+      ) return false;
       const key = matchKey(x.p);
       if (seen.has(key)) return false;
       seen.add(key);
