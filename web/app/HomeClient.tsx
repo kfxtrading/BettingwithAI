@@ -125,7 +125,6 @@ export function HomeClient({
           />
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">{t('home.stale.title')}</p>
-            <p className="text-sm text-muted">{t('home.stale.hint')}</p>
           </div>
         </div>
       )}
