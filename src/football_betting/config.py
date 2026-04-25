@@ -470,6 +470,12 @@ class SofascoreConfig:
     retry_backoff_base: float = 2.0  # seconds
     cache_ttl_days: int = 7
     cache_ttl_live_days: int = 0  # live match data → no cache
+    # curl_cffi browser fingerprint. Sofascore's Cloudflare wall blocks
+    # specific JA3/TLS fingerprints — rotate via SOFASCORE_IMPERSONATE
+    # without redeploying when one stops working.
+    impersonate: str = field(
+        default_factory=lambda: os.getenv("SOFASCORE_IMPERSONATE", "chrome120")
+    )
     # Browser-like headers to bypass basic bot detection
     user_agents: tuple[str, ...] = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

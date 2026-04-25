@@ -175,16 +175,23 @@ class SofascoreClient:
                     params=params,
                     headers=self._build_headers(),
                     timeout=self.cfg.timeout_seconds,
-                    impersonate="chrome146",
+                    impersonate=self.cfg.impersonate,
                 )
                 if response.status_code == 200:
                     if use_cache:
                         self.cache.set(url, response.text, params=params, ttl_seconds=cache_ttl)
                     return response.json()
-                # 403 = Cloudflare challenge / bot wall; 429/503 = rate-limit.
-                # Both deserve a back-off retry with a fresh TLS fingerprint
-                # rather than immediate failure.
-                if response.status_code in (403, 429, 503):
+                # 403 = Cloudflare bot wall: same TLS fingerprint on retry
+                # won't change the verdict — fail fast so callers (e.g. the
+                # per-fixture event-id lookup during snapshot refresh) don't
+                # spend ~30s per call in a useless backoff loop.
+                if response.status_code == 403:
+                    console.log(
+                        f"[yellow]Sofascore HTTP 403 (bot wall) for {url} — giving up[/yellow]"
+                    )
+                    return None
+                # 429/503 are real rate-limits: backoff is meaningful here.
+                if response.status_code in (429, 503):
                     wait = self.cfg.retry_backoff_base ** (attempt + 1)
                     console.log(
                         f"[yellow]Sofascore HTTP {response.status_code}, "
