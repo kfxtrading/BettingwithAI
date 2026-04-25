@@ -6,6 +6,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { stripLocale } from '@/lib/seo';
 import type { DictionaryKey } from '@/lib/i18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { BrandLogo } from './BrandLogo';
 
 const BREADCRUMB_LABELS: Record<string, DictionaryKey> = {
   performance: 'nav.performance',
@@ -40,9 +41,9 @@ export function Nav() {
           <Link
             href={href('/')}
             hrefLang={locale}
-            className="focus-ring flex items-baseline gap-2 text-base font-medium tracking-tight"
+            className="focus-ring flex items-center gap-2 text-base font-medium tracking-tight"
           >
-            <span className="inline-block h-2 w-2 rounded-full bg-accent" />
+            <BrandLogo size={18} title="Betting with AI" />
             Betting with AI
           </Link>
         </div>

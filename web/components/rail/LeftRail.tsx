@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { BrandLogo } from '@/components/BrandLogo';
 import { RailQuickLinks } from './RailQuickLinks';
 import { RailSpaces } from './RailSpaces';
 import { RailTodayFeed } from './RailTodayFeed';
@@ -19,9 +20,9 @@ export function LeftRail() {
       <Link
         href={href('/')}
         hrefLang={locale}
-        className="focus-ring flex items-baseline gap-2 px-3 text-base font-medium tracking-tight"
+        className="focus-ring flex items-center gap-2 px-3 text-base font-medium tracking-tight"
       >
-        <span className="inline-block h-2 w-2 rounded-full bg-accent" />
+        <BrandLogo size={18} title="Betting with AI" />
         Betting with AI
       </Link>
 
