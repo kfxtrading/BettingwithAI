@@ -8,3 +8,6 @@
 {"league": "SA", "date": "2026-04-18", "home": "Roma", "away": "Atalanta", "timestamp": "2026-04-18T15:37:58", "home_odds": 2.475, "draw_odds": 3.35, "away_odds": 2.92, "bookmaker": "avg"}
 {"league": "SA", "date": "2026-04-18", "home": "Napoli", "away": "Lazio", "timestamp": "2026-04-20T14:50:45", "home_odds": 1.52, "draw_odds": 4.05, "away_odds": 7.4, "bookmaker": "avg"}
 {"league": "SA", "date": "2026-04-18", "home": "Roma", "away": "Atalanta", "timestamp": "2026-04-20T14:50:45", "home_odds": 2.475, "draw_odds": 3.35, "away_odds": 2.92, "bookmaker": "avg"}
+{"league": "SA", "date": "2026-04-25", "home": "Parma", "away": "Pisa", "timestamp": "2026-04-25T11:06:50", "home_odds": 2.31, "draw_odds": 3.0, "away_odds": 3.55, "bookmaker": "avg"}
+{"league": "SA", "date": "2026-04-25", "home": "Bologna", "away": "Roma", "timestamp": "2026-04-25T11:06:50", "home_odds": 3.35, "draw_odds": 3.25, "away_odds": 2.275, "bookmaker": "avg"}
+{"league": "SA", "date": "2026-04-25", "home": "Verona", "away": "Lecce", "timestamp": "2026-04-25T11:06:50", "home_odds": 2.505, "draw_odds": 2.95, "away_odds": 3.215, "bookmaker": "avg"}
