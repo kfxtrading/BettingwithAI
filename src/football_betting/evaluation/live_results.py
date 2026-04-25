@@ -1,4 +1,4 @@
-"""Live match-result settlement via The Odds API `/scores` endpoint.
+"""Live match-result settlement via The Odds API or Football-Data CSVs.
 
 Maintains ``data/live_scores.jsonl`` — one row per completed fixture keyed
 by ``(league_code, date, home_norm, away_norm)``. This file is merged into
@@ -20,10 +20,11 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, datetime
+from datetime import date as date_cls
 from pathlib import Path
-from typing import Iterable
 
 from football_betting.config import DATA_DIR, LEAGUES
 from football_betting.evaluation.grader import GRADED_FILE, _norm, load_graded
@@ -55,7 +56,7 @@ class LiveScoreRow:
     status: str = "completed"  # "completed" | "live"
     kickoff_utc: str | None = None  # ISO UTC of kickoff
 
-    def key(self) -> tuple[str, date, str, str]:
+    def key(self) -> tuple[str, date_cls, str, str]:
         return (
             self.league_code,
             datetime.strptime(self.date, "%Y-%m-%d").date(),
@@ -130,14 +131,14 @@ def _write_rows(rows: Iterable[LiveScoreRow]) -> None:
 
 def load_live_results_for_code(
     code: str,
-) -> dict[tuple[date, str, str], tuple[str, int, int]]:
+) -> dict[tuple[date_cls, str, str], tuple[str, int, int]]:
     """Return {(date, home_norm, away_norm): (ftr, fthg, ftag)} for a league code.
 
     Shape matches :func:`grader._load_results_for_league` so it can be merged.
     Only *completed* rows are returned — live-in-progress matches must never
     leak into the grading pipeline (would prematurely settle bets).
     """
-    out: dict[tuple[date, str, str], tuple[str, int, int]] = {}
+    out: dict[tuple[date_cls, str, str], tuple[str, int, int]] = {}
     for r in _load_rows():
         if r.league_code != code:
             continue
@@ -153,13 +154,13 @@ def load_live_results_for_code(
 
 def load_live_matches_for_code(
     code: str,
-) -> dict[tuple[date, str, str], tuple[str, str, int, int]]:
+) -> dict[tuple[date_cls, str, str], tuple[str, str, int, int]]:
     """Return {(date, home_norm, away_norm): (status, ftr, fthg, ftag)} for a league.
 
     Includes BOTH live and completed rows. Used by the API anrichment layer
     to surface Live / Tipp-richtig badges on the homepage.
     """
-    out: dict[tuple[date, str, str], tuple[str, str, int, int]] = {}
+    out: dict[tuple[date_cls, str, str], tuple[str, str, int, int]] = {}
     for r in _load_rows():
         if r.league_code != code:
             continue
@@ -192,7 +193,7 @@ def pending_league_codes() -> set[str]:
 
 
 def _now_utc_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace(
         "+00:00", "Z"
     )
 
@@ -205,11 +206,11 @@ def _score_to_row(s: ScoreResult, code: str) -> LiveScoreRow | None:
     not yet completed (includes half-time / in-play). Future-scheduled
     matches (kickoff still in the future) yield ``None``.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     kickoff_iso: str | None = None
     if s.kickoff_utc is not None:
         kickoff_iso = (
-            s.kickoff_utc.astimezone(timezone.utc)
+            s.kickoff_utc.astimezone(UTC)
             .isoformat()
             .replace("+00:00", "Z")
         )
@@ -330,6 +331,73 @@ def poll_and_store_scores(
     return added + updated
 
 
+def poll_and_store_scores_football_data(
+    league_codes: Iterable[str] | None = None,
+    *,
+    days_from: int = 3,
+    refresh: bool = True,
+) -> int:
+    """Refresh Football-Data CSVs and persist recently completed results.
+
+    Football-Data is not a live in-play source, so this writes only
+    ``status="completed"`` rows. It is intended for TheOdds-free operation
+    where the evening CSV refresh is enough to settle bets and update the UI.
+    """
+    from football_betting.data.football_data import load_completed_results
+
+    codes = list(league_codes) if league_codes is not None else [
+        cfg.code for cfg in LEAGUES.values()
+    ]
+    if not codes:
+        return 0
+
+    existing = {r.key(): r for r in _load_rows()}
+    added = 0
+    updated = 0
+    rows = load_completed_results(
+        league_codes=codes,
+        days_from=days_from,
+        refresh=refresh,
+    )
+    for item in rows:
+        row = LiveScoreRow(
+            league_code=str(item["league_code"]),
+            date=str(item["date"]),
+            home_norm=_norm(str(item["home_team"])),
+            away_norm=_norm(str(item["away_team"])),
+            ftr=str(item["ftr"]),
+            fthg=int(item["fthg"]),
+            ftag=int(item["ftag"]),
+            source="football_data",
+            fetched_at=_now_utc_iso(),
+            status="completed",
+            kickoff_utc=item.get("kickoff_utc"),
+        )
+        prev = existing.get(row.key())
+        if prev is None:
+            existing[row.key()] = row
+            added += 1
+            continue
+        score_changed = (prev.ftr, prev.fthg, prev.ftag, prev.status) != (
+            row.ftr,
+            row.fthg,
+            row.ftag,
+            row.status,
+        )
+        if score_changed:
+            existing[row.key()] = row
+            updated += 1
+
+    if added or updated:
+        _write_rows(existing.values())
+        logger.info(
+            "[live] Football-Data added %d new + %d corrected completed results",
+            added,
+            updated,
+        )
+    return added + updated
+
+
 __all__ = [
     "LIVE_SCORES_FILE",
     "LiveScoreRow",
@@ -337,4 +405,5 @@ __all__ = [
     "load_live_results_for_code",
     "pending_league_codes",
     "poll_and_store_scores",
+    "poll_and_store_scores_football_data",
 ]

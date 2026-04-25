@@ -277,50 +277,88 @@ def scrape(
     default=None,
     help="Output path (default: data/fixtures_<date>.json).",
 )
-def fetch_fixtures(target_date: str | None, league: str, out: str | None) -> None:
-    """Pull scheduled fixtures + consensus odds from The Odds API."""
+@click.option(
+    "--source",
+    type=click.Choice(["odds_api", "football_data", "sofascore"], case_sensitive=False),
+    default=None,
+    help="Fixture provider (default: env SNAPSHOT_FIXTURE_SOURCE / ODDS_API_DISABLED).",
+)
+def fetch_fixtures(
+    target_date: str | None,
+    league: str,
+    out: str | None,
+    source: str | None,
+) -> None:
+    """Pull scheduled fixtures from the configured fixture source."""
     from datetime import date as date_cls
 
-    from football_betting.config import DATA_DIR
+    from football_betting.config import DATA_DIR, snapshot_fixture_source
     from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
 
     day = date_cls.fromisoformat(target_date) if target_date else date_cls.today()
     keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+    selected_source = (source.lower() if source else snapshot_fixture_source())
 
-    client = OddsApiClient()
-    try:
-        fixtures = client.fetch_all_leagues_for_date(day, leagues=keys)
-    except OddsApiError as exc:
-        console.print(f"[red]Odds API error: {exc}[/red]")
-        raise click.Abort() from exc
+    if selected_source == "football_data":
+        from football_betting.data.football_data import load_fixtures_for_date
 
-    if not fixtures:
+        payload = load_fixtures_for_date(day, leagues=keys, refresh=True)
+    elif selected_source == "sofascore":
+        import os as _os
+
+        if _os.environ.get("SCRAPING_ENABLED") != "1":
+            console.print(
+                "[red]Sofascore fixture source requires SCRAPING_ENABLED=1.[/red]"
+            )
+            raise click.Abort()
+        payload = SofascoreClient().fetch_all_leagues_fixtures_for_date(day, leagues=keys)
+    else:
+        client = OddsApiClient()
+        try:
+            fixtures = client.fetch_all_leagues_for_date(day, leagues=keys)
+        except OddsApiError as exc:
+            console.print(f"[red]Odds API error: {exc}[/red]")
+            raise click.Abort() from exc
+        payload = [f.to_fixture_dict() for f in fixtures]
+
+    if not payload:
         console.print(
             f"[yellow]No fixtures found for {day.isoformat()} in leagues "
-            f"{', '.join(keys)}.[/yellow]"
+            f"{', '.join(keys)} via {selected_source}.[/yellow]"
         )
         raise click.Abort()
 
-    payload = [f.to_fixture_dict() for f in fixtures]
     out_path = Path(out) if out else DATA_DIR / f"fixtures_{day.isoformat()}.json"
     out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-    table = Table(title=f"Fixtures — {day.isoformat()}")
+    table = Table(title=f"Fixtures — {day.isoformat()} ({selected_source})")
     table.add_column("League")
     table.add_column("Kickoff")
     table.add_column("Match")
     table.add_column("Odds (H/D/A)", justify="right")
     table.add_column("Books", justify="right")
-    for f in sorted(fixtures, key=lambda x: (x.league, x.kickoff_local)):
+    for f in sorted(
+        payload,
+        key=lambda x: (
+            str(x.get("league") or ""),
+            str(x.get("kickoff_utc") or x.get("kickoff_time") or ""),
+        ),
+    ):
+        odds = f.get("odds") or {}
+        odds_text = (
+            f"{float(odds['home']):.2f} / {float(odds['draw']):.2f} / {float(odds['away']):.2f}"
+            if odds
+            else "—"
+        )
         table.add_row(
-            f.league,
-            f.kickoff_local,
-            f"{f.home_team} vs {f.away_team}",
-            f"{f.odds_home:.2f} / {f.odds_draw:.2f} / {f.odds_away:.2f}",
-            str(f.n_bookmakers),
+            str(f.get("league") or ""),
+            str(f.get("kickoff_time") or ""),
+            f"{f.get('home_team')} vs {f.get('away_team')}",
+            odds_text,
+            str(f.get("n_bookmakers") or ""),
         )
     console.print(table)
-    console.log(f"[green]Wrote {len(fixtures)} fixtures -> {out_path}[/green]")
+    console.log(f"[green]Wrote {len(payload)} fixtures -> {out_path}[/green]")
 
 
 # ───────────────────────── snapshot-odds (Phase 4 opening lines) ──────────

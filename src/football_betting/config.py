@@ -41,6 +41,54 @@ def _load_dotenv(path: Path) -> None:
 
 _load_dotenv(PROJECT_ROOT / ".env")
 
+FixtureProvider = Literal["odds_api", "football_data", "sofascore"]
+ScoreProvider = Literal["odds_api", "football_data"]
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def odds_api_disabled() -> bool:
+    """Whether all automatic The Odds API calls should be bypassed."""
+    return env_flag("ODDS_API_DISABLED", default=False)
+
+
+def _normalise_fixture_provider(
+    raw: str | None,
+    default: FixtureProvider,
+) -> FixtureProvider:
+    value = (raw or default).strip().lower().replace("-", "_").replace(".", "_")
+    if value in {"football_data", "footballdata", "football_data_co_uk"}:
+        return "football_data"
+    if value in {"sofascore", "sofa_score"}:
+        return "sofascore"
+    return "odds_api"
+
+
+def _normalise_score_provider(raw: str | None, default: ScoreProvider) -> ScoreProvider:
+    value = (raw or default).strip().lower().replace("-", "_").replace(".", "_")
+    if value in {"football_data", "footballdata", "football_data_co_uk"}:
+        return "football_data"
+    return "odds_api"
+
+
+def snapshot_fixture_source() -> FixtureProvider:
+    """Provider used by the scheduler / CLI for the daily fixture snapshot."""
+    raw = os.getenv("SNAPSHOT_FIXTURE_SOURCE") or os.getenv("FIXTURE_SOURCE")
+    default: FixtureProvider = "football_data" if odds_api_disabled() else "odds_api"
+    return _normalise_fixture_provider(raw, default)
+
+
+def live_score_source() -> ScoreProvider:
+    """Provider used by the live/result settlement loop."""
+    raw = os.getenv("LIVE_SCORE_SOURCE") or os.getenv("SCORE_SOURCE")
+    default: ScoreProvider = "football_data" if odds_api_disabled() else "odds_api"
+    return _normalise_score_provider(raw, default)
+
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
@@ -543,15 +591,25 @@ class OddsApiConfig:
     def fallback_api_keys(self) -> list[str]:
         """Additional Odds-API keys tried when the primary one is exhausted.
 
-        Comma-separated via env var ``ODDS_API_FALLBACK_KEYS``. The default
-        ships one shared free-tier key so quota exhaustion on the primary
-        key never silently breaks the live-score loop.
+        Comma-separated via env var ``ODDS_API_FALLBACK_KEYS``. If present,
+        ``THEODDS_HISTORICAL_API_KEY`` is also accepted as a temporary
+        fallback for the live/fixture endpoints so operators do not have to
+        duplicate the same secret under two names. When no explicit fallback
+        list is configured, a shared free-tier key is kept as a last resort so
+        quota exhaustion on the primary key never silently breaks the
+        live-score loop.
         """
-        raw = os.getenv(
-            "ODDS_API_FALLBACK_KEYS",
-            "b94acc93535fc7a76b87b326a1b71f5c",
-        )
-        return [k.strip() for k in raw.split(",") if k.strip()]
+        raw = os.getenv("ODDS_API_FALLBACK_KEYS")
+        keys = [k.strip() for k in raw.split(",") if k.strip()] if raw is not None else []
+
+        historical_key = os.getenv("THEODDS_HISTORICAL_API_KEY")
+        if historical_key:
+            keys.append(historical_key.strip())
+
+        if raw is None:
+            keys.append("b94acc93535fc7a76b87b326a1b71f5c")
+
+        return [k for k in keys if k]
 
     @property
     def api_keys(self) -> list[str]:

@@ -28,17 +28,17 @@ def download_season(league: LeagueConfig, season: str, force: bool = False) -> P
     out_path = RAW_DIR / f"{league.code}_{code}.csv"
 
     if out_path.exists() and not force:
-        console.log(f"  ✓ cached: {out_path.name}")
+        console.log(f"  cached: {out_path.name}")
         return out_path
 
     url = league.url(code)
-    console.log(f"  ↓ downloading {league.name} {season} from {url}")
+    console.log(f"  downloading {league.name} {season} from {url}")
 
     response = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
     response.raise_for_status()
 
     out_path.write_bytes(response.content)
-    console.log(f"  ✓ saved: {out_path.name} ({len(response.content)} bytes)")
+    console.log(f"  saved: {out_path.name} ({len(response.content)} bytes)")
     return out_path
 
 
@@ -66,7 +66,7 @@ def download_all(
                 try:
                     paths.append(download_season(league, season, force=force))
                 except requests.HTTPError as e:
-                    console.log(f"  ✗ {league.name} {season}: {e}")
+                    console.log(f"  failed {league.name} {season}: {e}")
                 progress.advance(task)
 
     console.log(f"[green]Done.[/green] {len(paths)} files.")

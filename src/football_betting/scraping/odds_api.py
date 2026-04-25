@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import statistics
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -19,6 +19,8 @@ from football_betting.config import LEAGUES, ODDS_API_CFG, OddsApiConfig
 from football_betting.scraping.team_names import normalize
 from football_betting.utils.timezones import (
     LEAGUE_TIMEZONES as _LEAGUE_TIMEZONES,
+)
+from football_betting.utils.timezones import (
     isoformat_utc,
     league_tz_name,
 )
@@ -116,9 +118,10 @@ class OddsApiClient:
         keys = [k for k in self.cfg.api_keys if k not in _EXHAUSTED_KEYS]
         if not keys:
             raise OddsApiError(
-                "No usable Odds-API key available. Set ODDS_API_KEY and/or "
-                "ODDS_API_FALLBACK_KEYS — every known key is currently "
-                "marked quota-exhausted for this process."
+                "No usable Odds-API key available. Set ODDS_API_KEY, "
+                "ODDS_API_FALLBACK_KEYS, and/or THEODDS_HISTORICAL_API_KEY — "
+                "every known key is currently marked quota-exhausted for this "
+                "process."
             )
         return keys
 
@@ -203,7 +206,7 @@ class OddsApiClient:
 
         tz_name = _LEAGUE_TIMEZONES.get(league_key, "UTC")
         local_tz = ZoneInfo(tz_name)
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
 
         out: list[FixtureOdds] = []
         for event in payload:
@@ -279,7 +282,7 @@ class OddsApiClient:
 
         kickoff_utc = datetime.fromisoformat(commence.replace("Z", "+00:00"))
         if kickoff_utc.tzinfo is None:
-            kickoff_utc = kickoff_utc.replace(tzinfo=timezone.utc)
+            kickoff_utc = kickoff_utc.replace(tzinfo=UTC)
         match_date = kickoff_utc.astimezone(local_tz).date()
 
         home = normalize(league_key, raw_home)
@@ -333,7 +336,7 @@ class OddsApiClient:
         # Odds API ISO comes with trailing Z; fromisoformat needs +00:00
         kickoff_utc = datetime.fromisoformat(commence.replace("Z", "+00:00"))
         if kickoff_utc.tzinfo is None:
-            kickoff_utc = kickoff_utc.replace(tzinfo=timezone.utc)
+            kickoff_utc = kickoff_utc.replace(tzinfo=UTC)
 
         # Drop already-commenced matches — their odds are live-in-play and
         # will contain impossible values (home at 1.00 after a 5-0 lead, etc.).

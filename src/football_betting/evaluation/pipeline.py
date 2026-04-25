@@ -11,10 +11,10 @@ Run ``python -m football_betting.evaluation.pipeline`` to:
 """
 from __future__ import annotations
 
-import json
 import logging
 from datetime import date
 
+from football_betting.api.schemas import ValueBetOut
 from football_betting.api.services import get_today_payload
 from football_betting.config import SNAPSHOT_DIR
 from football_betting.evaluation.grader import (
@@ -43,7 +43,7 @@ def settle_live(
     *,
     force_leagues: set[str] | frozenset[str] | None = None,
 ) -> tuple[int, int]:
-    """Poll Odds-API `/scores` for leagues with pending bets, re-grade.
+    """Poll the configured result source for leagues with pending bets, re-grade.
 
     Returns (n_new_live_rows, n_bets_settled_delta).
 
@@ -56,9 +56,11 @@ def settle_live(
     ``regrade_all()`` only runs when there is at least one pending bet; pure
     display-driven polls skip the (expensive) regrade pass.
     """
+    from football_betting.config import live_score_source
     from football_betting.evaluation.live_results import (
         pending_league_codes,
         poll_and_store_scores,
+        poll_and_store_scores_football_data,
     )
 
     pending = pending_league_codes()
@@ -71,7 +73,11 @@ def settle_live(
     before_pending = (
         len([g for g in _load_current_graded() if g.status == "pending"]) if pending else 0
     )
-    added = poll_and_store_scores(codes, days_from=days_from)
+    source = live_score_source()
+    if source == "football_data":
+        added = poll_and_store_scores_football_data(codes, days_from=days_from)
+    else:
+        added = poll_and_store_scores(codes, days_from=days_from)
     if pending:
         regrade_all()
         after_pending = len([g for g in _load_current_graded() if g.status == "pending"])
@@ -100,8 +106,8 @@ def regrade_all() -> list[GradedBet]:
     # independently. When both strategies agree on the same outcome for a
     # match we still keep both rows so each strategy is represented in the
     # "Letzte Wetten" history.
-    value_map: dict[tuple[str, str, str, str, str], object] = {}
-    pred_map: dict[tuple[str, str, str, str, str], object] = {}
+    value_map: dict[tuple[str, str, str, str, str], ValueBetOut] = {}
+    pred_map: dict[tuple[str, str, str, str, str], ValueBetOut] = {}
     for _snap_date, payload in iter_historical_snapshots():
         for bet in payload.value_bets or []:
             key = (
