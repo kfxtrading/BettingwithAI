@@ -7,6 +7,7 @@ import { stripLocale } from '@/lib/seo';
 import type { DictionaryKey } from '@/lib/i18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { BrandLogo } from './BrandLogo';
+import { ThemeToggle } from './ThemeToggle';
 
 const BREADCRUMB_LABELS: Record<string, DictionaryKey> = {
   performance: 'nav.performance',
@@ -35,7 +36,7 @@ export function Nav() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
-      <div className="mx-auto flex w-full max-w-page items-center justify-between gap-3 px-4 py-4 sm:px-6 md:gap-8 md:px-12">
+      <div className="mx-auto flex w-full max-w-page items-center justify-between gap-2 px-3 py-4 sm:gap-3 sm:px-6 md:gap-8 md:px-12">
         {/* Mobile: logo + primary links */}
         <div className="flex items-center gap-3 lg:hidden">
           <Link
@@ -59,7 +60,7 @@ export function Nav() {
                 key={link.path}
                 href={href(link.path)}
                 hrefLang={locale}
-                className={`focus-ring press rounded-full px-3.5 py-1.5 transition-colors ease-ease ${
+                className={`focus-ring press rounded-full px-2 py-1.5 text-xs transition-colors ease-ease sm:px-3.5 sm:text-sm ${
                   active
                     ? 'bg-surface text-text shadow-soft'
                     : 'text-muted hover:text-text'
@@ -116,7 +117,8 @@ export function Nav() {
           })}
         </nav>
 
-        <div className="flex items-center lg:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
+          <ThemeToggle />
           <LanguageSwitcher />
         </div>
       </div>
