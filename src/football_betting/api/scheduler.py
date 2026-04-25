@@ -13,7 +13,18 @@ Configuration (env vars):
     ODDS_API_KEY                     — primary Odds-API key.
     ODDS_API_FALLBACK_KEYS           — optional comma-separated fallback keys.
     THEODDS_HISTORICAL_API_KEY       — optional extra fallback if distinct.
+    SNAPSHOT_REFRESH_HOURS_UTC       — comma-separated UTC hours, e.g. "7,12,17"
+                                       runs three refreshes daily. Falls back to
+                                       SNAPSHOT_REFRESH_HOUR_UTC if unset.
     SNAPSHOT_REFRESH_HOUR_UTC        — integer 0-23, default 7 (=08:00 Berlin in winter).
+                                       Used when SNAPSHOT_REFRESH_HOURS_UTC is unset.
+    STALE_RETRY_INTERVAL_MIN         — minutes between stale-recovery polls,
+                                       default 60. The loop calls a refresh
+                                       whenever today.json has no predictions
+                                       for today (UTC). Set to 0 to disable.
+    STALE_RETRY_QUIET_HOURS_UTC      — UTC hour range to skip, e.g. "1-5",
+                                       default "1-5". Saves Odds-API credits at
+                                       night when no users are watching.
     LIVE_SETTLE_INTERVAL_MIN         — minutes between /scores polls, default 2.
                                        Set to 0 to disable the live-settlement loop.
     PREKICKOFF_SNAPSHOT_INTERVAL_MIN — minutes between pre-kickoff odds polls, default
@@ -51,14 +62,47 @@ from football_betting.scraping.odds_api import (
 logger = logging.getLogger("football_betting.api")
 
 
-def _refresh_hour_utc() -> int:
+def _refresh_hours_utc() -> list[int]:
+    """Return the sorted, deduped, clamped list of UTC hours to refresh at.
+
+    Reads ``SNAPSHOT_REFRESH_HOURS_UTC`` (comma-separated). Falls back to
+    ``SNAPSHOT_REFRESH_HOUR_UTC`` (single int) when unset, then to ``[7]``.
+    Invalid tokens are dropped with a warning rather than crashing the loop.
+    """
+    raw_multi = os.environ.get("SNAPSHOT_REFRESH_HOURS_UTC", "").strip()
+    if raw_multi:
+        hours: list[int] = []
+        for tok in raw_multi.split(","):
+            tok = tok.strip()
+            if not tok:
+                continue
+            try:
+                hours.append(max(0, min(23, int(tok))))
+            except ValueError:
+                logger.warning(
+                    "[scheduler] Invalid SNAPSHOT_REFRESH_HOURS_UTC token %r — skipped.",
+                    tok,
+                )
+        if hours:
+            return sorted(set(hours))
+        logger.warning(
+            "[scheduler] SNAPSHOT_REFRESH_HOURS_UTC=%r yielded no valid hours; "
+            "falling back to SNAPSHOT_REFRESH_HOUR_UTC.",
+            raw_multi,
+        )
+
     raw = os.environ.get("SNAPSHOT_REFRESH_HOUR_UTC", "7")
     try:
         h = int(raw)
     except ValueError:
         logger.warning("[scheduler] Invalid SNAPSHOT_REFRESH_HOUR_UTC=%r, defaulting to 7.", raw)
-        return 7
-    return max(0, min(23, h))
+        return [7]
+    return [max(0, min(23, h))]
+
+
+def _refresh_hour_utc() -> int:
+    """First scheduled hour — used by Boot-Recovery and ``snapshot_is_stale``."""
+    return _refresh_hours_utc()[0]
 
 
 def _refresh_blocking() -> None:
@@ -216,13 +260,109 @@ async def _refresh_with_verify() -> None:
     asyncio.create_task(_verify_and_retry_after_delay())
 
 
-async def _daily_loop() -> None:
-    hour = _refresh_hour_utc()
+def _stale_retry_interval_min() -> int:
+    raw = os.environ.get("STALE_RETRY_INTERVAL_MIN", "60")
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        logger.warning(
+            "[scheduler] Invalid STALE_RETRY_INTERVAL_MIN=%r, defaulting to 60.", raw,
+        )
+        return 60
+
+
+def _stale_retry_quiet_hours() -> set[int]:
+    """Parse ``STALE_RETRY_QUIET_HOURS_UTC`` (e.g. "1-5" or "1,2,3,4,5")."""
+    raw = os.environ.get("STALE_RETRY_QUIET_HOURS_UTC", "1-5").strip()
+    if not raw:
+        return set()
+    quiet: set[int] = set()
+    for tok in raw.split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        if "-" in tok:
+            try:
+                a, b = tok.split("-", 1)
+                lo = max(0, min(23, int(a)))
+                hi = max(0, min(23, int(b)))
+                if lo <= hi:
+                    quiet.update(range(lo, hi + 1))
+                else:  # wrap-around (e.g. "22-3")
+                    quiet.update(range(lo, 24))
+                    quiet.update(range(0, hi + 1))
+            except ValueError:
+                logger.warning(
+                    "[scheduler] Invalid STALE_RETRY_QUIET_HOURS_UTC range %r — skipped.",
+                    tok,
+                )
+        else:
+            try:
+                quiet.add(max(0, min(23, int(tok))))
+            except ValueError:
+                logger.warning(
+                    "[scheduler] Invalid STALE_RETRY_QUIET_HOURS_UTC token %r — skipped.",
+                    tok,
+                )
+    return quiet
+
+
+async def _stale_retry_loop() -> None:
+    """Catch-up loop: while today.json has no predictions for today, retry.
+
+    Complements ``_scheduled_refresh_loop`` for cases where a scheduled slot
+    failed (Odds-API quota exhausted, network glitch). Skips quiet hours to
+    avoid burning credits while no users are watching.
+    """
+    interval_min = _stale_retry_interval_min()
+    if interval_min <= 0:
+        logger.info("[scheduler] stale-retry: disabled (STALE_RETRY_INTERVAL_MIN=0)")
+        return
+    quiet = _stale_retry_quiet_hours()
+    logger.info(
+        "[scheduler] stale-retry: every %d min, quiet hours UTC=%s",
+        interval_min, sorted(quiet) if quiet else "[]",
+    )
+    interval_s = interval_min * 60
+    while True:
+        await asyncio.sleep(interval_s)
+        if datetime.now(UTC).hour in quiet:
+            continue
+        if _has_predictions_for_today():
+            continue
+        if not ODDS_API_CFG.api_keys:
+            logger.debug("[scheduler] stale-retry: no Odds-API keys — skipping.")
+            continue
+        logger.info(
+            "[scheduler] stale-retry: today.json empty/stale — triggering refresh."
+        )
+        try:
+            await refresh_snapshot_once()
+        except Exception:  # noqa: BLE001
+            logger.exception("[scheduler] stale-retry: refresh failed.")
+
+
+def _next_run_at(hours: list[int], now: datetime) -> datetime:
+    """Earliest scheduled refresh time strictly after ``now``."""
+    today = now.date()
+    for h in hours:
+        candidate = datetime(today.year, today.month, today.day, h, 0, 0, tzinfo=UTC)
+        if candidate > now:
+            return candidate
+    # All today's slots have passed — first slot tomorrow.
+    tomorrow = today + timedelta(days=1)
+    return datetime(tomorrow.year, tomorrow.month, tomorrow.day, hours[0], 0, 0, tzinfo=UTC)
+
+
+async def _scheduled_refresh_loop() -> None:
+    hours = _refresh_hours_utc()
+    logger.info(
+        "[scheduler] Refresh slots: %s UTC (%d/day)",
+        ",".join(f"{h:02d}:00" for h in hours), len(hours),
+    )
     while True:
         now = datetime.now(UTC)
-        next_run = now.replace(hour=hour, minute=0, second=0, microsecond=0)
-        if next_run <= now:
-            next_run += timedelta(days=1)
+        next_run = _next_run_at(hours, now)
         wait_s = (next_run - now).total_seconds()
         logger.info(
             "[scheduler] Next snapshot refresh at %s UTC (%.1f h)",
@@ -230,6 +370,10 @@ async def _daily_loop() -> None:
         )
         await asyncio.sleep(wait_s)
         await _refresh_with_verify()
+
+
+# Backwards-compat alias — older imports / tests may reference _daily_loop.
+_daily_loop = _scheduled_refresh_loop
 
 
 def _live_settle_interval_min() -> int:
@@ -499,6 +643,7 @@ async def start(run_initial_if_stale: bool = True) -> None:
             "[scheduler] Snapshot missing, empty or stale — refreshing now (background)."
         )
         asyncio.create_task(_refresh_with_verify())
-    asyncio.create_task(_daily_loop())
+    asyncio.create_task(_scheduled_refresh_loop())
     asyncio.create_task(_live_settle_loop())
     asyncio.create_task(_prekickoff_loop())
+    asyncio.create_task(_stale_retry_loop())
