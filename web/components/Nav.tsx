@@ -38,7 +38,7 @@ export function Nav() {
     <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
       <div className="mx-auto flex w-full max-w-page items-center justify-between gap-2 px-3 py-4 sm:gap-3 sm:px-6 md:gap-8 md:px-12">
         {/* Mobile: logo + primary links */}
-        <div className="flex flex-col items-start gap-3 lg:hidden">
+        <div className="flex items-center gap-3 lg:hidden">
           <Link
             href={href('/')}
             hrefLang={locale}
@@ -47,8 +47,6 @@ export function Nav() {
             <BrandLogo size={18} title="Betting with AI" />
             Betting with AI
           </Link>
-          <div className="h-0 w-full" aria-hidden />
-          <ThemeToggle />
         </div>
 
         <nav className="flex min-w-0 items-center gap-1 text-sm lg:hidden">
@@ -122,6 +120,9 @@ export function Nav() {
         <div className="flex items-center lg:hidden">
           <LanguageSwitcher />
         </div>
+      </div>
+      <div className="mx-auto flex w-full max-w-page px-3 pb-3 sm:px-6 md:px-12 lg:hidden">
+        <ThemeToggle />
       </div>
     </header>
   );
