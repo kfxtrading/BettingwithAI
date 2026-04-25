@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isAdminAuthenticatedReq } from '@/lib/adminAuth';
+import { requireOwnerReq } from '@/lib/accessAuth';
 import { appendReply, getInquiry } from '@/lib/inquiries';
 import { sendMail } from '@/lib/mailer';
 
@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic';
 type RouteContext = { params: { id: string } };
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
-  if (!isAdminAuthenticatedReq(request)) {
+  const owner = await requireOwnerReq(request);
+  if (!owner) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { isAdminAuthenticated } from '@/lib/adminAuth';
+import { requireOwner } from '@/lib/accessAuth';
 import { listInquiries, type Inquiry } from '@/lib/inquiries';
 
 export const dynamic = 'force-dynamic';
@@ -33,9 +32,7 @@ function formatDate(iso: string): string {
 }
 
 export default async function AdminInquiriesPage() {
-  if (!isAdminAuthenticated()) {
-    redirect('/admin/login?next=/admin/inquiries');
-  }
+  await requireOwner();
 
   const inquiries = await listInquiries();
 

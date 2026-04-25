@@ -1,11 +1,9 @@
 import { redirect } from 'next/navigation';
-import { isAdminAuthenticated } from '@/lib/adminAuth';
+import { requireOwner } from '@/lib/accessAuth';
 
 export const dynamic = 'force-dynamic';
 
-export default function AdminIndexPage() {
-  if (!isAdminAuthenticated()) {
-    redirect('/admin/login');
-  }
+export default async function AdminIndexPage() {
+  await requireOwner();
   redirect('/admin/inquiries');
 }

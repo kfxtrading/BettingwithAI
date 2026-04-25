@@ -5,6 +5,9 @@ const LOCALE_COOKIE = 'NEXT_LOCALE';
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
 const CANONICAL_HOST = process.env.CANONICAL_HOST ?? 'bettingwithai.app';
+const INTERNAL_HOST = (
+  process.env.INTERNAL_HOST ?? 'ops.bettingwithai.app'
+).toLowerCase();
 const FORCE_HTTPS =
   (process.env.FORCE_HTTPS ?? (process.env.NODE_ENV === 'production' ? '1' : '0')) === '1';
 
@@ -25,37 +28,88 @@ function detectLocale(request: NextRequest): Locale {
   return defaultLocale;
 }
 
+function isInternalHostname(hostname: string): boolean {
+  if (!hostname) return false;
+  if (hostname === INTERNAL_HOST) return true;
+  // Allow localhost for local dev of the internal site on a separate port.
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    (hostname === 'localhost' || hostname === '127.0.0.1') &&
+    process.env.DEV_INTERNAL === '1'
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function notFound(_request: NextRequest): NextResponse {
+  return new NextResponse('Not found', {
+    status: 404,
+    headers: { 'content-type': 'text/plain; charset=utf-8' },
+  });
+}
+
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // (0) Canonical host + scheme normalisation — run before any other logic so
-  // `www.` and plain-http requests resolve to a single canonical origin.
   const forwardedHost = request.headers.get('x-forwarded-host');
   const forwardedProto = request.headers.get('x-forwarded-proto');
   const host = forwardedHost ?? request.headers.get('host') ?? '';
   const proto = forwardedProto ?? request.nextUrl.protocol.replace(':', '');
   const hostname = host.split(':')[0].toLowerCase();
-  const needsHostRedirect =
-    hostname === `www.${CANONICAL_HOST}` && hostname !== CANONICAL_HOST;
-  const needsSchemeRedirect = FORCE_HTTPS && proto === 'http';
-  if (needsHostRedirect || needsSchemeRedirect) {
+  const onInternal = isInternalHostname(hostname);
+
+  // (0a) HTTPS upgrade applies to everything in production.
+  if (FORCE_HTTPS && proto === 'http') {
     const target = new URL(request.nextUrl.toString());
-    target.protocol = FORCE_HTTPS ? 'https:' : target.protocol;
+    target.protocol = 'https:';
+    return NextResponse.redirect(target, 308);
+  }
+
+  // (0b) Canonical-host redirect ONLY for the public site. Never rewrite
+  // the internal hostname.
+  if (!onInternal && hostname === `www.${CANONICAL_HOST}`) {
+    const target = new URL(request.nextUrl.toString());
     target.host = CANONICAL_HOST;
     return NextResponse.redirect(target, 308);
   }
 
-  // (0b) Health / probe short-circuit: never redirect HEAD requests, so Railway
-  // healthchecks and uptime tools don't chain through the locale redirect.
+  // (0c) HEAD short-circuit (uptime probes).
   if (request.method === 'HEAD') {
     return NextResponse.next();
   }
 
-  // Detect a leading "/<locale>" segment in the URL.
+  // ── Internal host (dashboard) ────────────────────────────────────────
+  if (onInternal) {
+    // Allow only admin surfaces on the internal hostname. Everything else
+    // returns a 404 so the internal origin reveals nothing about the
+    // public site.
+    const allowed =
+      pathname === '/' ||
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/api/admin') ||
+      pathname === '/healthz' ||
+      pathname.startsWith('/_next/');
+    if (!allowed) {
+      return notFound(request);
+    }
+    if (pathname === '/') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/inquiries';
+      return NextResponse.redirect(url, 307);
+    }
+    return NextResponse.next();
+  }
+
+  // ── Public host ──────────────────────────────────────────────────────
+  // Hide /admin entirely from the public origin: 404 instead of 302.
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+    return notFound(request);
+  }
+
   const firstSegment = pathname.split('/')[1] ?? '';
   const urlLocale = isLocale(firstSegment) ? firstSegment : null;
 
-  // (1) URL has a locale prefix -> propagate locale via header + cookie.
   if (urlLocale) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-locale', urlLocale);
@@ -70,7 +124,6 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // (2) URL has no locale prefix -> redirect to /<locale>/<rest>.
   const locale = detectLocale(request);
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}${pathname === '/' ? '' : pathname}`;
@@ -85,9 +138,9 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Skip Next internals, API routes, files with a dot (assets), and known
-  // SEO files served by route handlers / static files.
+  // Include /admin and /api/admin so the host-gate runs for those paths.
+  // Skip Next internals and static assets.
   matcher: [
-    '/((?!_next/|api/|admin|healthz|llms\\.txt|robots\\.txt|sitemap\\.xml|sitemaps/|favicon\\.ico|icon|apple-icon|.*\\..*).*)',
+    '/((?!_next/|healthz|llms\\.txt|robots\\.txt|sitemap\\.xml|sitemaps/|favicon\\.ico|icon|apple-icon|.*\\..*).*)',
   ],
 };

@@ -23,13 +23,24 @@ const nextConfig = {
       process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   },
   async headers() {
+    const adminSecurity = [
+      { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+      { key: 'Cache-Control', value: 'private, no-store' },
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+      { key: 'Permissions-Policy', value: '()' },
+      {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload',
+      },
+    ];
     return [
       {
         source: '/:locale(en|de|fr|it|es)/legal/cookies',
-        headers: [
-          { key: 'X-Robots-Tag', value: 'noindex, follow' },
-        ],
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, follow' }],
       },
+      { source: '/admin/:path*', headers: adminSecurity },
+      { source: '/api/admin/:path*', headers: adminSecurity },
     ];
   },
 };

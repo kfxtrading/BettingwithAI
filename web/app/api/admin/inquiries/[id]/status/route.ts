@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isAdminAuthenticatedReq } from '@/lib/adminAuth';
+import { requireOwnerReq } from '@/lib/accessAuth';
 import { updateInquiryStatus, type InquiryStatus } from '@/lib/inquiries';
 
 export const runtime = 'nodejs';
@@ -10,7 +10,8 @@ type RouteContext = { params: { id: string } };
 const ALLOWED: InquiryStatus[] = ['new', 'replied', 'archived'];
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
-  if (!isAdminAuthenticatedReq(request)) {
+  const owner = await requireOwnerReq(request);
+  if (!owner) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { AdminReplyForm } from '@/components/AdminReplyForm';
-import { isAdminAuthenticated } from '@/lib/adminAuth';
+import { requireOwner } from '@/lib/accessAuth';
 import { getInquiry } from '@/lib/inquiries';
 
 export const dynamic = 'force-dynamic';
@@ -20,9 +20,7 @@ function formatDate(iso: string): string {
 }
 
 export default async function AdminInquiryDetailPage({ params }: PageProps) {
-  if (!isAdminAuthenticated()) {
-    redirect(`/admin/login?next=/admin/inquiries/${params.id}`);
-  }
+  await requireOwner();
 
   const inquiry = await getInquiry(params.id);
   if (!inquiry) notFound();
