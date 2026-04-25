@@ -19,6 +19,11 @@ function applyTheme(theme: Theme): void {
   } catch {
     // ignore
   }
+  try {
+    document.cookie = `${STORAGE_KEY}=${theme}; path=/; max-age=31536000; samesite=lax`;
+  } catch {
+    // ignore
+  }
 }
 
 export function ThemeToggle() {

@@ -20,6 +20,7 @@ import {
 } from '@/lib/seo';
 import { defaultLocale, locales, ogLocaleMap } from '@/lib/i18n';
 import { getServerLocale } from '@/lib/i18n/server';
+import { cookies } from 'next/headers';
 import { Footer } from '@/components/Footer';
 import { LeftRail } from '@/components/rail/LeftRail';
 
@@ -140,10 +141,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const locale = getServerLocale();
+  const themeCookie = cookies().get('theme_v2')?.value;
+  const isDark = themeCookie ? themeCookie === 'dark' : true;
   return (
     <html
       lang={locale}
-      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      className={`${GeistSans.variable} ${GeistMono.variable}${isDark ? ' dark' : ''}`}
       suppressHydrationWarning
     >
       <head>
@@ -153,7 +156,7 @@ export default function RootLayout({
         />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('theme_v2');var d=s?s==='dark':true;if(d)document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){document.documentElement.classList.add('dark');}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('theme_v2');if(!s){s='dark';try{localStorage.setItem('theme_v2','dark');}catch(_){}}var d=s==='dark';if(d)document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');var c='theme_v2='+s+'; path=/; max-age=31536000; samesite=lax';if(document.cookie.indexOf('theme_v2='+s)===-1)document.cookie=c;}catch(e){document.documentElement.classList.add('dark');}})();`,
           }}
         />
       </head>
