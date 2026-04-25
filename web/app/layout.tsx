@@ -144,6 +144,7 @@ export default function RootLayout({
     <html
       lang={locale}
       className={`${GeistSans.variable} ${GeistMono.variable}`}
+      suppressHydrationWarning
     >
       <head>
         <link rel="preconnect" href={API_URL} crossOrigin="anonymous" />
