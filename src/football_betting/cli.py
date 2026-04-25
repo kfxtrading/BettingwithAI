@@ -27,9 +27,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
-from datetime import UTC, date
+from datetime import UTC
 from pathlib import Path
-from typing import Any
 
 import click
 import pandas as pd
@@ -258,28 +257,6 @@ def scrape(
 # ───────────────────────── fetch-fixtures (Odds API) ─────────────────────────
 
 
-def _fetch_fixtures_fallback(day: date, keys: list[str]) -> tuple[list[dict[str, Any]], str]:
-    import os as _os
-
-    if _os.environ.get("SCRAPING_ENABLED") == "1":
-        try:
-            payload = SofascoreClient().fetch_all_leagues_fixtures_for_date(day, leagues=keys)
-        except Exception as exc:  # noqa: BLE001
-            console.log(f"[yellow]Sofascore fixture fallback failed: {exc}[/yellow]")
-        else:
-            if payload:
-                return payload, "sofascore_fallback"
-    else:
-        console.log("[yellow]Sofascore fallback skipped: SCRAPING_ENABLED=1 is not set.[/yellow]")
-
-    from football_betting.data.football_data import load_fixtures_for_date
-
-    payload = load_fixtures_for_date(day, leagues=keys, refresh=True)
-    if payload:
-        return payload, "football_data_fallback"
-    return [], "fixture_fallback"
-
-
 @main.command("fetch-fixtures")
 @click.option(
     "--date",
@@ -302,9 +279,9 @@ def _fetch_fixtures_fallback(day: date, keys: list[str]) -> tuple[list[dict[str,
 )
 @click.option(
     "--source",
-    type=click.Choice(["odds_api", "football_data", "sofascore"], case_sensitive=False),
+    type=click.Choice(["odds_api"], case_sensitive=False),
     default=None,
-    help="Fixture provider (default: env SNAPSHOT_FIXTURE_SOURCE / ODDS_API_DISABLED).",
+    help="Fixture provider. Only odds_api is supported.",
 )
 def fetch_fixtures(
     target_date: str | None,
@@ -312,55 +289,23 @@ def fetch_fixtures(
     out: str | None,
     source: str | None,
 ) -> None:
-    """Pull scheduled fixtures from the configured fixture source."""
+    """Pull scheduled fixtures with odds from The Odds API."""
     from datetime import date as date_cls
 
-    from football_betting.config import DATA_DIR, snapshot_fixture_source
-    from football_betting.scraping.odds_api import (
-        OddsApiClient,
-        OddsApiError,
-        looks_like_quota_error,
-    )
+    from football_betting.config import DATA_DIR
+    from football_betting.scraping.odds_api import OddsApiClient, OddsApiError
 
     day = date_cls.fromisoformat(target_date) if target_date else date_cls.today()
     keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
-    explicit_source = source is not None
-    selected_source = (source.lower() if source else snapshot_fixture_source())
+    selected_source = "odds_api"
 
-    if selected_source == "football_data":
-        from football_betting.data.football_data import load_fixtures_for_date
-
-        payload = load_fixtures_for_date(day, leagues=keys, refresh=True)
-    elif selected_source == "sofascore":
-        import os as _os
-
-        if _os.environ.get("SCRAPING_ENABLED") != "1":
-            console.print(
-                "[red]Sofascore fixture source requires SCRAPING_ENABLED=1.[/red]"
-            )
-            raise click.Abort()
-        payload = SofascoreClient().fetch_all_leagues_fixtures_for_date(day, leagues=keys)
-    else:
-        client = OddsApiClient()
-        try:
-            fixtures = client.fetch_all_leagues_for_date(day, leagues=keys)
-        except OddsApiError as exc:
-            if explicit_source or not looks_like_quota_error(exc):
-                console.print(f"[red]Odds API error: {exc}[/red]")
-                raise click.Abort() from exc
-            console.print(
-                "[yellow]Odds API quota/unavailable; trying Sofascore, "
-                "then Football-Data.[/yellow]"
-            )
-            payload, selected_source = _fetch_fixtures_fallback(day, keys)
-        else:
-            payload = [f.to_fixture_dict() for f in fixtures]
-            if not payload and not explicit_source:
-                console.print(
-                    "[yellow]Odds API returned no fixtures; trying Sofascore, "
-                    "then Football-Data.[/yellow]"
-                )
-                payload, selected_source = _fetch_fixtures_fallback(day, keys)
+    client = OddsApiClient()
+    try:
+        fixtures = client.fetch_all_leagues_for_date(day, leagues=keys)
+    except OddsApiError as exc:
+        console.print(f"[red]Odds API error: {exc}[/red]")
+        raise click.Abort() from exc
+    payload = [f.to_fixture_dict() for f in fixtures]
 
     if not payload:
         console.print(
@@ -421,9 +366,9 @@ def fetch_fixtures(
 )
 @click.option(
     "--source",
-    type=click.Choice(["odds_api", "sofascore"], case_sensitive=False),
+    type=click.Choice(["odds_api"], case_sensitive=False),
     default="odds_api",
-    help="Pre-match odds source (sofascore requires SCRAPING_ENABLED=1).",
+    help="Pre-match odds source. Only odds_api is supported.",
 )
 def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
     """Capture pre-match opening-line snapshots for upcoming fixtures (Phase 4)."""
@@ -434,19 +379,6 @@ def snapshot_odds(league: str, t_minus_hours: int, source: str) -> None:
 
     source = source.lower()
     keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
-
-    if source == "sofascore":
-        client = SofascoreClient()
-        if not client.cfg.enabled:
-            console.print(
-                "[red]Sofascore scraping disabled.[/red]\nEnable with: export SCRAPING_ENABLED=1"
-            )
-            raise click.Abort()
-        console.print(
-            "[yellow]Sofascore opening-snapshot capture is not yet wired. "
-            "Falling back to odds_api.[/yellow]"
-        )
-        source = "odds_api"
 
     odds_client = OddsApiClient()
     today = date_cls.today()

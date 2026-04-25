@@ -39,25 +39,6 @@ class OddsApiQuotaError(OddsApiError):
     """
 
 
-_QUOTA_ERROR_MARKERS = (
-    "quota",
-    "usage",
-    "exhausted",
-    "out_of_usage_credits",
-    "rate limit",
-)
-
-
-def looks_like_quota_error(exc: BaseException) -> bool:
-    """Return True for Odds-API errors that should use a no-Odds fallback."""
-    if isinstance(exc, OddsApiQuotaError):
-        return True
-    if not isinstance(exc, OddsApiError):
-        return False
-    message = str(exc).lower()
-    return any(marker in message for marker in _QUOTA_ERROR_MARKERS)
-
-
 @dataclass(slots=True)
 class ScoreResult:
     """Completed / in-progress match result from The Odds API /scores."""
