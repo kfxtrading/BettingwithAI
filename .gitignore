@@ -92,3 +92,12 @@ mlp_value.log
 tab_train.log 
 seq_train.log 
 tune.log 
+
+# Claude Code local settings
+.claude/
+
+# Runtime log directories (only top-level *.log already covered above)
+logs/
+
+# Local model rollback backups (e.g. models/_backup_phase1_YYYYMMDD_HHMMSS/)
+models/_backup_*/
