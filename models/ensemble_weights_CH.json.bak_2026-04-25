@@ -1,0 +1,22 @@
+{
+  "w_catboost": 0.02070833099384603,
+  "w_poisson": 0.013718750102280646,
+  "w_mlp": 0.9229399243706706,
+  "w_sequence": 0.04263299453320276,
+  "metadata": {
+    "league": "CH",
+    "purpose": "1x2",
+    "val_season": "2024-25",
+    "objective": "clv",
+    "blend": null,
+    "active_members": [
+      "catboost",
+      "poisson",
+      "mlp",
+      "sequence"
+    ],
+    "calibration_method": "auto",
+    "score_key": "best_clv_mean",
+    "score_value": -0.014670282193081863
+  }
+}
