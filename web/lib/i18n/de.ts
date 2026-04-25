@@ -130,7 +130,7 @@ export const de: Dictionary = {
   'rail.quick.learn': 'Lernen',
   'rail.quick.trackRecord': 'Track Record',
   'footer.text':
-    'Betting with AI · powered by NOMEN · Football Intelligence v0.3  · Modell v0.3',
+    'Betting with AI · powered by NOMEN · Football Intelligence · Modell v0.3',
   'footer.col.product': 'Produkt',
   'footer.col.about': 'Über uns',
   'footer.col.legal': 'Rechtliches',

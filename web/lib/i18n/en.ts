@@ -1039,7 +1039,7 @@ export const en: Dictionary = {
   'rail.quick.learn': 'Learn',
   'rail.quick.trackRecord': 'Track record',
   'footer.text':
-    'Betting with AI · powered by NOMEN · Football Intelligence v0.3  · Model v0.3',
+    'Betting with AI · powered by NOMEN · Football Intelligence · Model v0.3',
   'footer.col.product': 'Product',
   'footer.col.about': 'About',
   'footer.col.legal': 'Legal',

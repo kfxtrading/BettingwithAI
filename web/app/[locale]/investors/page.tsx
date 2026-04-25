@@ -9,7 +9,6 @@ import type { Locale } from '@/lib/i18n';
 type PageProps = { params: { locale: Locale } };
 
 const LAST_UPDATED = '2026-04-01';
-const INVESTOR_EMAIL = 'investors@bettingwithai.app';
 
 export function generateMetadata({ params }: PageProps): Metadata {
   const { locale, dict } = getServerDictionary(params.locale);
@@ -78,15 +77,6 @@ export default function InvestorsPage({ params }: PageProps) {
         >
           {dict['page.investors.cta.requestAccess']}
         </Link>
-        <span className="text-sm text-muted">
-          {dict['page.investors.cta.emailLabel']}:{' '}
-          <a
-            href={`mailto:${INVESTOR_EMAIL}`}
-            className="focus-ring underline hover:text-text"
-          >
-            {INVESTOR_EMAIL}
-          </a>
-        </span>
       </div>
     </EditorialPage>
   );
