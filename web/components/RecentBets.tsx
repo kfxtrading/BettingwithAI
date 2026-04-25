@@ -11,6 +11,7 @@ import type { DictionaryKey } from '@/lib/i18n';
 import { parseLocalDate } from '@/lib/datetime';
 
 const DAYS = 14;
+const MAX_VISIBLE_DAYS = 6;
 
 function formatDay(iso: string, locale: string): string {
   try {
@@ -227,7 +228,7 @@ export function RecentBets() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {data.days.map((day) => (
+          {data.days.slice(0, MAX_VISIBLE_DAYS).map((day) => (
             <DayBlock key={day.date} day={day} t={t} locale={locale} />
           ))}
         </div>
