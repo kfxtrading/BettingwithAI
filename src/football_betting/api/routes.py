@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+import os
+
+from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 
 from football_betting.api import consent as consent_store
@@ -310,6 +312,37 @@ def team_detail(league_key: str, team: str) -> TeamDetail:
     if detail is None:
         raise HTTPException(status_code=404, detail=f"Team '{team}' not found")
     return detail
+
+
+@router.post("/admin/refresh-snapshot", tags=["admin"])
+async def admin_refresh_snapshot(
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+) -> dict:
+    """Force the daily scheduler refresh to run immediately.
+
+    Calls the same blocking pipeline as the daily timer (Odds-API fetch ->
+    today.json -> regrade). Protected by ``ADMIN_REFRESH_TOKEN`` env var.
+    """
+    expected = os.environ.get("ADMIN_REFRESH_TOKEN")
+    if not expected:
+        raise HTTPException(
+            status_code=503,
+            detail="ADMIN_REFRESH_TOKEN not configured on server.",
+        )
+    if x_admin_token != expected:
+        raise HTTPException(status_code=401, detail="Invalid admin token.")
+
+    from football_betting.api.scheduler import refresh_snapshot_once
+    from football_betting.api.snapshots import load_today
+
+    await refresh_snapshot_once()
+    payload = load_today()
+    return {
+        "ok": True,
+        "predictions": len(payload.predictions) if payload else 0,
+        "value_bets": len(payload.value_bets) if payload else 0,
+        "generated_at": payload.generated_at.isoformat() if payload else None,
+    }
 
 
 @router.post("/support/ask", response_model=SupportAskOut, tags=["support"])
