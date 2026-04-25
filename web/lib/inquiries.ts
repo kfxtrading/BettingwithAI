@@ -41,7 +41,7 @@ export type InquiryInput = {
 
 // KV is used in production (Vercel injects KV_REST_API_*). Local dev without
 // those env vars falls back to a JSON file so `npm run dev` works offline.
-function useKv(): boolean {
+function kvEnabled(): boolean {
   return !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
 }
 
@@ -95,13 +95,13 @@ async function fileWriteAll(items: Inquiry[]): Promise<void> {
 }
 
 export async function listInquiries(): Promise<Inquiry[]> {
-  if (useKv()) return kvList();
+  if (kvEnabled()) return kvList();
   const items = await fileReadAll();
   return items.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 }
 
 export async function getInquiry(id: string): Promise<Inquiry | null> {
-  if (useKv()) return kvGet(id);
+  if (kvEnabled()) return kvGet(id);
   const items = await fileReadAll();
   return items.find((x) => x.id === id) ?? null;
 }
@@ -122,7 +122,7 @@ export async function addInquiry(input: InquiryInput): Promise<Inquiry> {
     status: 'new',
     replies: [],
   };
-  if (useKv()) {
+  if (kvEnabled()) {
     await kvAdd(entry);
   } else {
     const items = await fileReadAll();
@@ -136,7 +136,7 @@ export async function updateInquiryStatus(
   id: string,
   status: InquiryStatus,
 ): Promise<Inquiry | null> {
-  if (useKv()) {
+  if (kvEnabled()) {
     const existing = await kvGet(id);
     if (!existing) return null;
     const updated: Inquiry = { ...existing, status };
@@ -156,7 +156,7 @@ export async function appendReply(
   reply: Omit<InquiryReply, 'at'>,
 ): Promise<Inquiry | null> {
   const full: InquiryReply = { ...reply, at: new Date().toISOString() };
-  if (useKv()) {
+  if (kvEnabled()) {
     const existing = await kvGet(id);
     if (!existing) return null;
     const updated: Inquiry = {
