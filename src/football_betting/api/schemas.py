@@ -62,6 +62,9 @@ class ValueBetOut(BaseModel):
     kelly_stake: float
     expected_value_pct: float
     confidence: Confidence
+    is_live: bool = False
+    pick_correct: bool | None = None
+    ft_score: str | None = None
 
 
 class LeagueOut(BaseModel):

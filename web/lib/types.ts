@@ -47,6 +47,9 @@ export interface ValueBet {
   kelly_stake: number;
   expected_value_pct: number;
   confidence: Confidence;
+  is_live?: boolean;
+  pick_correct?: boolean | null;
+  ft_score?: string | null;
 }
 
 export interface League {

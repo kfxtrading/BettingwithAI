@@ -656,19 +656,25 @@ def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayl
         logger.warning("[api] enrichment imports failed: %s", exc)
         return payload
 
-    # Build graded index: (league_key, date, home_norm, away_norm) -> GradedBet.
-    graded_idx: dict[tuple[str, str, str, str], object] = {}
+    # Build graded indices: (league, date, home_n, away_n) -> GradedBet
+    pred_graded_idx: dict[tuple[str, str, str, str], object] = {}
+    value_graded_idx: dict[tuple[str, str, str, str, str], object] = {}
     try:
         for g in load_graded():
-            if g.kind != "prediction":
-                continue
-            graded_idx[(g.league, g.date, _norm(g.home_team), _norm(g.away_team))] = g
+            if g.kind == "prediction":
+                pred_graded_idx[(g.league, g.date, _norm(g.home_team), _norm(g.away_team))] = g
+            else:
+                value_graded_idx[
+                    (g.league, g.date, _norm(g.home_team), _norm(g.away_team), g.outcome)
+                ] = g
     except Exception as exc:  # pragma: no cover
         logger.warning("[api] load_graded failed: %s", exc)
 
     # Build live index per-league: (date, home_norm, away_norm) -> (status, ftr, hg, ag)
     live_by_league: dict[str, dict] = {}
-    pred_leagues = {p.league for p in payload.predictions}
+    pred_leagues = {p.league for p in payload.predictions} | {
+        vb.league for vb in payload.value_bets
+    }
     for lk in pred_leagues:
         cfg = LEAGUES.get(lk)
         if cfg is None:
@@ -679,14 +685,14 @@ def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayl
             logger.warning("[api] load_live_matches_for_code(%s) failed: %s", lk, exc)
             live_by_league[lk] = {}
 
-    enriched: list[PredictionOut] = []
+    enriched_preds: list[PredictionOut] = []
     for p in payload.predictions:
         home_n = _norm(p.home_team)
         away_n = _norm(p.away_team)
         try:
             match_date = datetime.strptime(p.date, "%Y-%m-%d").date()
         except ValueError:
-            enriched.append(p)
+            enriched_preds.append(p)
             continue
 
         is_live = False
@@ -704,7 +710,7 @@ def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayl
                 pick_correct = ftr == p.most_likely
 
         # Graded (CSV / authoritative) overrides live-completed.
-        g = graded_idx.get((p.league, p.date, home_n, away_n))
+        g = pred_graded_idx.get((p.league, p.date, home_n, away_n))
         if g is not None:
             g_status = getattr(g, "status", "pending")
             if g_status == "won":
@@ -716,8 +722,55 @@ def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayl
                 ft_score = getattr(g, "ft_score", ft_score) or ft_score
                 is_live = False
 
-        enriched.append(
+        enriched_preds.append(
             p.model_copy(
+                update={
+                    "is_live": is_live,
+                    "pick_correct": pick_correct,
+                    "ft_score": ft_score,
+                }
+            )
+        )
+
+    enriched_vbs: list[ValueBetOut] = []
+    for vb in payload.value_bets:
+        home_n = _norm(vb.home_team)
+        away_n = _norm(vb.away_team)
+        try:
+            match_date = datetime.strptime(vb.date, "%Y-%m-%d").date()
+        except ValueError:
+            enriched_vbs.append(vb)
+            continue
+
+        is_live = False
+        pick_correct: bool | None = None
+        ft_score: str | None = None
+
+        live_map = live_by_league.get(vb.league, {})
+        live_hit = live_map.get((match_date, home_n, away_n))
+        if live_hit is not None:
+            status, ftr, hg, ag = live_hit
+            ft_score = f"{hg}-{ag}"
+            if status == "live":
+                is_live = True
+            elif status == "completed":
+                pick_correct = ftr == vb.outcome
+
+        # Graded (CSV / authoritative) overrides live-completed.
+        g = value_graded_idx.get((vb.league, vb.date, home_n, away_n, vb.outcome))
+        if g is not None:
+            g_status = getattr(g, "status", "pending")
+            if g_status == "won":
+                pick_correct = True
+                ft_score = getattr(g, "ft_score", ft_score) or ft_score
+                is_live = False
+            elif g_status == "lost":
+                pick_correct = False
+                ft_score = getattr(g, "ft_score", ft_score) or ft_score
+                is_live = False
+
+        enriched_vbs.append(
+            vb.model_copy(
                 update={
                     "is_live": is_live,
                     "pick_correct": pick_correct,
@@ -728,8 +781,8 @@ def _enrich_predictions_with_live_and_graded(payload: TodayPayload) -> TodayPayl
 
     return TodayPayload(
         generated_at=payload.generated_at,
-        predictions=enriched,
-        value_bets=payload.value_bets,
+        predictions=enriched_preds,
+        value_bets=enriched_vbs,
         data_sources=payload.data_sources,
     )
 

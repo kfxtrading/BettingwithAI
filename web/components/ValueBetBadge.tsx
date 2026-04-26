@@ -37,9 +37,16 @@ export function ValueBetBadge({ bets }: { bets: ValueBet[] }) {
 
   return (
     <article className="surface-card flex min-w-[260px] flex-col gap-4 px-5 py-5">
-      <header className="flex items-baseline justify-between text-2xs">
+      <header className="flex flex-wrap items-center gap-2 text-2xs">
         <span className="pill">{first.league_name}</span>
-        <span className={`pill ${confidenceTone[headerConfidence]}`}>
+        {first.is_live && (
+          <span className="pill pill-live">
+            <span className="live-dot" aria-hidden="true" />
+            {t('predictionCard.badge.live')}
+            {first.ft_score ? ` · ${first.ft_score}` : ''}
+          </span>
+        )}
+        <span className={`pill ml-auto ${confidenceTone[headerConfidence]}`}>
           {confidenceLabel[headerConfidence]}
         </span>
       </header>
@@ -58,7 +65,21 @@ export function ValueBetBadge({ bets }: { bets: ValueBet[] }) {
             key={`${bet.outcome}-${bet.bet_label}-${i}`}
             className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
           >
-            <p className="text-sm text-muted">{bet.bet_label}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-muted">{bet.bet_label}</p>
+              {bet.pick_correct === true && (
+                <span className="pill pill-positive text-2xs">
+                  {t('predictionCard.badge.correct')}
+                  {bet.ft_score ? ` · ${bet.ft_score}` : ''}
+                </span>
+              )}
+              {bet.pick_correct === false && (
+                <span className="pill pill-negative text-2xs">
+                  {t('predictionCard.badge.incorrect')}
+                  {bet.ft_score ? ` · ${bet.ft_score}` : ''}
+                </span>
+              )}
+            </div>
             <dl className="grid grid-cols-3 gap-3 font-mono text-2xs">
               <div>
                 <dt className="text-muted">{t('valueBet.odds')}</dt>
