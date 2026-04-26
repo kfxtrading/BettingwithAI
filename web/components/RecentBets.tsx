@@ -9,6 +9,7 @@ import type { BetStatus, GradedBet, HistoryDay } from '@/lib/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { DictionaryKey } from '@/lib/i18n';
 import { parseLocalDate } from '@/lib/datetime';
+import { localizedBetLabel } from '@/lib/betLabel';
 
 const DAYS = 14;
 const MAX_VISIBLE_DAYS = 6;
@@ -126,7 +127,7 @@ function MatchRow({
                     : t('recentBets.kind.value')}
                 </span>
                 <span className="uppercase tracking-[0.08em]">
-                  {bet.bet_label} @ {bet.odds.toFixed(2)}
+                  {localizedBetLabel(bet, t)} @ {bet.odds.toFixed(2)}
                 </span>
                 {bet.status !== 'pending' && (
                   <span

@@ -2,6 +2,7 @@
 
 import type { Confidence, ValueBet } from '@/lib/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { localizedBetLabel } from '@/lib/betLabel';
 
 const confidenceTone: Record<Confidence, string> = {
   high: 'pill-positive',
@@ -29,13 +30,13 @@ function abbreviateTeam(name: string, maxLen = 12): string {
   return [parts[0], ...parts.slice(1).map((p) => `${p[0]}.`)].join(' ');
 }
 
-function shortBetLabel(bet: ValueBet): string {
-  const team =
-    bet.outcome === 'H' ? bet.home_team : bet.outcome === 'A' ? bet.away_team : null;
-  if (!team) return bet.bet_label;
-  const shortTeam = abbreviateTeam(team);
-  if (shortTeam === team) return bet.bet_label;
-  return bet.bet_label.replace(team, shortTeam);
+function shortBetLabel(
+  bet: ValueBet,
+  t: (key: import('@/lib/i18n').DictionaryKey) => string,
+): string {
+  if (bet.outcome === 'D') return localizedBetLabel(bet, t);
+  const team = bet.outcome === 'H' ? bet.home_team : bet.away_team;
+  return localizedBetLabel(bet, t, abbreviateTeam(team));
 }
 
 export function ValueBetBadge({ bets }: { bets: ValueBet[] }) {
@@ -82,7 +83,7 @@ export function ValueBetBadge({ bets }: { bets: ValueBet[] }) {
             className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-muted">{shortBetLabel(bet)}</p>
+              <p className="text-sm text-muted">{shortBetLabel(bet, t)}</p>
               {bet.pick_correct === true && (
                 <span className="pill pill-positive text-2xs">
                   {t('predictionCard.badge.correct')}
