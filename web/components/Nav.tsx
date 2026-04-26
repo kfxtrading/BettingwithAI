@@ -49,7 +49,7 @@ export function Nav() {
           </Link>
         </div>
 
-        <nav className="flex min-w-0 items-center gap-1 text-sm lg:hidden">
+        <nav className="flex min-w-0 items-center gap-0.5 pr-2 text-sm lg:hidden">
           {mobileLinks.map((link) => {
             const active =
               link.path === '/'
@@ -60,7 +60,7 @@ export function Nav() {
                 key={link.path}
                 href={href(link.path)}
                 hrefLang={locale}
-                className={`focus-ring press rounded-full px-2 py-1.5 text-xs transition-colors ease-ease sm:px-3.5 sm:text-sm ${
+                className={`focus-ring press rounded-full px-1.5 py-1.5 text-xs transition-colors ease-ease sm:px-3.5 sm:text-sm ${
                   active
                     ? 'bg-surface text-text shadow-soft'
                     : 'text-muted hover:text-text'
