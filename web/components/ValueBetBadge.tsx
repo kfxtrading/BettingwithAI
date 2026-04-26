@@ -22,6 +22,22 @@ function topConfidence(bets: ValueBet[]): Confidence {
   );
 }
 
+function abbreviateTeam(name: string, maxLen = 12): string {
+  if (name.length <= maxLen) return name;
+  const parts = name.split(/\s+/);
+  if (parts.length <= 1) return name;
+  return [parts[0], ...parts.slice(1).map((p) => `${p[0]}.`)].join(' ');
+}
+
+function shortBetLabel(bet: ValueBet): string {
+  const team =
+    bet.outcome === 'H' ? bet.home_team : bet.outcome === 'A' ? bet.away_team : null;
+  if (!team) return bet.bet_label;
+  const shortTeam = abbreviateTeam(team);
+  if (shortTeam === team) return bet.bet_label;
+  return bet.bet_label.replace(team, shortTeam);
+}
+
 export function ValueBetBadge({ bets }: { bets: ValueBet[] }) {
   const { t } = useLocale();
   const confidenceLabel: Record<Confidence, string> = {
@@ -66,7 +82,7 @@ export function ValueBetBadge({ bets }: { bets: ValueBet[] }) {
             className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-muted">{bet.bet_label}</p>
+              <p className="text-sm text-muted">{shortBetLabel(bet)}</p>
               {bet.pick_correct === true && (
                 <span className="pill pill-positive text-2xs">
                   {t('predictionCard.badge.correct')}
