@@ -30,7 +30,7 @@ export function LeagueSwitcher({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(opt.key)}
-            className="relative isolate rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide focus-ring press"
+            className="relative isolate rounded-full px-2 py-1.5 text-xs font-medium tracking-wide focus-ring press sm:px-3.5"
           >
             {active && (
               <motion.span
