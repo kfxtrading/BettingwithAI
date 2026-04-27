@@ -232,6 +232,12 @@ export const es: Dictionary = {
   'support.input.send': 'Enviar',
   'support.suggestions.heading': 'Preguntas frecuentes',
   'support.reset': 'Volver a las preguntas',
+  'support.match.heading': 'Resumen del partido',
+  'support.match.kickoff': 'Inicio',
+  'support.match.probs': 'Probabilidades del modelo',
+  'support.match.valueBet': 'Value Bet',
+  'support.match.news': 'Últimas noticias',
+  'support.match.form': 'Forma',
   'support.fallback':
     'Lo siento, no he encontrado una respuesta exacta. Reformula la pregunta o utiliza los datos de contacto del pie de página.',
   'support.faq.valueBet.q': '¿Qué es una value bet?',

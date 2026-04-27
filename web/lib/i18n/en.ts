@@ -195,6 +195,12 @@ export type DictionaryKey =
   | 'support.suggestions.heading'
   | 'support.reset'
   | 'support.fallback'
+  | 'support.match.heading'
+  | 'support.match.kickoff'
+  | 'support.match.probs'
+  | 'support.match.valueBet'
+  | 'support.match.news'
+  | 'support.match.form'
   | 'support.faq.valueBet.q'
   | 'support.faq.valueBet.a'
   | 'support.faq.accuracy.q'
@@ -1136,6 +1142,12 @@ export const en: Dictionary = {
   'support.input.send': 'Send',
   'support.suggestions.heading': 'Common questions',
   'support.reset': 'Back to questions',
+  'support.match.heading': 'Match Overview',
+  'support.match.kickoff': 'Kickoff',
+  'support.match.probs': 'Model probabilities',
+  'support.match.valueBet': 'Value Bet',
+  'support.match.news': 'Latest News',
+  'support.match.form': 'Form',
   'support.fallback':
     "Sorry, I couldn't find an exact answer. Try rephrasing, or reach out via the contact details in the footer.",
   'support.faq.valueBet.q': 'What is a value bet?',

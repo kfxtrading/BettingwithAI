@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, MessageCircle, Send, X } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MessageCircle, Send, TrendingUp, X } from 'lucide-react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import {
   FAQ_ENTRIES,
@@ -17,13 +17,148 @@ import {
   searchFaq,
   type FaqEntry,
 } from '@/lib/faq';
-import { api } from '@/lib/api';
+import { api, type MatchContext } from '@/lib/api';
 
 type Message =
   | { role: 'user'; text: string }
-  | { role: 'bot'; text: string; followUpEntryId?: string };
+  | { role: 'bot'; text: string; followUpEntryId?: string; matchContext?: MatchContext };
 
 const SUGGESTION_LIMIT = 5;
+
+function FormBadge({ form }: { form: string }) {
+  return (
+    <span className="font-mono text-xs tracking-widest">
+      {form.split('').map((c, i) => (
+        <span
+          key={i}
+          className={
+            c === 'W'
+              ? 'text-emerald-500'
+              : c === 'D'
+                ? 'text-amber-500'
+                : 'text-red-500'
+          }
+        >
+          {c}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function MatchContextCard({ ctx, t }: { ctx: MatchContext; t: (k: string) => string }) {
+  const labels: Record<'H' | 'D' | 'A', string> = { H: ctx.home_team, D: 'Draw', A: ctx.away_team };
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const bars: { label: string; value: number; colour: string }[] = [
+    { label: ctx.home_team, value: ctx.prob_home, colour: 'bg-blue-500' },
+    { label: 'Draw', value: ctx.prob_draw, colour: 'bg-slate-400' },
+    { label: ctx.away_team, value: ctx.prob_away, colour: 'bg-violet-500' },
+  ];
+
+  return (
+    <div className="mr-auto w-full max-w-[90%] overflow-hidden rounded-[10px] border border-border bg-surface-2 text-xs text-text">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <span className="font-semibold">
+          {ctx.home_team} <span className="text-muted">vs</span> {ctx.away_team}
+        </span>
+        {ctx.value_bet && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <TrendingUp size={10} aria-hidden="true" />
+            {t('support.match.valueBet')}
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-2 px-3 py-2">
+        {/* League + kickoff */}
+        <div className="flex items-center gap-3 text-2xs text-muted">
+          <span>{ctx.league_name}</span>
+          {ctx.kickoff_time && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>
+                {t('support.match.kickoff')}: {ctx.kickoff_time}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Probability bars */}
+        <div>
+          <p className="mb-1 text-2xs font-medium uppercase tracking-[0.1em] text-muted">
+            {t('support.match.probs')}
+          </p>
+          <div className="space-y-1">
+            {bars.map((b) => (
+              <div key={b.label} className="flex items-center gap-2">
+                <span className="w-[72px] truncate text-right text-2xs text-muted">
+                  {b.label}
+                </span>
+                <div className="flex-1 overflow-hidden rounded-full bg-surface h-1.5">
+                  <div
+                    className={`h-full rounded-full ${b.colour} ${b.label === labels[ctx.most_likely] ? 'opacity-100' : 'opacity-40'}`}
+                    style={{ width: pct(b.value) }}
+                  />
+                </div>
+                <span className={`w-8 text-right text-2xs ${b.label === labels[ctx.most_likely] ? 'font-semibold text-text' : 'text-muted'}`}>
+                  {pct(b.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Form */}
+        {(ctx.form_home || ctx.form_away) && (
+          <div>
+            <p className="mb-1 text-2xs font-medium uppercase tracking-[0.1em] text-muted">
+              {t('support.match.form')}
+            </p>
+            <div className="flex gap-4">
+              {ctx.form_home && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-2xs text-muted">{ctx.home_team.split(' ')[0]}</span>
+                  <FormBadge form={ctx.form_home} />
+                </div>
+              )}
+              {ctx.form_away && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-2xs text-muted">{ctx.away_team.split(' ')[0]}</span>
+                  <FormBadge form={ctx.form_away} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* News */}
+        {ctx.news.length > 0 && (
+          <div>
+            <p className="mb-1 text-2xs font-medium uppercase tracking-[0.1em] text-muted">
+              {t('support.match.news')}
+            </p>
+            <ul className="space-y-1">
+              {ctx.news.map((item, i) => (
+                <li key={i} className="flex items-start gap-1">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-w-0 items-center gap-1 text-2xs text-accent hover:underline"
+                  >
+                    <ExternalLink size={10} className="flex-none" aria-hidden="true" />
+                    <span className="truncate">{item.title}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 const MATCH_SCORE_THRESHOLD = 0.6;
 const FOLLOW_UP_CONFIDENCE_THRESHOLD = 0.4;
 // Transformer score gate — below this we still try the Fuse.js fallback so
@@ -96,26 +231,31 @@ export function SupportChat() {
         };
       };
 
-      const appendBot = (answer: string, followUpEntryId?: string) => {
+      const appendBot = (
+        answer: string,
+        followUpEntryId?: string,
+        matchContext?: MatchContext,
+      ) => {
         setMessages((prev) => [
           ...prev,
-          { role: 'bot', text: answer, followUpEntryId },
+          { role: 'bot', text: answer, followUpEntryId, matchContext },
         ]);
       };
 
       void api
         .supportAsk({ question: text, lang: locale, top_k: 3 })
         .then((res) => {
+          const ctx = res.match_context ?? undefined;
           const top = res.predictions[0];
           if (!res.fallback && top && top.score >= TRANSFORMER_MIN_SCORE) {
             const resolved = resolveFromPrediction(top.intent_id);
             if (resolved) {
-              appendBot(resolved.answer, resolved.followUpEntryId);
+              appendBot(resolved.answer, resolved.followUpEntryId, ctx);
               return;
             }
           }
           const fb = fuseFallback();
-          appendBot(fb.answer, fb.followUpEntryId);
+          appendBot(fb.answer, fb.followUpEntryId, ctx);
         })
         .catch(() => {
           const fb = fuseFallback();
@@ -237,15 +377,19 @@ export function SupportChat() {
               ) : (
                 <div className="flex flex-col gap-2">
                   {messages.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={
-                        msg.role === 'user'
-                          ? 'ml-auto max-w-[85%] rounded-[10px] bg-accent px-3 py-2 text-sm text-white'
-                          : 'mr-auto max-w-[90%] rounded-[10px] bg-surface-2 px-3 py-2 text-sm text-text'
-                      }
-                    >
-                      {msg.text}
+                    <div key={i} className="flex flex-col gap-1.5">
+                      {msg.role === 'bot' && msg.matchContext && (
+                        <MatchContextCard ctx={msg.matchContext} t={t} />
+                      )}
+                      <div
+                        className={
+                          msg.role === 'user'
+                            ? 'ml-auto max-w-[85%] rounded-[10px] bg-accent px-3 py-2 text-sm text-white'
+                            : 'mr-auto max-w-[90%] rounded-[10px] bg-surface-2 px-3 py-2 text-sm text-text'
+                        }
+                      >
+                        {msg.text}
+                      </div>
                     </div>
                   ))}
                   {followUpEntry && !followUpConsumed && (

@@ -396,6 +396,33 @@ class SupportPredictionOut(BaseModel):
     chapter_score: float = Field(ge=0.0, le=1.0)
 
 
+class MatchNewsItem(BaseModel):
+    """A single news headline for a team or fixture."""
+
+    title: str
+    url: str
+    source: str
+
+
+class MatchContext(BaseModel):
+    """Pre-computed match overview returned when a chat query mentions a team."""
+
+    home_team: str
+    away_team: str
+    league: str
+    league_name: str
+    kickoff_time: str | None = None
+    prob_home: float = Field(ge=0.0, le=1.0)
+    prob_draw: float = Field(ge=0.0, le=1.0)
+    prob_away: float = Field(ge=0.0, le=1.0)
+    most_likely: Outcome
+    odds: OddsOut | None = None
+    form_home: str | None = None
+    form_away: str | None = None
+    value_bet: bool = False
+    news: list[MatchNewsItem] = Field(default_factory=list)
+
+
 class SupportAskOut(BaseModel):
     """Response for `POST /support/ask`. Empty `predictions` signals OOD — clients should fall back to FAQ search."""
 
@@ -403,4 +430,5 @@ class SupportAskOut(BaseModel):
     question: str
     predictions: list[SupportPredictionOut] = Field(default_factory=list)
     fallback: bool = False
+    match_context: MatchContext | None = None
 

@@ -174,3 +174,132 @@ def classify(question: str, lang: str, top_k: int = 3) -> list[SupportPrediction
 
 def supported_languages() -> tuple[str, ...]:
     return _SUPPORTED_LANGS
+
+
+# ── Match-context detection ───────────────────────────────────────────────────
+
+import re
+import unicodedata
+
+
+def _normalise_name(text: str) -> str:
+    """Lowercase, strip accents, collapse whitespace."""
+    nfkd = unicodedata.normalize("NFKD", text)
+    stripped = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", stripped).lower().strip()
+
+
+def _team_tokens(team: str) -> list[str]:
+    """Split a team name into searchable sub-tokens.
+
+    Returns the full normalised name plus each individual word longer than
+    2 chars so e.g. "Arsenal" matches "Arsenal FC" and vice-versa.
+    """
+    full = _normalise_name(team)
+    words = [w for w in full.split() if len(w) > 2]
+    tokens = [full] + words
+    return tokens
+
+
+def find_match_context(
+    question: str,
+    predictions: list,
+    value_bets: list,
+) -> object | None:
+    """Return a :class:`MatchContext` when the question mentions a team.
+
+    Scans ``predictions`` (list of PredictionOut) for any team whose name
+    (or a meaningful sub-token) appears in the question text. Returns the
+    first match found, enriched with recent news headlines and form strings.
+    Returns ``None`` when no team mention is detected or the prediction list
+    is empty.
+    """
+    if not predictions:
+        return None
+
+    from football_betting.api.schemas import MatchContext, MatchNewsItem, OddsOut
+    from football_betting.scraping.news import fetch_match_news
+
+    q_norm = _normalise_name(question)
+
+    # Build a set of value-bet (home, away) pairs for quick lookup
+    value_pairs: set[tuple[str, str]] = {
+        (_normalise_name(vb.home_team), _normalise_name(vb.away_team))
+        for vb in value_bets
+    }
+
+    matched_pred = None
+    for pred in predictions:
+        home_tokens = _team_tokens(pred.home_team)
+        away_tokens = _team_tokens(pred.away_team)
+        all_tokens = home_tokens + away_tokens
+        if any(tok in q_norm for tok in all_tokens):
+            matched_pred = pred
+            break
+
+    if matched_pred is None:
+        return None
+
+    # Fetch recent form strings via league data (best-effort)
+    form_home: str | None = None
+    form_away: str | None = None
+    try:
+        from football_betting.data.loader import load_league
+
+        matches = load_league(matched_pred.league)
+        matches.sort(key=lambda m: m.date)
+        _N = 5
+        h_str = ""
+        a_str = ""
+        for m in reversed(matches):
+            if len(h_str) < _N and (m.home_team == matched_pred.home_team or m.away_team == matched_pred.home_team):
+                scored = m.home_goals if m.home_team == matched_pred.home_team else m.away_goals
+                conceded = m.away_goals if m.home_team == matched_pred.home_team else m.home_goals
+                h_str += "W" if scored > conceded else ("D" if scored == conceded else "L")
+            if len(a_str) < _N and (m.home_team == matched_pred.away_team or m.away_team == matched_pred.away_team):
+                scored = m.home_goals if m.home_team == matched_pred.away_team else m.away_goals
+                conceded = m.away_goals if m.home_team == matched_pred.away_team else m.home_goals
+                a_str += "W" if scored > conceded else ("D" if scored == conceded else "L")
+            if len(h_str) >= _N and len(a_str) >= _N:
+                break
+        form_home = h_str[::-1] or None  # reverse to chronological (oldest→newest)
+        form_away = a_str[::-1] or None
+    except Exception as exc:
+        logger.debug("[support] form lookup failed: %s", exc)
+
+    # Fetch news (non-blocking; empty list on failure)
+    news_items = fetch_match_news(matched_pred.home_team, matched_pred.away_team, max_per_team=2)
+
+    is_value = (
+        _normalise_name(matched_pred.home_team),
+        _normalise_name(matched_pred.away_team),
+    ) in value_pairs
+
+    odds_out: OddsOut | None = None
+    if matched_pred.odds is not None:
+        odds_out = OddsOut(
+            home=matched_pred.odds.home,
+            draw=matched_pred.odds.draw,
+            away=matched_pred.odds.away,
+            bookmaker=matched_pred.odds.bookmaker,
+        )
+
+    return MatchContext(
+        home_team=matched_pred.home_team,
+        away_team=matched_pred.away_team,
+        league=matched_pred.league,
+        league_name=matched_pred.league_name,
+        kickoff_time=matched_pred.kickoff_time,
+        prob_home=round(matched_pred.prob_home, 3),
+        prob_draw=round(matched_pred.prob_draw, 3),
+        prob_away=round(matched_pred.prob_away, 3),
+        most_likely=matched_pred.most_likely,
+        odds=odds_out,
+        form_home=form_home,
+        form_away=form_away,
+        value_bet=is_value,
+        news=[
+            MatchNewsItem(title=n.title, url=n.url, source=n.source)
+            for n in news_items
+        ],
+    )

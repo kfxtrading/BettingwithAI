@@ -227,6 +227,12 @@ export const de: Dictionary = {
   'support.input.send': 'Senden',
   'support.suggestions.heading': 'Häufige Fragen',
   'support.reset': 'Zurück zu den Fragen',
+  'support.match.heading': 'Spiel-Übersicht',
+  'support.match.kickoff': 'Anstoß',
+  'support.match.probs': 'Modell-Wahrscheinlichkeiten',
+  'support.match.valueBet': 'Value Bet',
+  'support.match.news': 'Aktuelle News',
+  'support.match.form': 'Form',
   'support.fallback':
     'Leider konnte keine passende Antwort gefunden werden. Formuliere deine Frage neu oder nutze die Kontaktdaten im Footer.',
   'support.faq.valueBet.q': 'Was ist ein Value Bet?',
