@@ -7,15 +7,16 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { useLanding } from '@/app/LandingContext';
 import { AllLeaguesIcon, LeagueIcon } from './LeagueIcon';
 
-// Accent colour per league, in the same warm/muted family as --accent.
+// Each league gets a refined, slightly-muted colour that sits well inside
+// the warm design system without looking like a generic betting site palette.
 const LEAGUE_ACCENTS: Record<string, string> = {
-  BL: '212 101 74',
-  PL: '120 95 190',
-  SA: '60 130 185',
-  LL: '198 72 86',
-  ELC: '90 140 100',
-  CH: '90 140 100',
-  EFL: '90 140 100',
+  PL: '102 78 188',   // imperial purple
+  BL: '192 32 48',   // Bundesliga red
+  SA: '22 82 162',   // Serie A deep blue
+  LL: '195 88 28',   // La Liga amber-orange
+  ELC: '30 128 82',  // EFL Championship forest green
+  CH: '30 128 82',
+  EFL: '30 128 82',
 };
 
 function accentFor(code: string): string {
@@ -100,14 +101,16 @@ function SpaceRow({
       }`}
     >
       <span
-        className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg transition-colors ease-ease ${
-          active ? 'text-white' : 'bg-surface-2'
+        className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl transition-all duration-200 ease-ease ${
+          active
+            ? 'text-white'
+            : 'bg-surface-2 ring-1 ring-inset ring-black/[0.07] dark:ring-white/[0.09]'
         }`}
         style={
           active
             ? ({
-                background: `rgb(${accent})`,
-                boxShadow: `0 4px 10px -6px rgb(${accent} / 0.55)`,
+                background: `linear-gradient(150deg, rgb(${accent} / 0.82) 0%, rgb(${accent}) 100%)`,
+                boxShadow: `0 4px 14px -4px rgb(${accent} / 0.45), inset 0 1px 0 rgba(255,255,255,0.22)`,
               } as React.CSSProperties)
             : ({
                 color: `rgb(${accent})`,
@@ -118,7 +121,10 @@ function SpaceRow({
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {short && (
-        <span className="flex-none text-2xs font-mono uppercase tracking-wide text-muted">
+        <span
+          className="flex-none rounded px-1 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted/70"
+          style={active ? { color: `rgb(${accent})` } : undefined}
+        >
           {short}
         </span>
       )}
