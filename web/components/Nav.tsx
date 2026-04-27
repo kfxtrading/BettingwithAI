@@ -36,8 +36,8 @@ export function Nav() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-transparent bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
-      <div className="mx-auto flex w-full max-w-page items-center justify-between gap-2 px-3 py-4 sm:gap-3 sm:px-6 md:gap-8 md:px-12">
-        {/* Mobile: logo + primary links */}
+      <div className="mx-auto flex w-full max-w-page items-center justify-between gap-2 px-3 pt-4 sm:gap-3 sm:px-6 md:gap-8 md:px-12 lg:py-4">
+        {/* Mobile: logo + controls */}
         <div className="flex items-center gap-3 lg:hidden">
           <Link
             href={href('/')}
@@ -48,29 +48,6 @@ export function Nav() {
             Betting with AI
           </Link>
         </div>
-
-        <nav className="flex min-w-0 items-center gap-0.5 pr-2 text-sm lg:hidden">
-          {mobileLinks.map((link) => {
-            const active =
-              link.path === '/'
-                ? localePathname === '/'
-                : localePathname.startsWith(link.path);
-            return (
-              <Link
-                key={link.path}
-                href={href(link.path)}
-                hrefLang={locale}
-                className={`focus-ring press rounded-full px-1.5 py-1.5 text-xs transition-colors ease-ease sm:px-3.5 sm:text-sm ${
-                  active
-                    ? 'bg-surface text-text shadow-soft'
-                    : 'text-muted hover:text-text'
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
 
         {/* Desktop: breadcrumb */}
         <nav
@@ -117,12 +94,34 @@ export function Nav() {
           })}
         </nav>
 
-        <div className="flex items-center lg:hidden">
+        <div className="flex shrink-0 items-center gap-2 lg:hidden">
           <LanguageSwitcher />
+          <ThemeToggle />
         </div>
       </div>
-      <div className="mx-auto flex w-full max-w-page px-3 pb-3 sm:px-6 md:px-12 lg:hidden">
-        <ThemeToggle />
+      <div className="mx-auto flex w-full max-w-page px-3 py-3 sm:px-6 md:px-12 lg:hidden">
+        <nav className="flex min-w-0 items-center gap-1 overflow-x-auto pr-1 text-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {mobileLinks.map((link) => {
+            const active =
+              link.path === '/'
+                ? localePathname === '/'
+                : localePathname.startsWith(link.path);
+            return (
+              <Link
+                key={link.path}
+                href={href(link.path)}
+                hrefLang={locale}
+                className={`focus-ring press shrink-0 whitespace-nowrap rounded-full px-2.5 py-1.5 text-xs transition-colors ease-ease sm:px-3.5 sm:text-sm ${
+                  active
+                    ? 'bg-surface text-text shadow-soft'
+                    : 'text-muted hover:text-text'
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </header>
   );

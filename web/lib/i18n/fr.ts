@@ -120,7 +120,7 @@ export const fr: Dictionary = {
   'ratings.col.form': 'Forme',
   'nav.today': "Aujourd'hui",
   'nav.performance': 'Performance',
-  'nav.leagues': 'Championnats',
+  'nav.leagues': 'Ligues',
   'nav.language': 'Langue',
   'nav.about': 'À propos',
   'nav.methodology': 'Méthodologie',
