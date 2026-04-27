@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ExternalLink, MessageCircle, Send, TrendingUp, X } from 'lucide-react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -18,6 +19,10 @@ import {
   type FaqEntry,
 } from '@/lib/faq';
 import { api, type MatchContext } from '@/lib/api';
+import type { DictionaryKey } from '@/lib/i18n';
+
+const WELCOME_SESSION_KEY = 'bwai_chat_welcomed';
+const AUTO_OPEN_DELAY_MS = 3000;
 
 type Message =
   | { role: 'user'; text: string }
@@ -46,7 +51,7 @@ function FormBadge({ form }: { form: string }) {
   );
 }
 
-function MatchContextCard({ ctx, t }: { ctx: MatchContext; t: (k: string) => string }) {
+function MatchContextCard({ ctx, t }: { ctx: MatchContext; t: (k: DictionaryKey) => string }) {
   const labels: Record<'H' | 'D' | 'A', string> = { H: ctx.home_team, D: 'Draw', A: ctx.away_team };
   const pct = (v: number) => `${Math.round(v * 100)}%`;
   const bars: { label: string; value: number; colour: string }[] = [
@@ -168,6 +173,13 @@ const TRANSFORMER_MIN_SCORE = 0.35;
 export function SupportChat() {
   const { t, locale } = useLocale();
   const panelId = useId();
+  const pathname = usePathname();
+
+  // Landing page: path is /{locale} with no further segments
+  const isLandingPage = useMemo(() => {
+    const segments = pathname.split('/').filter(Boolean);
+    return segments.length === 1;
+  }, [pathname]);
 
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -305,6 +317,31 @@ export function SupportChat() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
+
+  // Auto-open with welcome message on the landing page — once per session.
+  useEffect(() => {
+    if (!isLandingPage) return;
+    try {
+      if (sessionStorage.getItem(WELCOME_SESSION_KEY)) return;
+    } catch {
+      return; // sessionStorage blocked (private mode edge case)
+    }
+    const id = window.setTimeout(() => {
+      setOpen(true);
+      setMessages([
+        {
+          role: 'bot',
+          text: t('support.welcome'),
+        },
+      ]);
+      try {
+        sessionStorage.setItem(WELCOME_SESSION_KEY, '1');
+      } catch {
+        // ignore
+      }
+    }, AUTO_OPEN_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [isLandingPage, t]);
 
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">

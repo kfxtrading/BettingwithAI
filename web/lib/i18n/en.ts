@@ -195,6 +195,7 @@ export type DictionaryKey =
   | 'support.suggestions.heading'
   | 'support.reset'
   | 'support.fallback'
+  | 'support.welcome'
   | 'support.match.heading'
   | 'support.match.kickoff'
   | 'support.match.probs'
@@ -1142,6 +1143,8 @@ export const en: Dictionary = {
   'support.input.send': 'Send',
   'support.suggestions.heading': 'Common questions',
   'support.reset': 'Back to questions',
+  'support.welcome':
+    "Hi! Ask me about any team playing today and I'll show you our model prediction, recent form, and the latest news — just type a team name.",
   'support.match.heading': 'Match Overview',
   'support.match.kickoff': 'Kickoff',
   'support.match.probs': 'Model probabilities',

@@ -232,6 +232,8 @@ export const es: Dictionary = {
   'support.input.send': 'Enviar',
   'support.suggestions.heading': 'Preguntas frecuentes',
   'support.reset': 'Volver a las preguntas',
+  'support.welcome':
+    '¡Hola! Pregúntame sobre cualquier equipo que juegue hoy y te mostraré la predicción del modelo, la forma reciente y las últimas noticias.',
   'support.match.heading': 'Resumen del partido',
   'support.match.kickoff': 'Inicio',
   'support.match.probs': 'Probabilidades del modelo',
