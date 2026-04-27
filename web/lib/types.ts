@@ -203,6 +203,29 @@ export interface HistoryDay {
   bets: GradedBet[];
 }
 
+export interface MatchNewsItem {
+  title: string;
+  url: string;
+  source: string;
+}
+
+export interface MatchContext {
+  home_team: string;
+  away_team: string;
+  league: string;
+  league_name: string;
+  kickoff_time: string | null;
+  prob_home: number;
+  prob_draw: number;
+  prob_away: number;
+  most_likely: Outcome;
+  odds: Odds | null;
+  form_home: string | null;
+  form_away: string | null;
+  value_bet: boolean;
+  news: MatchNewsItem[];
+}
+
 export interface HistoryPayload {
   generated_at: string;
   n_days: number;

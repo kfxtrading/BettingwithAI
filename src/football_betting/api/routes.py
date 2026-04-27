@@ -20,6 +20,7 @@ from football_betting.api.schemas import (
     LeagueFixturesOut,
     LeagueOut,
     LeagueRatingSummary,
+    MatchContext,
     MatchSlugsOut,
     MatchWrapperOut,
     PerformanceIndexOut,
@@ -356,14 +357,42 @@ def support_ask(payload: SupportAskIn) -> SupportAskOut:
     When the model directory is missing or torch/transformers are unavailable
     the endpoint also reports ``fallback=True`` rather than HTTP 500, so the
     chatbot UI keeps working during partial deploys.
+
+    When the question mentions a team from today's fixtures a ``match_context``
+    block is included alongside (or instead of) the intent predictions so the
+    frontend can render a rich match overview card with probabilities and news.
     """
+    import logging as _logging
+    _log = _logging.getLogger("football_betting.api")
+
+    # Match-context detection: scan today's predictions for team mentions.
+    match_ctx: MatchContext | None = None
+    match_article: str | None = None
+    try:
+        today = services.get_today_payload()
+        result = support_service.find_match_context(
+            payload.question,
+            today.predictions,
+            today.value_bets,
+        )
+        if result is not None:
+            match_ctx = result  # type: ignore[assignment]
+            match_article = support_service.generate_match_article(match_ctx, payload.lang)
+    except Exception as exc:
+        _log.debug("[support] match context lookup failed: %s", exc)
+
     try:
         predictions = support_service.classify(
             question=payload.question, lang=payload.lang, top_k=payload.top_k
         )
     except support_service.SupportModelUnavailable:
         return SupportAskOut(
-            lang=payload.lang, question=payload.question, predictions=[], fallback=True
+            lang=payload.lang,
+            question=payload.question,
+            predictions=[],
+            fallback=True,
+            match_context=match_ctx,
+            match_article=match_article,
         )
     return SupportAskOut(
         lang=payload.lang,
@@ -378,4 +407,6 @@ def support_ask(payload: SupportAskIn) -> SupportAskOut:
             for p in predictions
         ],
         fallback=not predictions,
+        match_context=match_ctx,
+        match_article=match_article,
     )

@@ -195,6 +195,13 @@ export type DictionaryKey =
   | 'support.suggestions.heading'
   | 'support.reset'
   | 'support.fallback'
+  | 'support.welcome'
+  | 'support.match.heading'
+  | 'support.match.kickoff'
+  | 'support.match.probs'
+  | 'support.match.valueBet'
+  | 'support.match.news'
+  | 'support.match.form'
   | 'support.faq.valueBet.q'
   | 'support.faq.valueBet.a'
   | 'support.faq.accuracy.q'
@@ -1129,13 +1136,21 @@ export const en: Dictionary = {
   'cookie.btn.save': 'Save selection',
   'cookie.btn.acceptAll': 'Accept all',
   'cookie.aria.dialog': 'Cookie consent',
-  'support.toggle.label': 'Help / Support',
-  'support.panel.title': 'Support chat',
-  'support.panel.close': 'Close support chat',
-  'support.input.placeholder': 'Ask a question…',
+  'support.toggle.label': 'Ask Nomen',
+  'support.panel.title': 'Nomen',
+  'support.panel.close': 'Close Nomen',
+  'support.input.placeholder': 'Ask Nomen a question…',
   'support.input.send': 'Send',
   'support.suggestions.heading': 'Common questions',
   'support.reset': 'Back to questions',
+  'support.welcome':
+    "Hi, I'm Nomen — your AI football analyst! Ask me about any team playing today and I'll analyse the match using our prediction model: probabilities, recent form, and the latest news. Just type a team name.",
+  'support.match.heading': 'Match Overview',
+  'support.match.kickoff': 'Kickoff',
+  'support.match.probs': 'Model probabilities',
+  'support.match.valueBet': 'Value Bet',
+  'support.match.news': 'Latest News',
+  'support.match.form': 'Form',
   'support.fallback':
     "Sorry, I couldn't find an exact answer. Try rephrasing, or reach out via the contact details in the footer.",
   'support.faq.valueBet.q': 'What is a value bet?',

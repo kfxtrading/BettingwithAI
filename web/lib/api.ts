@@ -100,11 +100,36 @@ export interface SupportPrediction {
   chapter_score: number;
 }
 
+export interface MatchNewsItem {
+  title: string;
+  url: string;
+  source: string;
+}
+
+export interface MatchContext {
+  home_team: string;
+  away_team: string;
+  league: string;
+  league_name: string;
+  kickoff_time: string | null;
+  prob_home: number;
+  prob_draw: number;
+  prob_away: number;
+  most_likely: 'H' | 'D' | 'A';
+  odds: { home: number; draw: number; away: number; bookmaker: string } | null;
+  form_home: string | null;
+  form_away: string | null;
+  value_bet: boolean;
+  news: MatchNewsItem[];
+}
+
 export interface SupportAskResponse {
   lang: string;
   question: string;
   predictions: SupportPrediction[];
   fallback: boolean;
+  match_context: MatchContext | null;
+  match_article: string | null;
 }
 
 export const queryKeys = {
