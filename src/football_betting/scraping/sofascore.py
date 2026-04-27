@@ -32,6 +32,7 @@ from football_betting.config import (
 )
 from football_betting.scraping.cache import ResponseCache
 from football_betting.scraping.rate_limiter import TokenBucketLimiter
+from football_betting.scraping.team_names import normalize as normalize_team_name
 
 console = Console()
 logger = logging.getLogger("football_betting.scraping.sofascore")
@@ -377,11 +378,26 @@ class SofascoreClient:
 
     @staticmethod
     def load_matches(league_key: str, season: str) -> list[dict]:
-        """Load previously scraped match data."""
+        """Load previously scraped match data with FD-canonical team names.
+
+        Sofascore writes raw broadcast strings (``Manchester United``,
+        ``FC Bayern München``); the rest of the pipeline keys on the
+        Football-Data CSV strings (``Man United``, ``Bayern Munich``).
+        We normalise on read so every staged record matches the FD
+        ``Match`` lookup key in ``FeatureBuilder.update_with_match``.
+        """
         path = SOFASCORE_DIR / f"{league_key}_{season}.json"
         if not path.exists():
             return []
-        return json.loads(path.read_text())
+        records = json.loads(path.read_text(encoding="utf-8"))
+        for rec in records:
+            home = rec.get("home_team")
+            away = rec.get("away_team")
+            if isinstance(home, str):
+                rec["home_team"] = normalize_team_name(league_key, home)
+            if isinstance(away, str):
+                rec["away_team"] = normalize_team_name(league_key, away)
+        return records
 
     # ───────────────────────── Event-ID lookup ─────────────────────────
 

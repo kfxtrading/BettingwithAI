@@ -1,7 +1,7 @@
 """
-Team-name normalization: map The Odds API team names onto the naming
-convention used by the football-data.co.uk CSVs (which is what the ML
-pipeline keys off).
+Team-name normalization: map external provider team names (The Odds API,
+Sofascore) onto the naming convention used by the football-data.co.uk
+CSVs (which is what the ML pipeline keys off).
 
 Only teams that differ need an entry. Unmapped names fall through
 unchanged — fail-loud is intentional: if a team's ratings can't be
@@ -9,7 +9,7 @@ found downstream, the mapping is the first place to check.
 """
 from __future__ import annotations
 
-# Keyed by league, then Odds-API name → CSV name.
+# Keyed by league, then external-provider name → CSV name.
 _MAPPING: dict[str, dict[str, str]] = {
     "PL": {
         "Manchester United": "Man United",
@@ -17,14 +17,17 @@ _MAPPING: dict[str, dict[str, str]] = {
         "Newcastle United": "Newcastle",
         "Tottenham Hotspur": "Tottenham",
         "Wolverhampton Wanderers": "Wolves",
+        "Wolverhampton": "Wolves",
         "Nottingham Forest": "Nott'm Forest",
         "Brighton and Hove Albion": "Brighton",
+        "Brighton & Hove Albion": "Brighton",
         "West Ham United": "West Ham",
         "Leicester City": "Leicester",
         "Leeds United": "Leeds",
         "Ipswich Town": "Ipswich",
         "Sheffield United": "Sheffield United",
         "Luton Town": "Luton",
+        "Norwich City": "Norwich",
     },
     "CH": {
         "Sheffield Wednesday": "Sheffield Weds",
@@ -45,6 +48,14 @@ _MAPPING: dict[str, dict[str, str]] = {
         "Swansea City": "Swansea",
         "Birmingham City": "Birmingham",
         "Oxford United": "Oxford",
+        "Charlton Athletic": "Charlton",
+        "Huddersfield Town": "Huddersfield",
+        "Ipswich Town": "Ipswich",
+        "Leicester City": "Leicester",
+        "Nottingham Forest": "Nott'm Forest",
+        "Peterborough United": "Peterboro",
+        "Rotherham United": "Rotherham",
+        "Wigan Athletic": "Wigan",
     },
     "BL": {
         "Bayern Munich": "Bayern Munich",
@@ -78,9 +89,15 @@ _MAPPING: dict[str, dict[str, str]] = {
         "St. Pauli": "St Pauli",
         "Holstein Kiel": "Holstein Kiel",
         "VfL Bochum": "Bochum",
+        "VfL Bochum 1848": "Bochum",
         "FC Schalke 04": "Schalke 04",
         "Hamburger SV": "Hamburg",
         "Hertha BSC": "Hertha",
+        "Arminia Bielefeld": "Bielefeld",
+        "Darmstadt 98": "Darmstadt",
+        "SV Darmstadt 98": "Darmstadt",
+        "SpVgg Greuther Fürth": "Greuther Furth",
+        "Greuther Fürth": "Greuther Furth",
     },
     "SA": {
         "Internazionale": "Inter",
@@ -135,6 +152,13 @@ _MAPPING: dict[str, dict[str, str]] = {
         "Real Oviedo": "Oviedo",
         "Levante UD": "Levante",
         "Elche CF": "Elche",
+        "Almería": "Almeria",
+        "UD Almería": "Almeria",
+        "Cádiz": "Cadiz",
+        "Cádiz CF": "Cadiz",
+        "FC Barcelona": "Barcelona",
+        "Leganés": "Leganes",
+        "CD Leganés": "Leganes",
     },
 }
 
