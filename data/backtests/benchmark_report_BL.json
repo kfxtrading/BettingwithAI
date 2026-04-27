@@ -1,0 +1,50 @@
+{
+  "league": "BL",
+  "generated_at": "2026-04-27T17:03:29+00:00",
+  "devig_method": "power",
+  "coverage": {
+    "n_predictions": 306,
+    "n_scored": 306,
+    "n_with_odds": 306,
+    "n_with_opening_odds": 306,
+    "n_opta_matched": 0,
+    "n_opta_unmatched": 0
+  },
+  "sources": {
+    "our_model": {
+      "source": "our_model",
+      "n": 306,
+      "mean_rps": 0.21829732021894643,
+      "mean_brier": 0.6256903986237908,
+      "ece": 0.06952010103148872,
+      "weighted_clv": -0.00588964311363161,
+      "clv_n": 306,
+      "delta_vs_market": {
+        "n": 306,
+        "clv_n": 306,
+        "mean_rps": 0.01615975075198678,
+        "mean_brier": 0.03496813173071933,
+        "ece": 0.010761718024609145,
+        "weighted_clv": -0.006004545174269902
+      }
+    },
+    "market_implied": {
+      "source": "market_implied",
+      "n": 306,
+      "mean_rps": 0.20213756946695965,
+      "mean_brier": 0.5907222668930715,
+      "ece": 0.05875838300687957,
+      "weighted_clv": 0.00011490206063829184,
+      "clv_n": 306,
+      "delta_vs_market": {
+        "n": 306,
+        "clv_n": 306,
+        "mean_rps": 0.0,
+        "mean_brier": 0.0,
+        "ece": 0.0,
+        "weighted_clv": 0.0
+      }
+    }
+  },
+  "opta_reference_path": null
+}

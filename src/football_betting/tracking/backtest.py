@@ -442,6 +442,15 @@ class Backtester:
                     "odds_home": match.odds.home if match.odds else None,
                     "odds_draw": match.odds.draw if match.odds else None,
                     "odds_away": match.odds.away if match.odds else None,
+                    "opening_odds_home": (
+                        match.opening_odds.home if match.opening_odds else None
+                    ),
+                    "opening_odds_draw": (
+                        match.opening_odds.draw if match.opening_odds else None
+                    ),
+                    "opening_odds_away": (
+                        match.opening_odds.away if match.opening_odds else None
+                    ),
                 }
 
                 value_bets = find_value_bets(value_pred, bankroll, value_bet_cfg)

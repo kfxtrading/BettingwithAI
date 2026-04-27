@@ -10,18 +10,16 @@ pytest.importorskip("catboost")
 
 from football_betting.config import BacktestConfig
 from football_betting.data.models import Match, MatchOdds, Prediction
-from football_betting.tracking.backtest import (
-    ModelBundle,
-)
+from football_betting.predict.runtime import LeagueModelProfile
 from football_betting.tracking.backtest import (
     DEFAULT_WALK_FORWARD_FOLDS,
-    BacktestResult,
     Backtester,
+    BacktestResult,
+    ModelBundle,
     WalkForwardSummary,
     _aggregate_folds,
     _validate_folds,
 )
-from football_betting.predict.runtime import LeagueModelProfile
 
 
 class TestFoldValidation:
@@ -153,6 +151,7 @@ def test_backtester_uses_dedicated_value_bundle(monkeypatch: pytest.MonkeyPatch)
             home_goals=1,
             away_goals=0,
             odds=MatchOdds(home=2.60, draw=3.40, away=3.60),
+            opening_odds=MatchOdds(home=2.50, draw=3.50, away=3.70),
         )
     ]
 
@@ -192,4 +191,7 @@ def test_backtester_uses_dedicated_value_bundle(monkeypatch: pytest.MonkeyPatch)
     assert result.rows[0]["model_name"] == "pred-1x2"
     assert result.rows[0]["value_model_name"] == "pred-value"
     assert result.rows[0]["value_prob_home"] == pytest.approx(0.55)
+    assert result.rows[0]["opening_odds_home"] == pytest.approx(2.50)
+    assert result.rows[0]["opening_odds_draw"] == pytest.approx(3.50)
+    assert result.rows[0]["opening_odds_away"] == pytest.approx(3.70)
     assert result.bet_metrics["roi"] > 0.0

@@ -198,3 +198,37 @@ def test_mlp_fit_default_path_unchanged() -> None:
 
     assert result["best_val_growth"] is None
     assert result["kelly_mask_coverage"] is None
+
+
+def test_mlp_predict_uses_model_device_for_inference() -> None:
+    from sklearn.preprocessing import StandardScaler
+
+    from football_betting.data.models import Fixture
+    from football_betting.predict.mlp_model import MLPPredictor
+
+    class StubFeatureBuilder:
+        def features_for_fixture(self, fixture: Fixture) -> dict[str, float]:
+            return {"x": 1.0}
+
+    class RecordingModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = torch.nn.Linear(1, 3)
+            self.seen_device = None
+
+        def forward(self, x):
+            self.seen_device = x.device
+            return self.linear(x)
+
+    model = RecordingModel()
+    mlp = MLPPredictor(feature_builder=StubFeatureBuilder())
+    mlp.model = model
+    mlp.scaler = StandardScaler().fit(np.array([[0.0], [1.0]], dtype=np.float32))
+    mlp.feature_names = ["x"]
+
+    pred = mlp.predict(
+        Fixture(date=date(2024, 1, 1), league="BL", home_team="A", away_team="B")
+    )
+
+    assert model.seen_device == next(model.parameters()).device
+    assert pred.prob_home + pred.prob_draw + pred.prob_away == pytest.approx(1.0)

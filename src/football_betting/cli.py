@@ -9,6 +9,7 @@ Commands:
     fb train-support     — Train FAQ intent classifier (v0.3.1)
     fb predict           — Predict fixtures from JSON
     fb backtest          — Walk-forward backtest
+    fb benchmark-report  — Compare model, market-implied, optional Opta reference
     fb tune-ensemble     — Dirichlet-sampled weight tuning
     fb scrape            — Scrape Sofascore xG + lineups (v0.3)
     fb fetch-fixtures    — Pull today's fixtures + odds from The Odds API
@@ -29,6 +30,7 @@ import json
 from dataclasses import replace
 from datetime import UTC
 from pathlib import Path
+from typing import cast
 
 import click
 import pandas as pd
@@ -1692,6 +1694,141 @@ def sweep_cushion(
 
 
 # ───────────────────────── benchmark-matrix ─────────────────────────
+
+
+@main.command("benchmark-report")
+@click.option(
+    "--league",
+    "-l",
+    type=click.Choice(["all", *LEAGUES.keys()], case_sensitive=False),
+    required=True,
+)
+@click.option("--bankroll", default=1000.0, show_default=True)
+@click.option("--no-ensemble", is_flag=True)
+@click.option(
+    "--stacking",
+    is_flag=True,
+    help="Use Phase 7 stacking meta-learner for prediction (matches backtest --stacking).",
+)
+@click.option(
+    "--calibration-method",
+    type=click.Choice(["auto", "isotonic", "sigmoid"], case_sensitive=False),
+    default=None,
+    help="Override the CatBoost calibration method (default: auto).",
+)
+@click.option(
+    "--opta-reference",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Optional local CSV/JSON with Opta-style 1X2 probabilities.",
+)
+@click.option(
+    "--out-dir",
+    type=click.Path(path_type=Path),
+    default=DATA_DIR / "backtests",
+    show_default=True,
+    help="Directory for benchmark_report_<LEAGUE>.json/.md.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["json", "markdown", "all"], case_sensitive=False),
+    default="all",
+    show_default=True,
+)
+def benchmark_report(
+    league: str,
+    bankroll: float,
+    no_ensemble: bool,
+    stacking: bool,
+    calibration_method: str | None,
+    opta_reference: Path | None,
+    out_dir: Path,
+    output_format: str,
+) -> None:
+    """Fresh benchmark report: our model vs market-implied vs optional Opta reference."""
+    from football_betting.tracking.benchmark_report import (
+        BenchmarkFormat,
+        build_benchmark_report,
+        write_benchmark_report,
+    )
+
+    keys = list(LEAGUES.keys()) if league.lower() == "all" else [league.upper()]
+    written_all: dict[str, dict[str, Path]] = {}
+    reports = []
+
+    for key in keys:
+        bt = Backtester(
+            initial_bankroll=bankroll,
+            use_ensemble=not no_ensemble,
+            use_stacking=stacking,
+            calibration_method=calibration_method,
+        )
+        result = bt.run(key)
+        report = build_benchmark_report(
+            key,
+            result.rows,
+            devig_method=BETTING_CFG.devig_method,
+            opta_reference_path=opta_reference,
+        )
+        reports.append(report)
+        written_all[key] = write_benchmark_report(
+            report,
+            out_dir,
+            output_format=cast(BenchmarkFormat, output_format.lower()),
+        )
+
+    for report in reports:
+        console.rule(f"[bold green]Benchmark Report — {LEAGUES[report.league].name}[/bold green]")
+        coverage = report.coverage
+        console.print(
+            "  "
+            f"predictions={coverage['n_predictions']} | "
+            f"scored={coverage['n_scored']} | "
+            f"odds={coverage['n_with_odds']} | "
+            f"opening={coverage['n_with_opening_odds']} | "
+            f"opta matched={coverage['n_opta_matched']}"
+        )
+
+        table = Table(title="Sources")
+        table.add_column("Source")
+        table.add_column("n", justify="right")
+        table.add_column("RPS", justify="right")
+        table.add_column("Brier", justify="right")
+        table.add_column("ECE", justify="right")
+        table.add_column("Weighted CLV", justify="right")
+        table.add_column("dRPS", justify="right")
+        table.add_column("dBrier", justify="right")
+        table.add_column("dECE", justify="right")
+        table.add_column("dCLV", justify="right")
+
+        for source_name in ("our_model", "market_implied", "opta_reference"):
+            summary = report.sources.get(source_name)
+            if summary is None:
+                continue
+            delta = summary.delta_vs_market
+            table.add_row(
+                summary.source,
+                str(summary.n),
+                _fmt_optional(summary.mean_rps),
+                _fmt_optional(summary.mean_brier),
+                _fmt_optional(summary.ece),
+                _fmt_optional(summary.weighted_clv, signed=True),
+                _fmt_optional(delta.get("mean_rps"), signed=True),
+                _fmt_optional(delta.get("mean_brier"), signed=True),
+                _fmt_optional(delta.get("ece"), signed=True),
+                _fmt_optional(delta.get("weighted_clv"), signed=True),
+            )
+        console.print(table)
+        for fmt, path in written_all[report.league].items():
+            console.print(f"[green]{fmt}: {path}[/green]")
+
+
+def _fmt_optional(value: object, *, signed: bool = False) -> str:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return "-"
+    prefix = "+" if signed else ""
+    return f"{float(value):{prefix}.4f}"
 
 
 @main.command("benchmark-matrix")

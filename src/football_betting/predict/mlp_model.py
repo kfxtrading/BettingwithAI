@@ -84,6 +84,7 @@ class MLPPredictor:
     calibrator: ProbabilityCalibrator | None = None
     #: Dual-model split — see ``CatBoostPredictor.purpose``.
     purpose: ModelPurpose = "1x2"
+    _device: Any = field(default=None, init=False, repr=False)
 
     # ───────────────────────── Training data ─────────────────────────
 
@@ -194,6 +195,7 @@ class MLPPredictor:
         device, backend = resolve_device(device_pref)  # type: ignore[arg-type]
         console.log(f"[cyan]MLP training on {backend} ({device})[/cyan]")
         self.model.to(device)
+        self._device = device
 
         optimizer = optim.Adam(
             self.model.parameters(),
@@ -409,6 +411,16 @@ class MLPPredictor:
 
     # ───────────────────────── Inference ─────────────────────────
 
+    def _inference_device(self, torch: Any) -> Any:
+        if self._device is not None:
+            return self._device
+        if self.model is None:
+            return torch.device("cpu")
+        try:
+            return next(self.model.parameters()).device
+        except StopIteration:
+            return torch.device("cpu")
+
     def predict_logits(self, fixture: Fixture) -> np.ndarray:
         """Return raw pre-softmax logits (shape (3,)) — used by stacking meta-learner."""
         if self.model is None or self.scaler is None:
@@ -422,9 +434,10 @@ class MLPPredictor:
             .values
         )
         X_s = self.scaler.transform(X)
+        device = self._inference_device(torch)
         self.model.eval()
         with torch.no_grad():
-            logits = self.model(torch.tensor(X_s, dtype=torch.float32))
+            logits = self.model(torch.tensor(X_s, dtype=torch.float32, device=device))
         return logits.cpu().numpy()[0]
 
     def predict(self, fixture: Fixture) -> Prediction:
@@ -440,11 +453,12 @@ class MLPPredictor:
             .values
         )
         X_s = self.scaler.transform(X)
+        device = self._inference_device(torch)
 
         self.model.eval()
         with torch.no_grad():
-            logits = self.model(torch.tensor(X_s, dtype=torch.float32))
-            raw_probs = torch.softmax(logits, dim=1).numpy()[0]
+            logits = self.model(torch.tensor(X_s, dtype=torch.float32, device=device))
+            raw_probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
 
         if self.calibrator and self.calibrator.is_fitted:
             probs = self.calibrator.transform(raw_probs.reshape(1, -1))[0]
@@ -497,6 +511,7 @@ class MLPPredictor:
         # Needed for PyTorch >=2.6 compatibility with numpy-pickled state dicts.
         self.model.load_state_dict(torch.load(path, map_location="cpu", weights_only=False))
         self.model.eval()
+        self._device = torch.device("cpu")
 
         self.scaler = joblib.load(path.with_suffix(".scaler.joblib"))
         cal_path = path.with_suffix(".calibrator.joblib")
