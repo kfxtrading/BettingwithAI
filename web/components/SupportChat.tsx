@@ -23,12 +23,34 @@ import type { DictionaryKey } from '@/lib/i18n';
 
 const WELCOME_SESSION_KEY = 'bwai_chat_welcomed';
 const AUTO_OPEN_DELAY_MS = 3000;
+const DESKTOP_AUTO_OPEN_MEDIA_QUERY = '(min-width: 1024px)';
 
 type Message =
   | { role: 'user'; text: string }
   | { role: 'bot'; text: string; followUpEntryId?: string; matchContext?: MatchContext };
 
 const SUGGESTION_LIMIT = 5;
+
+function canAutoOpenChat(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(DESKTOP_AUTO_OPEN_MEDIA_QUERY).matches
+  );
+}
+
+function useCanAutoOpenChat(): boolean {
+  const [canAutoOpen, setCanAutoOpen] = useState(canAutoOpenChat);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia(DESKTOP_AUTO_OPEN_MEDIA_QUERY);
+    const update = (): void => setCanAutoOpen(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  return canAutoOpen;
+}
 
 function FormBadge({ form }: { form: string }) {
   return (
@@ -172,6 +194,7 @@ const TRANSFORMER_MIN_SCORE = 0.35;
 
 export function SupportChat() {
   const { t, locale } = useLocale();
+  const canAutoOpen = useCanAutoOpenChat();
   const panelId = useId();
   const pathname = usePathname();
 
@@ -325,13 +348,14 @@ export function SupportChat() {
 
   // Auto-open with welcome message on the landing page — once per session.
   useEffect(() => {
-    if (!isLandingPage) return;
+    if (!isLandingPage || !canAutoOpen) return;
     try {
       if (sessionStorage.getItem(WELCOME_SESSION_KEY)) return;
     } catch {
       return; // sessionStorage blocked (private mode edge case)
     }
     const id = window.setTimeout(() => {
+      if (!canAutoOpenChat()) return;
       setOpen(true);
       setMessages([
         {
@@ -346,7 +370,7 @@ export function SupportChat() {
       }
     }, AUTO_OPEN_DELAY_MS);
     return () => window.clearTimeout(id);
-  }, [isLandingPage, t]);
+  }, [canAutoOpen, isLandingPage, t]);
 
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
