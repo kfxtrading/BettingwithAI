@@ -9,7 +9,7 @@
     "sequence"
   ],
   "calibration_method": "auto",
-  "weight_objective": "clv",
+  "weight_objective": "rps",
   "weight_blend": null,
   "stacking": false
 }
