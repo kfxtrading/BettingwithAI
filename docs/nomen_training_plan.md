@@ -169,22 +169,23 @@ The benchmark compares **nomen-v1** (fine-tuned) vs **qwen2.5:7b** (base model) 
 
 ---
 
-## Optional: Cloud Serving via vLLM
+## Production Serving
 
-If your local machine doesn't have 48 GB+ VRAM for the Q4_K_M GGUF, run Nomen on a persistent RunPod inference pod:
+**Recommended for launch — pre-generated reports (Phase 1):** see [nomen_serving_plan.md](nomen_serving_plan.md). Daily batch job on a short-lived RunPod pod generates reports for every fixture, caches them as Markdown files, and serves them from FastAPI without any GPU in the request path. Cost: **~$10–25/mo** instead of $1,200/mo for a persistent pod.
+
+**Phase 2 — live chat (later):** if you eventually want users to chat with Nomen interactively, run a persistent vLLM pod:
 
 ```bash
-# On a new RunPod pod (1 × A100 SXM 80GB, ~$1.64/h)
-# Upload Q8_0 GGUF first, then:
+# 1 × A100 SXM 80GB, ~$1.64/h × 24 × 30 = ~$1,200/mo
 bash scripts/setup_nomen_runpod_inference.sh
 ```
 
-Then set in Railway (or your `.env.local`):
+Then set in Railway (or `.env.local`):
 ```
 NOMEN_VLLM_URL=https://<pod-id>-8080.proxy.runpod.net/v1
 ```
 
-`match_analyst.py` will automatically route to the vLLM endpoint instead of local Ollama.
+`match_analyst.py` will route to the vLLM endpoint for chat while still serving cached reports as the default. See [nomen_serving_plan.md](nomen_serving_plan.md#phase-2--live-chat-upgrade-path) for the upgrade plan.
 
 ---
 
