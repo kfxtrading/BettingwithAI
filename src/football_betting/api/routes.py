@@ -367,6 +367,7 @@ def support_ask(payload: SupportAskIn) -> SupportAskOut:
 
     # Match-context detection: scan today's predictions for team mentions.
     match_ctx: MatchContext | None = None
+    match_article: str | None = None
     try:
         today = services.get_today_payload()
         result = support_service.find_match_context(
@@ -376,6 +377,7 @@ def support_ask(payload: SupportAskIn) -> SupportAskOut:
         )
         if result is not None:
             match_ctx = result  # type: ignore[assignment]
+            match_article = support_service.generate_match_article(match_ctx, payload.lang)
     except Exception as exc:
         _log.debug("[support] match context lookup failed: %s", exc)
 
@@ -390,6 +392,7 @@ def support_ask(payload: SupportAskIn) -> SupportAskOut:
             predictions=[],
             fallback=True,
             match_context=match_ctx,
+            match_article=match_article,
         )
     return SupportAskOut(
         lang=payload.lang,
@@ -405,4 +408,5 @@ def support_ask(payload: SupportAskIn) -> SupportAskOut:
         ],
         fallback=not predictions,
         match_context=match_ctx,
+        match_article=match_article,
     )

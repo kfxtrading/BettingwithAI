@@ -129,6 +129,7 @@ export interface SupportAskResponse {
   predictions: SupportPrediction[];
   fallback: boolean;
   match_context: MatchContext | null;
+  match_article: string | null;
 }
 
 export const queryKeys = {

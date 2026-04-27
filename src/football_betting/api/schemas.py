@@ -431,4 +431,5 @@ class SupportAskOut(BaseModel):
     predictions: list[SupportPredictionOut] = Field(default_factory=list)
     fallback: bool = False
     match_context: MatchContext | None = None
+    match_article: str | None = None
 

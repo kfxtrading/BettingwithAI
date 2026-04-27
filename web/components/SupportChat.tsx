@@ -258,6 +258,11 @@ export function SupportChat() {
         .supportAsk({ question: text, lang: locale, top_k: 3 })
         .then((res) => {
           const ctx = res.match_context ?? undefined;
+          // When Nomen generated a match article, prefer it over FAQ answers.
+          if (res.match_article) {
+            appendBot(res.match_article, undefined, ctx);
+            return;
+          }
           const top = res.predictions[0];
           if (!res.fallback && top && top.score >= TRANSFORMER_MIN_SCORE) {
             const resolved = resolveFromPrediction(top.intent_id);

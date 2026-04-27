@@ -303,3 +303,17 @@ def find_match_context(
             for n in news_items
         ],
     )
+
+
+def generate_match_article(ctx: object, lang: str) -> str | None:
+    """Generate a Nomen match-preview article for *ctx* in the given language.
+
+    Delegates to :mod:`football_betting.support.match_analyst`.  Returns
+    ``None`` when Ollama is not available so the chatbot keeps working.
+    """
+    try:
+        from football_betting.support.match_analyst import generate_article
+        return generate_article(ctx, lang=lang)
+    except Exception as exc:
+        logger.debug("[nomen] article generation failed: %s", exc)
+        return None
