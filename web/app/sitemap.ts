@@ -50,6 +50,7 @@ const STATIC_ROUTES: StaticEntry[] = [
   { path: '/leagues', changeFrequency: 'daily', priority: 0.8 },
   { path: '/performance', changeFrequency: 'daily', priority: 0.7 },
   { path: '/learn', changeFrequency: 'weekly', priority: 0.7 },
+  { path: '/about', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/methodology', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/tools/kelly-calculator', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/glossary', changeFrequency: 'monthly', priority: 0.6 },

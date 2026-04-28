@@ -7,7 +7,7 @@ import {
   localizedPath,
   SITE_NAME,
 } from '@/lib/seo';
-import { GLOSSARY_ENTRIES } from '@/content/glossary/en';
+import { getLocalizedGlossaryEntries } from '@/content/glossary/index';
 import type { Locale } from '@/lib/i18n';
 
 type PageProps = { params: { locale: Locale } };
@@ -17,17 +17,19 @@ const DESCRIPTION =
   'Concise definitions of the core terms used across Betting with AI: value bet, expected value, Kelly criterion, pi-rating, CatBoost, calibration, CLV and more.';
 
 export function generateMetadata({ params }: PageProps): Metadata {
+  const entries = getLocalizedGlossaryEntries(params.locale);
   return buildMetadata({
     title: TITLE,
     description: DESCRIPTION,
     path: '/glossary',
     locale: params.locale,
-    keywords: GLOSSARY_ENTRIES.map((e) => e.term),
+    keywords: entries.map((e) => e.term),
   });
 }
 
 export default function GlossaryIndexPage({ params }: PageProps) {
   const locale = params.locale;
+  const GLOSSARY_ENTRIES = getLocalizedGlossaryEntries(locale);
 
   const breadcrumbLd = {
     '@context': 'https://schema.org',

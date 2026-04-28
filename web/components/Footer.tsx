@@ -9,6 +9,8 @@ type FooterLink = {
     | 'footer.link.today'
     | 'footer.link.leagues'
     | 'footer.link.performance'
+    | 'footer.link.about'
+    | 'footer.link.methodology'
     | 'footer.link.terms'
     | 'footer.link.privacy'
     | 'footer.link.cookies'
@@ -26,7 +28,9 @@ const PRODUCT_LINKS: FooterLink[] = [
   { href: '/performance', labelKey: 'footer.link.performance' },
 ];
 
-const COMPANY_LINKS: FooterLink[] = [
+const ABOUT_LINKS: FooterLink[] = [
+  { href: '/about', labelKey: 'footer.link.about' },
+  { href: '/methodology', labelKey: 'footer.link.methodology' },
   { href: '/investors', labelKey: 'footer.link.investors' },
 ];
 
@@ -97,9 +101,9 @@ export function Footer() {
           </div>
           <div>
             <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.08em] text-text">
-              {t('footer.col.company')}
+              {t('footer.col.about')}
             </h2>
-            <ul className="flex flex-col gap-2">{COMPANY_LINKS.map(renderLink)}</ul>
+            <ul className="flex flex-col gap-2">{ABOUT_LINKS.map(renderLink)}</ul>
           </div>
           <div>
             <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.08em] text-text">
