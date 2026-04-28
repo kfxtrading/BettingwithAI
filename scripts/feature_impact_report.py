@@ -24,6 +24,7 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -97,23 +98,54 @@ class LeagueMatrix:
 
 def build_matrix(
     league: str,
-    train_seasons: tuple[str, ...],
-    val_season: str,
+    train_seasons: tuple[str, ...] | None = None,
+    val_season: str | None = None,
+    *,
+    cutoff: date | None = None,
+    test_end: date | None = None,
 ) -> LeagueMatrix:
+    """Build a chronological no-leakage (X, y) matrix for one league.
+
+    Two modes — provide exactly one:
+      * Season-based (legacy default): train_seasons + val_season filter
+        rows by ``match.season``.
+      * Date-cutoff (Phase A of the PL addendum): train rows = matches
+        with date ≤ ``cutoff``; val rows = ``cutoff`` < date ≤ ``test_end``.
+    """
+    season_mode = train_seasons is not None and val_season is not None
+    cutoff_mode = cutoff is not None and test_end is not None
+    if season_mode == cutoff_mode:
+        raise ValueError(
+            "build_matrix: pass exactly one of (train_seasons, val_season) "
+            "or (cutoff, test_end) — got both or neither."
+        )
+
     matches = load_league(league)
     fb = make_feature_builder(purpose="1x2")
     seasons_set = {m.season for m in matches}
     stage_sofascore_for_seasons(fb, league, seasons_set)
     fb.reset(keep_staged_sofascore=True)
 
-    train_seasons_set = set(train_seasons)
     rows: list[dict[str, float]] = []
     labels: list[int] = []
     seasons: list[str] = []
-    used_seasons = train_seasons_set | {val_season}
+    dates: list[date] = []
+
+    if season_mode:
+        train_seasons_set = set(train_seasons)
+        used_seasons = train_seasons_set | {val_season}
 
     for idx, match in enumerate(sorted(matches, key=lambda m: m.date)):
-        if idx >= WARMUP_GAMES and match.season in used_seasons:
+        if idx < WARMUP_GAMES:
+            fb.update_with_match(match)
+            continue
+
+        if season_mode:
+            keep = match.season in used_seasons
+        else:
+            keep = match.date <= test_end
+
+        if keep:
             feats = fb.build_features(
                 home_team=match.home_team,
                 away_team=match.away_team,
@@ -128,18 +160,24 @@ def build_matrix(
             rows.append(feats)
             labels.append(OUTCOME_TO_INT[match.result])
             seasons.append(match.season)
+            dates.append(match.date)
         fb.update_with_match(match)
 
     if not rows:
-        raise RuntimeError(f"No rows generated for {league} (after warmup + season filter)")
+        raise RuntimeError(f"No rows generated for {league} (after warmup + filter)")
 
     df = pd.DataFrame(rows).fillna(0.0)
     feature_names = list(df.columns)
     y = np.asarray(labels, dtype=np.int64)
     seasons_arr = np.asarray(seasons)
+    dates_arr = np.asarray(dates)
 
-    train_mask = np.isin(seasons_arr, list(train_seasons_set))
-    val_mask = seasons_arr == val_season
+    if season_mode:
+        train_mask = np.isin(seasons_arr, list(train_seasons_set))
+        val_mask = seasons_arr == val_season
+    else:
+        train_mask = dates_arr <= cutoff
+        val_mask = dates_arr > cutoff
 
     return LeagueMatrix(
         league=league,
@@ -390,17 +428,27 @@ def family_aggregate(
 
 def run_league(
     league: str,
-    train_seasons: tuple[str, ...],
-    val_season: str,
+    train_seasons: tuple[str, ...] | None = None,
+    val_season: str | None = None,
+    *,
+    cutoff: date | None = None,
+    test_end: date | None = None,
+    min_val_rows: int = 50,
 ) -> dict[str, Any]:
     print(f"\n=== {league} ===", flush=True)
-    matrix = build_matrix(league, train_seasons, val_season)
+    matrix = build_matrix(
+        league,
+        train_seasons=train_seasons,
+        val_season=val_season,
+        cutoff=cutoff,
+        test_end=test_end,
+    )
     print(
         f"  matrix: train={len(matrix.X_train)}, val={len(matrix.X_val)}, "
         f"features={len(matrix.feature_names)}",
         flush=True,
     )
-    if len(matrix.X_train) < 200 or len(matrix.X_val) < 50:
+    if len(matrix.X_train) < 200 or len(matrix.X_val) < min_val_rows:
         raise RuntimeError(
             f"{league}: insufficient rows (train={len(matrix.X_train)}, val={len(matrix.X_val)})"
         )
@@ -428,8 +476,11 @@ def run_league(
 
     report: dict[str, Any] = {
         "league": league,
-        "train_seasons": list(train_seasons),
+        "mode": "cutoff" if cutoff is not None else "season",
+        "train_seasons": list(train_seasons) if train_seasons else None,
         "val_season": val_season,
+        "cutoff": cutoff.isoformat() if cutoff else None,
+        "test_end": test_end.isoformat() if test_end else None,
         "n_train": int(len(matrix.X_train)),
         "n_val": int(len(matrix.X_val)),
         "n_features": len(matrix.feature_names),
@@ -522,34 +573,74 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--train-seasons",
         default=",".join(DEFAULT_TRAIN_SEASONS),
-        help="Comma-separated train seasons (default: 2021-22,2022-23).",
+        help="Comma-separated train seasons (season-mode default: 2021-22,2022-23). "
+             "Ignored when --cutoff is given.",
     )
     parser.add_argument(
         "--val-season",
         default=DEFAULT_VAL_SEASON,
-        help="Validation season (default: 2023-24).",
+        help="Validation season (season-mode default: 2023-24). Ignored when --cutoff is given.",
+    )
+    parser.add_argument(
+        "--cutoff",
+        default=None,
+        help="Optional date-cutoff mode (YYYY-MM-DD). Train rows ≤ cutoff, "
+             "val rows in (cutoff, --test-end]. Overrides --train-seasons / --val-season.",
+    )
+    parser.add_argument(
+        "--test-end",
+        default=None,
+        help="Date-cutoff val window end (YYYY-MM-DD). Required if --cutoff is given.",
     )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    train_seasons = tuple(s.strip() for s in args.train_seasons.split(",") if s.strip())
-    val_season = args.val_season.strip()
     league_arg = args.league.upper()
     leagues = LEAGUES_ALL if league_arg == "ALL" else (league_arg,)
     if league_arg != "ALL" and league_arg not in LEAGUES_ALL:
         print(f"Unknown league: {league_arg}", file=sys.stderr)
         return 2
 
+    cutoff: date | None = None
+    test_end: date | None = None
+    train_seasons: tuple[str, ...] | None = None
+    val_season: str | None = None
+    if args.cutoff:
+        if not args.test_end:
+            print("--cutoff requires --test-end", file=sys.stderr)
+            return 2
+        cutoff = datetime.strptime(args.cutoff, "%Y-%m-%d").date()
+        test_end = datetime.strptime(args.test_end, "%Y-%m-%d").date()
+        if cutoff >= test_end:
+            print("--cutoff must be strictly before --test-end", file=sys.stderr)
+            return 2
+    else:
+        train_seasons = tuple(s.strip() for s in args.train_seasons.split(",") if s.strip())
+        val_season = args.val_season.strip()
+
     print(f"Data dir: {DATA_DIR}")
-    print(f"Train seasons: {train_seasons}; val season: {val_season}")
+    if cutoff:
+        print(f"Mode: cutoff   train ≤ {cutoff}   val ({cutoff}, {test_end}]")
+    else:
+        print(f"Mode: season   train_seasons={train_seasons}   val_season={val_season}")
     print(f"Leagues: {leagues}")
 
     reports = []
     for lg in leagues:
         try:
-            reports.append(run_league(lg, train_seasons, val_season))
+            reports.append(
+                run_league(
+                    lg,
+                    train_seasons=train_seasons,
+                    val_season=val_season,
+                    cutoff=cutoff,
+                    test_end=test_end,
+                    # Cutoff val window may be small (~50 PL matches); allow.
+                    min_val_rows=30 if cutoff else 50,
+                )
+            )
         except Exception as exc:
             print(f"  ERROR for {lg}: {exc}", file=sys.stderr)
             raise

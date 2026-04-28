@@ -35,24 +35,39 @@ To re-introduce MLP / Sequence into the ensemble after this retrain:
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from dataclasses import replace
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-from football_betting.betting.kelly import kelly_stake
-from football_betting.betting.margin import remove_margin
-from football_betting.config import (
+# Make the local `_pl_sweep_configs` module importable when this script is
+# run directly (e.g. ``python scripts/retrain_date_cutoff.py``).
+_THIS_DIR = Path(__file__).resolve().parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+from _pl_sweep_configs import CONFIGS as PL_SWEEP_CONFIGS  # noqa: E402
+from _pl_sweep_configs import SweepConfig, get_config  # noqa: E402
+
+from football_betting.betting.kelly import kelly_stake  # noqa: E402
+from football_betting.betting.margin import remove_margin  # noqa: E402
+from football_betting.config import (  # noqa: E402
     BETTING_CFG,
+    CATBOOST_CFG,
+    FEATURE_CFG,
     MODELS_DIR,
+    CalibrationConfig,
     artifact_suffix,
 )
-from football_betting.data.loader import load_league
-from football_betting.data.models import Fixture
-from football_betting.predict.catboost_model import CatBoostPredictor
-from football_betting.predict.poisson import PoissonModel
-from football_betting.predict.runtime import (
+from football_betting.data.loader import load_league  # noqa: E402
+from football_betting.data.models import Fixture  # noqa: E402
+from football_betting.predict.catboost_model import CatBoostPredictor  # noqa: E402
+from football_betting.predict.poisson import PoissonModel  # noqa: E402
+from football_betting.predict.runtime import (  # noqa: E402
     LeagueModelProfile,
     make_feature_builder,
     resolve_model_profile,
@@ -69,16 +84,30 @@ LEAGUES_ALL = ("PL", "CH", "BL", "SA", "LL")
 OUTCOME_TO_INT = {"H": 0, "D": 1, "A": 2}
 START_BANKROLL = 100.0
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REPORT_DIR = REPO_ROOT / "reports"
+
 
 # ────────────────────────── Production retrain ──────────────────────────
 
 def retrain_and_save(
-    league: str, cutoff: date, test_end: date
-) -> tuple[CatBoostPredictor, list, list]:
-    """Train CatBoost on ``league`` matches ≤ ``cutoff`` and persist to
-    ``models/catboost_{league}.*``. Returns the in-memory predictor plus
-    the train + test match lists so the caller can run out-of-sample
-    evaluation without reloading.
+    league: str,
+    cutoff: date,
+    test_end: date,
+    *,
+    sweep: SweepConfig | None = None,
+    save_as: Path | None = None,
+) -> tuple[CatBoostPredictor, list, list, dict[str, Any]]:
+    """Train CatBoost on ``league`` matches ≤ ``cutoff`` and persist.
+
+    When ``sweep`` is given, its FeatureConfig / CatBoostConfig overrides
+    are applied and ``calibrate``/``calibration_method`` come from it. The
+    artefact lands at ``save_as`` (or ``models/catboost_{league}.cbm`` if
+    ``save_as`` is None). The production profile is only rewritten when
+    we wrote to the production path — sweep runs leave it alone.
+
+    Returns the predictor, train/test match lists, and a ``train_info``
+    dict (best_iter, feature counts, ...).
     """
     tag = f"[{league}]"
     matches = load_league(league)
@@ -91,16 +120,41 @@ def retrain_and_save(
         f"({test_matches[0].date if test_matches else '∅'} → "
         f"{test_matches[-1].date if test_matches else '∅'})"
     )
+    if sweep is not None:
+        print(f"{tag} Sweep config: {sweep.name} — {sweep.description}")
 
     fb = make_feature_builder(purpose=PURPOSE)
+    if sweep is not None and sweep.feature_overrides:
+        fb.cfg = replace(fb.cfg, **sweep.feature_overrides)
+        print(f"{tag} FeatureConfig overrides: {sweep.feature_overrides}")
+
     seasons = {m.season for m in matches}
     staged = stage_sofascore_for_seasons(fb, league, seasons)
     print(f"{tag} Sofascore staged: {staged} matches across {len(seasons)} seasons")
 
-    predictor = CatBoostPredictor(feature_builder=fb, purpose=PURPOSE)
-    print(f"{tag} Training CatBoost on train window (no post-hoc calibration)…")
+    cb_cfg = CATBOOST_CFG
+    if sweep is not None and sweep.catboost_overrides:
+        cb_cfg = replace(cb_cfg, **sweep.catboost_overrides)
+        print(f"{tag} CatBoostConfig overrides: {sweep.catboost_overrides}")
+
+    calibration_cfg = None
+    if sweep is not None and sweep.calibrate and sweep.calibration_method:
+        calibration_cfg = CalibrationConfig(method=sweep.calibration_method)
+
+    calibrate = bool(sweep is not None and sweep.calibrate)
+    predictor = CatBoostPredictor(
+        feature_builder=fb,
+        cfg=cb_cfg,
+        calibration_cfg=calibration_cfg,
+        purpose=PURPOSE,
+    )
+    cal_status = "auto" if calibration_cfg is None else calibration_cfg.method
+    print(
+        f"{tag} Training CatBoost (calibrate={calibrate}"
+        f"{', cal_method=' + cal_status if calibrate else ''})…"
+    )
     result = predictor.fit(
-        train_matches, warmup_games=WARMUP_GAMES, calibrate=False
+        train_matches, warmup_games=WARMUP_GAMES, calibrate=calibrate
     )
     print(
         f"{tag} Trained: n_train={result['n_train']}, n_val={result['n_val']}, "
@@ -109,7 +163,9 @@ def retrain_and_save(
     )
 
     suffix = artifact_suffix(PURPOSE)
-    model_path = MODELS_DIR / f"catboost_{league}{suffix}.cbm"
+    is_prod_path = save_as is None
+    model_path = save_as or (MODELS_DIR / f"catboost_{league}{suffix}.cbm")
+    model_path.parent.mkdir(parents=True, exist_ok=True)
     predictor.save(model_path)
     print(f"{tag} Saved: {model_path}")
     print(f"{tag} Saved: {model_path.with_suffix('.features.txt')}")
@@ -121,41 +177,55 @@ def retrain_and_save(
             stale_cal.unlink()
             print(f"{tag} Removed stale calibrator: {stale_cal}")
 
-    existing = resolve_model_profile(league, purpose=PURPOSE)
-    cal_method = (
-        predictor.calibrator.cfg.method
-        if predictor.calibrator and predictor.calibrator.is_fitted
-        else None
-    )
-    if existing is not None and cal_method is None:
-        existing = replace(existing, calibration_method=None)
-    if existing is None:
-        new_profile = LeagueModelProfile(
-            league_key=league,
-            purpose=PURPOSE,
-            model_kind="catboost",
-            active_members=("catboost",),
-            calibration_method=cal_method,
+    if is_prod_path:
+        existing = resolve_model_profile(league, purpose=PURPOSE)
+        cal_method = (
+            predictor.calibrator.cfg.method
+            if predictor.calibrator and predictor.calibrator.is_fitted
+            else None
         )
+        if existing is not None and cal_method is None:
+            existing = replace(existing, calibration_method=None)
+        if existing is None:
+            new_profile = LeagueModelProfile(
+                league_key=league,
+                purpose=PURPOSE,
+                model_kind="catboost",
+                active_members=("catboost",),
+                calibration_method=cal_method,
+            )
+        else:
+            new_profile = replace(
+                existing,
+                model_kind="catboost",
+                active_members=("catboost",),
+                calibration_method=cal_method,
+                weight_objective=None,
+                weight_blend=None,
+            )
+        save_model_profile(new_profile)
+        print(f"{tag} Profile rewritten -> {new_profile.model_kind}, "
+              f"active={list(new_profile.active_members)}, "
+              f"calibration={new_profile.calibration_method}")
     else:
-        new_profile = replace(
-            existing,
-            model_kind="catboost",
-            active_members=("catboost",),
-            calibration_method=cal_method,
-            weight_objective=None,
-            weight_blend=None,
-        )
-    save_model_profile(new_profile)
-    print(f"{tag} Profile rewritten -> {new_profile.model_kind}, "
-          f"active={list(new_profile.active_members)}, "
-          f"calibration={new_profile.calibration_method}")
+        print(f"{tag} Sweep mode: production profile NOT rewritten")
 
     print(f"\n{tag} Top 15 CatBoost feature importances:")
     for feat, imp in result["feature_importance"][:15]:
         print(f"  {imp:6.2f}  {feat}")
 
-    return predictor, train_matches, test_matches
+    train_info = {
+        "n_train": int(result["n_train"]),
+        "n_val": int(result["n_val"]),
+        "n_features": int(result["n_features"]),
+        "best_iteration": int(result["best_iteration"]),
+        "top_15_features": [
+            {"feature": f, "importance": float(imp)}
+            for f, imp in result["feature_importance"][:15]
+        ],
+        "model_path": str(model_path),
+    }
+    return predictor, train_matches, test_matches, train_info
 
 
 # ────────────────────────── Test-window evaluation ──────────────────────
@@ -302,10 +372,39 @@ def fmt_bets(bets: list[dict[str, Any]], label: str) -> str:
 
 # ────────────────────────── Driver ───────────────────────────────────────
 
-def run(league: str, cutoff: date, test_end: date) -> None:
+def _bucket_summary(bets: list[dict[str, Any]]) -> dict[str, Any]:
+    if not bets:
+        return {"n_bets": 0}
+    hits = sum(1 for b in bets if b["won"])
+    total_stake = sum(b["stake"] for b in bets)
+    total_profit = sum(b["profit"] for b in bets)
+    avg_odds = sum(b["odds"] for b in bets) / len(bets)
+    return {
+        "n_bets": len(bets),
+        "hits": hits,
+        "hit_rate": hits / len(bets),
+        "avg_odds": avg_odds,
+        "breakeven_hit": (1.0 / avg_odds) if avg_odds else 0.0,
+        "total_stake": total_stake,
+        "total_profit": total_profit,
+        "roi": (total_profit / total_stake) if total_stake else 0.0,
+    }
+
+
+def run(
+    league: str,
+    cutoff: date,
+    test_end: date,
+    *,
+    sweep: SweepConfig | None = None,
+    save_as: Path | None = None,
+) -> None:
     tag = f"[{league}]"
-    print(f"=== {league} date-cutoff retrain: train ≤ {cutoff}, test ≤ {test_end} ===\n")
-    predictor, _, test_matches = retrain_and_save(league, cutoff, test_end)
+    label = f" config={sweep.name}" if sweep is not None else ""
+    print(f"=== {league} date-cutoff retrain: train ≤ {cutoff}, test ≤ {test_end}{label} ===\n")
+    predictor, _, test_matches, train_info = retrain_and_save(
+        league, cutoff, test_end, sweep=sweep, save_as=save_as
+    )
 
     if not test_matches:
         print("\nNo test matches in window — skipping evaluation.")
@@ -317,12 +416,14 @@ def run(league: str, cutoff: date, test_end: date) -> None:
     blend = 0.85 * cb_probs + 0.15 * po_probs
 
     print("\n=== Probabilistic metrics on test window ===")
+    prob_metrics: dict[str, dict[str, float]] = {}
     for name, probs in [
         ("CatBoost", cb_probs),
         ("Poisson", po_probs),
         ("Blend(.85/.15)", blend),
     ]:
         m = probabilistic_metrics(probs, y)
+        prob_metrics[name] = m
         print(
             f"  {name:>16s}: n={m['n']:3d}  RPS={m['rps']:.4f}  "
             f"Brier={m['brier']:.4f}  LogLoss={m['log_loss']:.4f}  "
@@ -333,18 +434,22 @@ def run(league: str, cutoff: date, test_end: date) -> None:
     print("\n--- any value bet ---")
     bets_any = selection_sweep(cb_probs, meta, mode="any")
     print(fmt_bets(bets_any, "all"))
+    any_buckets: dict[str, dict[str, Any]] = {"all": _bucket_summary(bets_any)}
     for lo, hi in [(1.30, 1.80), (1.80, 2.20), (2.20, 2.60), (2.60, 3.20),
                    (3.20, 4.50), (4.50, 8.00)]:
         bucket = [b for b in bets_any if lo <= b["odds"] < hi]
+        any_buckets[f"[{lo:.2f},{hi:.2f})"] = _bucket_summary(bucket)
         if bucket:
             print(fmt_bets(bucket, f"[{lo:.2f},{hi:.2f})"))
 
     print("\n--- top-pick only ---")
     bets_top = selection_sweep(cb_probs, meta, mode="top_pick")
     print(fmt_bets(bets_top, "all"))
+    top_buckets: dict[str, dict[str, Any]] = {"all": _bucket_summary(bets_top)}
     for lo, hi in [(1.30, 1.80), (1.80, 2.20), (2.20, 2.60), (2.60, 3.20),
                    (3.20, 4.50), (4.50, 8.00)]:
         bucket = [b for b in bets_top if lo <= b["odds"] < hi]
+        top_buckets[f"[{lo:.2f},{hi:.2f})"] = _bucket_summary(bucket)
         if bucket:
             print(fmt_bets(bucket, f"[{lo:.2f},{hi:.2f})"))
 
@@ -358,6 +463,34 @@ def run(league: str, cutoff: date, test_end: date) -> None:
             f"  {b['actual']}    {b['odds']:5.2f}  {b['edge']:+.3f}  "
             f"{b['profit']:+6.2f}  {flag}"
         )
+
+    # ─── Write a sweep report when a config is named ───
+    if sweep is not None:
+        REPORT_DIR.mkdir(parents=True, exist_ok=True)
+        report = {
+            "league": league,
+            "config_name": sweep.name,
+            "config_description": sweep.description,
+            "feature_overrides": sweep.feature_overrides,
+            "catboost_overrides": sweep.catboost_overrides,
+            "calibrate": sweep.calibrate,
+            "calibration_method": sweep.calibration_method,
+            "cutoff": cutoff.isoformat(),
+            "test_end": test_end.isoformat(),
+            "train_info": train_info,
+            "probabilistic_metrics": prob_metrics,
+            "selection_any": {
+                "buckets": any_buckets,
+                "per_bet": bets_any,
+            },
+            "selection_top_pick": {
+                "buckets": top_buckets,
+                "per_bet": bets_top,
+            },
+        }
+        out_path = REPORT_DIR / f"pl_sweep_{sweep.name}.json"
+        out_path.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+        print(f"\n{tag} Sweep report: {out_path}")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -378,13 +511,33 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_TEST_END.isoformat(),
         help=f"Test window end (inclusive) — YYYY-MM-DD. Default: {DEFAULT_TEST_END}.",
     )
+    parser.add_argument(
+        "--config",
+        default=None,
+        choices=sorted(PL_SWEEP_CONFIGS.keys()),
+        help="Optional sweep config name (see scripts/_pl_sweep_configs.py). "
+             "Activates feature/catboost/calibration overrides AND writes a "
+             "sweep JSON report. When set together with --save-as the prod "
+             "model_profile is left untouched.",
+    )
+    parser.add_argument(
+        "--save-as",
+        default=None,
+        help="Optional model save path (default: production "
+             "models/catboost_{LEAGUE}.cbm). Use models/sweep/... during "
+             "config sweeps so the production artefact stays put.",
+    )
     return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
     args = parse_args()
+    sweep = get_config(args.config) if args.config else None
+    save_as = Path(args.save_as) if args.save_as else None
     run(
         league=args.league,
         cutoff=datetime.strptime(args.cutoff, "%Y-%m-%d").date(),
         test_end=datetime.strptime(args.test_end, "%Y-%m-%d").date(),
+        sweep=sweep,
+        save_as=save_as,
     )
