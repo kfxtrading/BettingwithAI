@@ -13,6 +13,8 @@ const BREADCRUMB_LABELS: Record<string, DictionaryKey> = {
   performance: 'nav.performance',
   leagues: 'nav.leagues',
   learn: 'rail.quick.learn',
+  about: 'nav.about',
+  methodology: 'nav.methodology',
 };
 
 function humanize(segment: string): string {

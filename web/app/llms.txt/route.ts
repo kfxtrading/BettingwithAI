@@ -39,6 +39,8 @@ export async function GET(): Promise<Response> {
   lines.push(bullet('Today\'s predictions and value bets (includes homepage FAQ)', '/'));
   lines.push(bullet('League hub', '/leagues'));
   lines.push(bullet('Performance and accuracy tracker', '/performance'));
+  lines.push(bullet('About — independent, non-affiliate AI football analytics', '/about'));
+  lines.push(bullet('Methodology — model architecture, features and calibration', '/methodology'));
   lines.push(bullet('Glossary — canonical definitions of betting and AI terms', '/glossary'));
   lines.push('');
   lines.push('## Methodology signals');

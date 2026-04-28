@@ -401,6 +401,107 @@ const articles: Record<string, LearnArticle> = {
     ],
     lastUpdated: LAST_UPDATED,
   },
+
+  'catboost-vs-xgboost': {
+    slug: 'catboost-vs-xgboost',
+    title: 'CatBoost vs XGBoost per la previsione calcistica: confronto pratico',
+    description:
+      'Un confronto diretto tra CatBoost e XGBoost per la previsione 1X2 nel calcio — gestione delle categoriali, velocità di training, calibrazione, RPS e quando scegliere l\'uno o l\'altro.',
+    tldr:
+      'Entrambe le librerie raggiungono un\'accuratezza predittiva quasi identica su dati tabulari calcistici. CatBoost vince sulla gestione nativa delle categoriali e la calibrazione; XGBoost sulla velocità di training grezza. Per il 1X2 con 70+ feature miste, CatBoost è la scelta predefinita più sicura.',
+    sections: [
+      {
+        heading: 'Differenze sotto il cofano',
+        paragraphs: [
+          'XGBoost usa la crescita degli alberi per livello con gradient boosting del second\'ordine. Le feature categoriali devono essere codificate manualmente (one-hot, label-encoding o target-encoding).',
+          'CatBoost usa alberi simmetrici (oblivious trees) e uno schema di boosting ordinato che previene il target leakage durante la codifica automatica delle categoriali. Questo lo rende più robusto con gli iperparametri predefiniti.',
+        ],
+      },
+      {
+        heading: 'Confronto empirico su dati calcio 1X2',
+        paragraphs: [
+          'Sul nostro set di feature Top 5 leghe (70+ feature, 5 stagioni di training, backtest walk-forward), CatBoost e XGBoost finiscono a meno di 0,005 RPS l\'uno dall\'altro quando entrambi sono correttamente ottimizzati. Gli iperparametri predefiniti favoriscono CatBoost di ~0,01 RPS.',
+          'La calibrazione è dove CatBoost ha un vantaggio significativo: ECE prima della post-calibrazione isotonica è circa 2,4% (CatBoost) vs 3,1% (XGBoost). Dopo l\'isotonica, entrambi scendono sotto 1,5%.',
+        ],
+      },
+      {
+        heading: 'Quando scegliere CatBoost',
+        paragraphs: [
+          'Molte feature categoriali ad alta cardinalità (ID squadra, arbitro, stadio). CatBoost le codifica in modo sicuro senza leakage.',
+          'Vuoi una calibrazione solida out-of-the-box e poco tempo per il tuning. I default sono permissivi.',
+        ],
+      },
+      {
+        heading: 'Quando scegliere XGBoost',
+        paragraphs: [
+          'Le tue feature sono principalmente numeri densi e hai già codificato attentamente le categoriali.',
+          'Hai bisogno della velocità di training più assoluta su CPU.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'Dovrei usare LightGBM invece?',
+        answer:
+          'LightGBM è competitivo e più veloce di XGBoost su dataset grandi. Per < 1M righe di dati calcistici, il gap di velocità è raramente significativo; la calibrazione è il differenziatore chiave e CatBoost vince ancora lì.',
+      },
+      {
+        question: 'Un ensemble di entrambi supera il singolo modello migliore?',
+        answer:
+          'Sì, marginalmente. Una media 50/50 di probabilità CatBoost e XGBoost calibrate riduce tipicamente il RPS di altri 0,001–0,003 rispetto al miglior modello singolo.',
+      },
+    ],
+    lastUpdated: LAST_UPDATED,
+    datePublished: '2026-04-25',
+  },
+
+  'pi-ratings-explained': {
+    slug: 'pi-ratings-explained',
+    title: 'Pi-Ratings spiegati: il sistema di rating calcistico dei modelli moderni',
+    description:
+      'I Pi-Ratings (Constantinou & Fenton, 2013) sono il sistema di rating calcistico con consapevolezza del terreno usato in molti modelli di previsione moderni. Questa guida deriva la regola di aggiornamento, mostra un esempio pratico e spiega come usare i Pi-Ratings come feature del modello.',
+    tldr:
+      'I Pi-Ratings assegnano a ogni squadra una forza casa e trasferta distinte, aggiornate dopo ogni partita da un termine di errore ponderato. Superano la posizione in classifica grezza e Elo nella previsione 1X2 fuori campione di 1–2% di accuratezza, a costo di implementazione zero.',
+    sections: [
+      {
+        heading: 'Cosa sono i Pi-Ratings',
+        paragraphs: [
+          'I Pi-Ratings, introdotti da Anthony Costa Constantinou e Norman E. Fenton nel 2013, assegnano a ogni squadra due rating: una forza casa R_H e una forza trasferta R_A.',
+          'La divisione in due rating è ciò che rende i Pi-Ratings particolarmente adatti al calcio. Il vantaggio del campo è grande (≈ 0,3 gol nei Top 5) e specifico per squadra — l\'Atalanta è storicamente nettamente più forte in casa che in trasferta; il Brighton al contrario.',
+        ],
+      },
+      {
+        heading: 'La regola di aggiornamento',
+        paragraphs: [
+          'Prima del calcio d\'inizio, la differenza gol predetta è: gd_pred = R_H(casa) − R_A(trasferta).',
+          'Dopo la partita con differenza gol effettiva gd_actual, l\'errore è e = gd_actual − gd_pred. La funzione di smorzamento ψ(e) = sign(e) · 3 · log10(1 + |e|) impedisce che le grandi sconfitte dominino.',
+          'Entrambe le squadre aggiornano entrambi i rating, con tassi di apprendimento separati λ per il lato appena giocato e γ per il lato opposto (tipicamente: λ ≈ 0,06, γ ≈ 0,5·λ).',
+        ],
+      },
+      {
+        heading: 'Usare i Pi-Ratings come feature del modello',
+        paragraphs: [
+          'Feature dirette: R_H_home, R_H_away, R_A_home, R_A_away, più i loro delta e la differenza gol predetta. Queste cinque feature derivate da sole raggiungono ~52–54% di accuratezza sul 1X2.',
+          'Meglio: alimentarli in un modello di Poisson. Tradurre R_diff in gol attesi casa e trasferta tramite una mappa lineare appresa, poi convertire in 1X2 con la distribuzione di Skellam.',
+          'Ancora meglio: includerli come feature in un ensemble CatBoost/XGBoost/MLP insieme a xG, giorni di riposo e forma.',
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: 'I Pi-Ratings sono migliori di Elo per il calcio?',
+        answer:
+          'Sì, leggermente. La divisione casa/trasferta cattura la forza specifica al terreno che un Elo puro non può. Entrambi sono dominati da modelli ML basati su feature complete, ma i Pi-Ratings rimangono una top-3 feature singola in qualsiasi modello 1X2.',
+      },
+      {
+        question: 'Quale tasso di apprendimento usare?',
+        answer:
+          'Il paper originale usava λ ≈ 0,06 e γ = 0,5·λ. Raccomandiamo un grid-search λ ∈ {0,04; 0,05; 0,06; 0,07; 0,08} su una stagione hold-out, ottimizzando RPS o log-loss.',
+      },
+    ],
+    lastUpdated: LAST_UPDATED,
+    datePublished: '2026-04-25',
+  },
 };
 
 export default articles;

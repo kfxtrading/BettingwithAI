@@ -11,8 +11,9 @@ import {
 import {
   GLOSSARY_ENTRIES,
   GLOSSARY_SLUGS,
-  getGlossaryEntry,
-} from '@/content/glossary/en';
+  getLocalizedGlossaryEntries,
+  getLocalizedGlossaryEntry,
+} from '@/content/glossary/index';
 import { locales, type Locale } from '@/lib/i18n';
 
 type PageProps = { params: { locale: Locale; term: string } };
@@ -28,7 +29,7 @@ export function generateStaticParams(): { locale: Locale; term: string }[] {
 }
 
 export function generateMetadata({ params }: PageProps): Metadata {
-  const entry = getGlossaryEntry(params.term);
+  const entry = getLocalizedGlossaryEntry(params.locale, params.term);
   if (!entry) {
     return { title: 'Not found', robots: { index: false, follow: false } };
   }
@@ -43,7 +44,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
 }
 
 export default function GlossaryTermPage({ params }: PageProps) {
-  const entry = getGlossaryEntry(params.term);
+  const entry = getLocalizedGlossaryEntry(params.locale, params.term);
   if (!entry) notFound();
 
   const locale = params.locale;
@@ -82,9 +83,10 @@ export default function GlossaryTermPage({ params }: PageProps) {
     inDefinedTermSet: absoluteUrl(localizedPath(locale, '/glossary')),
   });
 
+  const localeEntries = getLocalizedGlossaryEntries(locale);
   const related = (entry.related ?? [])
-    .map((slug) => GLOSSARY_ENTRIES.find((e) => e.slug === slug))
-    .filter((e): e is (typeof GLOSSARY_ENTRIES)[number] => Boolean(e));
+    .map((slug) => localeEntries.find((e) => e.slug === slug))
+    .filter((e): e is (typeof localeEntries)[number] => Boolean(e));
 
   return (
     <>
