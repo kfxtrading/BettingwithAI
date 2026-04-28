@@ -1,33 +1,42 @@
-"""BL out-of-sample retrain with explicit date cutoff — and persistence.
+"""Per-league out-of-sample retrain with explicit date cutoff + persistence.
 
-Train: every Bundesliga match from data start up to and including 2026-03-01.
-Test:  Bundesliga matches from 2026-03-02 through 2026-04-25 (whatever exists).
+Train: every match for ``--league`` from data start through ``--cutoff``.
+Test:  matches for the same league from ``--cutoff`` + 1 day through
+       ``--test-end`` (whatever exists).
 
 The script
   * trains CatBoost on the date-filtered match list using the production
     ``CatBoostPredictor.fit`` workflow (chronological walk, time-decay
-    weights, last-10% chrono val slice for early stopping, calibrator
-    fitted on val);
-  * persists the trained CatBoost + calibrator + features.txt to the
-    standard ``models/catboost_BL.*`` paths and rewrites
-    ``models/model_profile_BL.json`` to ``model_kind=catboost`` /
-    ``active_members=("catboost",)`` so tomorrow's prediction pipeline
-    picks up THIS model and ignores the now-stale MLP / Sequence
-    artefacts (which were trained on the pre-Sofascore-fix feature set);
+    weights, last-15% chrono val slice for early stopping). Calibration
+    is INTENTIONALLY DISABLED — fitting an isotonic/auto calibrator on
+    a small val slice (~200 matches) overfits and degrades short test
+    windows; raw CatBoost softmax is well-calibrated when train data
+    is plentiful.
+  * persists the trained CatBoost + features.txt to the standard
+    ``models/catboost_{LEAGUE}.*`` paths and rewrites
+    ``models/model_profile_{LEAGUE}.json`` to ``model_kind=catboost`` /
+    ``active_members=("catboost",)`` so the prediction pipeline picks
+    up THIS model and ignores the now-stale MLP / Sequence artefacts
+    (those were trained on the pre-Sofascore-fix feature set).
   * walks the test window chronologically with the trained predictor
-    and reports probabilistic metrics + the same selection-bucket sweep
-    used in ``scripts/selection_experiment_pl.py``.
+    and reports probabilistic metrics + a selection-bucket sweep.
+
+Usage:
+    python scripts/retrain_date_cutoff.py --league BL
+    python scripts/retrain_date_cutoff.py --league PL --cutoff 2026-03-01
+    python scripts/retrain_date_cutoff.py --league PL --test-end 2026-04-25
 
 To re-introduce MLP / Sequence into the ensemble after this retrain:
-    fb train-mlp --league BL
-    fb train-sequence --league BL
-    fb tune-ensemble --league BL --val-season 2024-25 --objective rps
+    fb train-mlp --league {LEAGUE}
+    fb train-sequence --league {LEAGUE}
+    fb tune-ensemble --league {LEAGUE} --val-season 2024-25 --objective rps
 """
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import replace
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
@@ -51,11 +60,11 @@ from football_betting.predict.runtime import (
     stage_sofascore_for_seasons,
 )
 
-LEAGUE = "BL"
 PURPOSE = "1x2"
-CUTOFF = date(2026, 3, 1)
-TEST_END = date(2026, 4, 25)
 WARMUP_GAMES = 100
+DEFAULT_CUTOFF = date(2026, 3, 1)
+DEFAULT_TEST_END = date(2026, 4, 25)
+LEAGUES_ALL = ("PL", "CH", "BL", "SA", "LL")
 
 OUTCOME_TO_INT = {"H": 0, "D": 1, "A": 2}
 START_BANKROLL = 100.0
@@ -63,18 +72,21 @@ START_BANKROLL = 100.0
 
 # ────────────────────────── Production retrain ──────────────────────────
 
-def retrain_and_save() -> tuple[CatBoostPredictor, list, list]:
-    """Train CatBoost on matches ≤ CUTOFF and persist to models/.
-
-    Returns the (in-memory) predictor plus the train+test match lists so
-    the caller can run out-of-sample evaluation without reloading.
+def retrain_and_save(
+    league: str, cutoff: date, test_end: date
+) -> tuple[CatBoostPredictor, list, list]:
+    """Train CatBoost on ``league`` matches ≤ ``cutoff`` and persist to
+    ``models/catboost_{league}.*``. Returns the in-memory predictor plus
+    the train + test match lists so the caller can run out-of-sample
+    evaluation without reloading.
     """
-    matches = load_league(LEAGUE)
+    tag = f"[{league}]"
+    matches = load_league(league)
     matches.sort(key=lambda m: m.date)
-    train_matches = [m for m in matches if m.date <= CUTOFF]
-    test_matches = [m for m in matches if CUTOFF < m.date <= TEST_END]
+    train_matches = [m for m in matches if m.date <= cutoff]
+    test_matches = [m for m in matches if cutoff < m.date <= test_end]
     print(
-        f"[BL] train={len(train_matches)} matches ({train_matches[0].date} → "
+        f"{tag} train={len(train_matches)} matches ({train_matches[0].date} → "
         f"{train_matches[-1].date}); test={len(test_matches)} matches "
         f"({test_matches[0].date if test_matches else '∅'} → "
         f"{test_matches[-1].date if test_matches else '∅'})"
@@ -82,58 +94,44 @@ def retrain_and_save() -> tuple[CatBoostPredictor, list, list]:
 
     fb = make_feature_builder(purpose=PURPOSE)
     seasons = {m.season for m in matches}
-    staged = stage_sofascore_for_seasons(fb, LEAGUE, seasons)
-    print(f"[BL] Sofascore staged: {staged} matches across {len(seasons)} seasons")
+    staged = stage_sofascore_for_seasons(fb, league, seasons)
+    print(f"{tag} Sofascore staged: {staged} matches across {len(seasons)} seasons")
 
     predictor = CatBoostPredictor(feature_builder=fb, purpose=PURPOSE)
-    # NOTE: calibrate=False — fitting an isotonic/auto calibrator on the
-    # last 15% (~201 matches) of training data overfits and degrades the
-    # 55-match test-window performance (verified empirically: hit-rate
-    # 52.7% raw vs 47.3% calibrated; top-pick ROI +33.8% raw vs -15.8%
-    # calibrated). Raw CatBoost softmax probabilities are well-calibrated
-    # enough for the betting layer when training data is plentiful.
-    print("[BL] Training CatBoost on train window (no post-hoc calibration)…")
+    print(f"{tag} Training CatBoost on train window (no post-hoc calibration)…")
     result = predictor.fit(
         train_matches, warmup_games=WARMUP_GAMES, calibrate=False
     )
     print(
-        f"[BL] Trained: n_train={result['n_train']}, n_val={result['n_val']}, "
+        f"{tag} Trained: n_train={result['n_train']}, n_val={result['n_val']}, "
         f"features={result['n_features']}, "
         f"best_iter={result['best_iteration']}"
     )
 
     suffix = artifact_suffix(PURPOSE)
-    model_path = MODELS_DIR / f"catboost_{LEAGUE}{suffix}.cbm"
+    model_path = MODELS_DIR / f"catboost_{league}{suffix}.cbm"
     predictor.save(model_path)
-    print(f"[BL] Saved: {model_path}")
-    print(f"[BL] Saved: {model_path.with_suffix('.features.txt')}")
+    print(f"{tag} Saved: {model_path}")
+    print(f"{tag} Saved: {model_path.with_suffix('.features.txt')}")
     if predictor.calibrator and predictor.calibrator.is_fitted:
-        print(f"[BL] Saved: {model_path.with_suffix('.calibrator.joblib')}")
+        print(f"{tag} Saved: {model_path.with_suffix('.calibrator.joblib')}")
     else:
-        # Remove any stale calibrator from a previous run so the production
-        # loader (CatBoostPredictor.load) doesn't silently apply it.
         stale_cal = model_path.with_suffix(".calibrator.joblib")
         if stale_cal.exists():
             stale_cal.unlink()
-            print(f"[BL] Removed stale calibrator: {stale_cal}")
+            print(f"{tag} Removed stale calibrator: {stale_cal}")
 
-    # Force the profile to CatBoost-only so the production loader does NOT
-    # mix in the now-stale MLP / Sequence artefacts (those were trained on
-    # the pre-Sofascore-fix feature set and should be regenerated before
-    # being reactivated). Keep purpose=1x2.
-    existing = resolve_model_profile(LEAGUE, purpose=PURPOSE)
+    existing = resolve_model_profile(league, purpose=PURPOSE)
     cal_method = (
         predictor.calibrator.cfg.method
         if predictor.calibrator and predictor.calibrator.is_fitted
         else None
     )
     if existing is not None and cal_method is None:
-        # When we explicitly skip calibration, force the profile to record
-        # that — otherwise an old "auto" string lingers and misleads readers.
         existing = replace(existing, calibration_method=None)
     if existing is None:
         new_profile = LeagueModelProfile(
-            league_key=LEAGUE,
+            league_key=league,
             purpose=PURPOSE,
             model_kind="catboost",
             active_members=("catboost",),
@@ -145,17 +143,15 @@ def retrain_and_save() -> tuple[CatBoostPredictor, list, list]:
             model_kind="catboost",
             active_members=("catboost",),
             calibration_method=cal_method,
-            # Preserve any betting overrides if present, drop ensemble-only
-            # fields that no longer apply.
             weight_objective=None,
             weight_blend=None,
         )
     save_model_profile(new_profile)
-    print(f"[BL] Profile rewritten -> {new_profile.model_kind}, "
+    print(f"{tag} Profile rewritten -> {new_profile.model_kind}, "
           f"active={list(new_profile.active_members)}, "
           f"calibration={new_profile.calibration_method}")
 
-    print("\n[BL] Top 15 CatBoost feature importances:")
+    print(f"\n{tag} Top 15 CatBoost feature importances:")
     for feat, imp in result["feature_importance"][:15]:
         print(f"  {imp:6.2f}  {feat}")
 
@@ -306,15 +302,16 @@ def fmt_bets(bets: list[dict[str, Any]], label: str) -> str:
 
 # ────────────────────────── Driver ───────────────────────────────────────
 
-def run() -> None:
-    print(f"=== BL date-cutoff retrain: train ≤ {CUTOFF}, test ≤ {TEST_END} ===\n")
-    predictor, _, test_matches = retrain_and_save()
+def run(league: str, cutoff: date, test_end: date) -> None:
+    tag = f"[{league}]"
+    print(f"=== {league} date-cutoff retrain: train ≤ {cutoff}, test ≤ {test_end} ===\n")
+    predictor, _, test_matches = retrain_and_save(league, cutoff, test_end)
 
     if not test_matches:
         print("\nNo test matches in window — skipping evaluation.")
         return
 
-    print("\n[BL] Walking test window for predictions…")
+    print(f"\n{tag} Walking test window for predictions…")
     cb_probs, po_probs, meta = evaluate_test_window(predictor, test_matches)
     y = np.asarray([OUTCOME_TO_INT[m["actual"]] for m in meta])
     blend = 0.85 * cb_probs + 0.15 * po_probs
@@ -363,5 +360,31 @@ def run() -> None:
         )
 
 
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--league",
+        required=True,
+        choices=LEAGUES_ALL,
+        help="League key (PL/CH/BL/SA/LL).",
+    )
+    parser.add_argument(
+        "--cutoff",
+        default=DEFAULT_CUTOFF.isoformat(),
+        help=f"Train cutoff (inclusive) — YYYY-MM-DD. Default: {DEFAULT_CUTOFF}.",
+    )
+    parser.add_argument(
+        "--test-end",
+        default=DEFAULT_TEST_END.isoformat(),
+        help=f"Test window end (inclusive) — YYYY-MM-DD. Default: {DEFAULT_TEST_END}.",
+    )
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
-    run()
+    args = parse_args()
+    run(
+        league=args.league,
+        cutoff=datetime.strptime(args.cutoff, "%Y-%m-%d").date(),
+        test_end=datetime.strptime(args.test_end, "%Y-%m-%d").date(),
+    )
