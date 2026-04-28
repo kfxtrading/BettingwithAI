@@ -27,12 +27,27 @@ START_BANKROLL = 100.0
 MIN_ODDS_BUCKETS = (1.30, 1.80, 2.00, 2.20, 2.40, 2.60, 2.80, 3.00, 3.50, 4.00)
 
 
-def reconstruct_bets(rows: list[dict], cfg=BETTING_CFG) -> list[dict]:
-    """Walk rows chronologically, simulate the same bet-selection logic the
-    backtest uses, and return one record per placed bet."""
+def reconstruct_bets(
+    rows: list[dict],
+    cfg=BETTING_CFG,
+    *,
+    mode: str = "any",
+    min_edge_override: float | None = None,
+) -> list[dict]:
+    """Walk rows chronologically, simulate bet-selection, return placed bets.
+
+    mode='any':       place bets on every outcome whose edge clears the
+                      threshold (matches BetingConfig defaults — what the
+                      production backtest does today).
+    mode='top_pick':  per match, only consider the argmax-probability
+                      outcome (1 candidate max). Otherwise same filters.
+    min_edge_override: if set, replaces cfg.min_edge for this run (useful
+                      for sweeping the edge gate when testing top-pick).
+    """
     bets = []
     bankroll = START_BANKROLL
     rows_sorted = sorted(rows, key=lambda r: r["date"])
+    edge_floor = cfg.min_edge if min_edge_override is None else min_edge_override
 
     for row in rows_sorted:
         oh, od, oa = row["odds_home"], row["odds_draw"], row["odds_away"]
@@ -40,15 +55,21 @@ def reconstruct_bets(rows: list[dict], cfg=BETTING_CFG) -> list[dict]:
             continue
         mh, md, ma = remove_margin(oh, od, oa, method=cfg.devig_method)
 
-        candidates = [
+        candidates_all = [
             ("H", row["prob_home"], mh, oh, row.get("opening_odds_home")),
             ("D", row["prob_draw"], md, od, row.get("opening_odds_draw")),
             ("A", row["prob_away"], ma, oa, row.get("opening_odds_away")),
         ]
 
+        if mode == "top_pick":
+            top = max(candidates_all, key=lambda c: c[1])
+            candidates = [top]
+        else:
+            candidates = candidates_all
+
         for outcome, model_p, market_p, odds, opening in candidates:
             edge = model_p - market_p
-            if edge < cfg.min_edge:
+            if edge < edge_floor:
                 continue
             if not (cfg.min_odds <= odds <= cfg.max_odds):
                 continue
@@ -187,6 +208,31 @@ def main() -> None:
     for edge_floor in (0.03, 0.05, 0.08, 0.10, 0.15, 0.20):
         filtered = [b for b in all_bets if b["edge"] >= edge_floor]
         print(fmt(summarise(filtered, f"edge >= {edge_floor:.2f}")))
+
+    # ─────────────────────── Option 2: top-pick only ───────────────────────
+    print()
+    print("=" * 80)
+    print("OPTION 2 — Top-pick only (argmax of model probabilities, 1 per match)")
+    print("=" * 80)
+
+    # Sweep the edge floor — including 0.0 to test \"always bet the top pick\"
+    for edge_floor in (0.0, 0.03, 0.05, 0.08, 0.10):
+        bets = reconstruct_bets(rows, mode="top_pick", min_edge_override=edge_floor)
+        print()
+        print(f"--- top_pick, min_edge >= {edge_floor:.2f} (n={len(bets)} bets) ---")
+        print(fmt(summarise(bets, f"top, e>={edge_floor:.2f}")))
+        if not bets:
+            continue
+        for floor in (1.30, 1.80, 2.00, 2.20, 2.40, 2.60, 3.00, 3.50):
+            f_bets = [b for b in bets if b["odds"] >= floor]
+            if f_bets:
+                print(fmt(summarise(f_bets, f"  +odds>={floor:.2f}")))
+        print(f"  --- top-pick odds buckets (edge >= {edge_floor:.2f}) ---")
+        for lo, hi in [(1.30, 1.80), (1.80, 2.20), (2.20, 2.60), (2.60, 3.20),
+                       (3.20, 4.50), (4.50, 8.00)]:
+            f_bets = [b for b in bets if lo <= b["odds"] < hi]
+            if f_bets:
+                print(fmt(summarise(f_bets, f"  [{lo:.2f},{hi:.2f})")))
 
 
 if __name__ == "__main__":
