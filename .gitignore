@@ -44,7 +44,8 @@ data/feature_matrices/
 reports/feature_impact_*.json
 reports/feature_impact_summary.md
 reports/pl_sweep_*.json
-# Sweep artefacts — temp models from PL config sweep, regenerable via
+reports/ll_sweep_*.json
+# Sweep artefacts — temp models from per-league config sweeps, regenerable via
 # scripts/retrain_date_cutoff.py --config <name> --save-as models/sweep/...
 models/sweep/
 # Support FAQ: v3 LLM-paraphrase dataset (39 MB) — reproducible via

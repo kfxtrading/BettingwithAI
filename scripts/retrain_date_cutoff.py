@@ -51,7 +51,42 @@ if str(_THIS_DIR) not in sys.path:
     sys.path.insert(0, str(_THIS_DIR))
 
 from _pl_sweep_configs import CONFIGS as PL_SWEEP_CONFIGS  # noqa: E402
-from _pl_sweep_configs import SweepConfig, get_config  # noqa: E402
+from _pl_sweep_configs import SweepConfig  # noqa: E402
+from _ll_sweep_configs import CONFIGS as LL_SWEEP_CONFIGS  # noqa: E402
+
+# League → sweep registry. CH/SA registries can be added later by mirroring
+# scripts/_pl_sweep_configs.py with league-specific drop_lowimpact entries.
+LEAGUE_SWEEP_REGISTRIES: dict[str, dict[str, SweepConfig]] = {
+    "PL": PL_SWEEP_CONFIGS,
+    "LL": LL_SWEEP_CONFIGS,
+}
+
+
+def _all_sweep_choices() -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for registry in LEAGUE_SWEEP_REGISTRIES.values():
+        for name in registry:
+            if name not in seen:
+                seen.add(name)
+                out.append(name)
+    return sorted(out)
+
+
+def get_config_for(league: str, name: str) -> SweepConfig:
+    league = league.upper()
+    registry = LEAGUE_SWEEP_REGISTRIES.get(league)
+    if registry is None:
+        raise KeyError(
+            f"No sweep registry for league '{league}'. "
+            f"Available leagues: {', '.join(LEAGUE_SWEEP_REGISTRIES)}"
+        )
+    if name not in registry:
+        raise KeyError(
+            f"Unknown sweep config '{name}' for league '{league}'. "
+            f"Available: {', '.join(registry)}"
+        )
+    return registry[name]
 
 from football_betting.betting.kelly import kelly_stake  # noqa: E402
 from football_betting.betting.margin import remove_margin  # noqa: E402
@@ -488,7 +523,10 @@ def run(
                 "per_bet": bets_top,
             },
         }
-        out_path = REPORT_DIR / f"pl_sweep_{sweep.name}.json"
+        # Sweep config names are league-prefixed (pl_*, ll_*, ...) — derive
+        # the per-league report filename from the prefix.
+        prefix = sweep.name.split("_", 1)[0]
+        out_path = REPORT_DIR / f"{prefix}_sweep_{sweep.name}.json"
         out_path.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
         print(f"\n{tag} Sweep report: {out_path}")
 
@@ -514,10 +552,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--config",
         default=None,
-        choices=sorted(PL_SWEEP_CONFIGS.keys()),
-        help="Optional sweep config name (see scripts/_pl_sweep_configs.py). "
-             "Activates feature/catboost/calibration overrides AND writes a "
-             "sweep JSON report. When set together with --save-as the prod "
+        choices=_all_sweep_choices(),
+        help="Optional sweep config name (registries in "
+             "scripts/_{league}_sweep_configs.py — e.g. pl_*, ll_*). "
+             "Must match the --league it's intended for. Activates "
+             "feature/catboost/calibration overrides AND writes a sweep "
+             "JSON report. When set together with --save-as the prod "
              "model_profile is left untouched.",
     )
     parser.add_argument(
@@ -532,7 +572,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
-    sweep = get_config(args.config) if args.config else None
+    sweep = get_config_for(args.league, args.config) if args.config else None
     save_as = Path(args.save_as) if args.save_as else None
     run(
         league=args.league,
