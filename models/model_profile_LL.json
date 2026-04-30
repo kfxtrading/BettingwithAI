@@ -1,15 +1,12 @@
 {
   "league_key": "LL",
   "purpose": "1x2",
-  "model_kind": "ensemble",
+  "model_kind": "catboost",
   "active_members": [
-    "catboost",
-    "poisson",
-    "mlp",
-    "sequence"
+    "catboost"
   ],
-  "calibration_method": "auto",
-  "weight_objective": "clv",
+  "calibration_method": null,
+  "weight_objective": null,
   "weight_blend": null,
   "stacking": false
 }
