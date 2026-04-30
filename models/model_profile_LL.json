@@ -1,9 +1,9 @@
 {
   "league_key": "LL",
   "purpose": "1x2",
-  "model_kind": "catboost",
+  "model_kind": "poisson",
   "active_members": [
-    "catboost"
+    "poisson"
   ],
   "calibration_method": null,
   "weight_objective": null,
